@@ -1,0 +1,158 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Sample SAM Template for Access Endpoints
+
+Mappings:
+    EnvironmentMap:
+      qa:
+        ApiGatewayId: bjomeyg8y0
+        V1Resource: mbsw8v
+      prod:
+        ApiGatewayId: '1111'
+        V1Resource: '1111'
+
+Parameters:
+  Environment:
+    Description: Environment where stack will be deployed
+    Type: String
+    AllowedValues:
+    - qa
+    - prod
+
+Globals:
+  Function:
+    Timeout: 5
+    MemorySize: 512
+
+Resources:
+  AccessResource:
+    Type: 'AWS::ApiGateway::Resource'
+    Properties:
+      RestApiId: !FindInMap [EnvironmentMap, !Ref 'Environment', ApiGatewayId]
+      ParentId: !FindInMap [EnvironmentMap, !Ref 'Environment', V1Resource]
+      PathPart: access
+
+  ## Authenticate
+  AuthenticationResource:
+    Type: 'AWS::ApiGateway::Resource'
+    Properties:
+      RestApiId: !FindInMap [EnvironmentMap, !Ref 'Environment', ApiGatewayId]
+      ParentId: !Ref AccessResource
+      PathPart: authenticate
+  AuthenticationLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: dist/
+      Handler: authentication/app.lambdaHandler
+      Runtime: nodejs22.x
+      Environment:
+        Variables:
+          TABLE_INDEX: ListIndex
+      Policies: 
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+  AuthenticationTrigger:
+      Type: 'AWS::Lambda::Permission'
+      Properties:
+        Action: 'lambda:invokeFunction'
+        FunctionName: !Ref AuthenticationLambda
+        Principal: apigateway.amazonaws.com
+        SourceArn: !Sub 
+          - arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGatewayId}/*/POST/v1/access/authenticate
+          - ApiGatewayId: !FindInMap [EnvironmentMap, !Ref 'Environment', ApiGatewayId]
+  AuthenticationPostMethod:
+    DependsOn: 
+      - AuthenticationTrigger
+    Type: 'AWS::ApiGateway::Method'
+    Properties: 
+      AuthorizationType: NONE
+      HttpMethod: POST
+      ResourceId: !Ref AuthenticationResource
+      RestApiId: !FindInMap [EnvironmentMap, !Ref 'Environment', ApiGatewayId]
+      MethodResponses:
+        - StatusCode: 200
+        - StatusCode: 204
+        - StatusCode: 302
+        - StatusCode: 400
+        - StatusCode: 401
+        - StatusCode: 500
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub 
+          - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+          - LambdaArn: !GetAtt AuthenticationLambda.Arn
+  
+  ## Register
+  RegisterResource:
+    Type: 'AWS::ApiGateway::Resource'
+    Properties:
+      RestApiId: !FindInMap [EnvironmentMap, !Ref 'Environment', ApiGatewayId]
+      ParentId: !Ref AccessResource
+      PathPart: register
+  RegisterLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: dist/
+      Handler: register/app.lambdaHandler
+      Runtime: nodejs22.x
+      Environment:
+        Variables:
+          BUCKET_DATABASE: !Sub ahocultural-database-${Environment}
+      Policies: 
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - Statement:
+            - Sid: S3ObjectsCRUD
+              Effect: Allow
+              Action:
+                - s3:GetObject
+                - s3:GetObjectTagging
+                - s3:PutObject
+                - s3:PutObjectTagging
+                - s3:DeleteObject
+                - s3:DeleteObjectTagging
+                - s3:ListBucket
+              Resource: !Sub 
+                - "arn:aws:s3:::${BucketName}/*"
+                - BucketName: !Sub ahocultural-database-${Environment}
+  RegisterTrigger:
+      Type: 'AWS::Lambda::Permission'
+      Properties:
+        Action: 'lambda:invokeFunction'
+        FunctionName: !Ref RegisterLambda
+        Principal: apigateway.amazonaws.com
+        SourceArn: !Sub 
+          - arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGatewayId}/*/POST/v1/access/register
+          - ApiGatewayId: !FindInMap [EnvironmentMap, !Ref 'Environment', ApiGatewayId]
+  RegisterPostMethod:
+    DependsOn: 
+      - RegisterTrigger
+    Type: 'AWS::ApiGateway::Method'
+    Properties: 
+      AuthorizationType: NONE
+      HttpMethod: POST
+      ResourceId: !Ref RegisterResource
+      RestApiId: !FindInMap [EnvironmentMap, !Ref 'Environment', ApiGatewayId]
+      MethodResponses:
+        - StatusCode: 200
+        - StatusCode: 204
+        - StatusCode: 302
+        - StatusCode: 400
+        - StatusCode: 401
+        - StatusCode: 500
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub 
+          - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+          - LambdaArn: !GetAtt RegisterLambda.Arn
+
+  ## Deployment
+  ApiGatewayDeployment:
+      Type: 'AWS::ApiGateway::Deployment'
+      DependsOn:
+        - AuthenticationPostMethod
+        - RegisterPostMethod
+      Properties:
+        RestApiId: !FindInMap [EnvironmentMap, !Ref 'Environment', ApiGatewayId]
+        StageName: !Ref Environment
