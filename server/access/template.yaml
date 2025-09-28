@@ -8,10 +8,13 @@ Mappings:
       qa:
         ApiGatewayId: bjomeyg8y0
         V1Resource: mbsw8v
+        JwtSecretHash: b63e00f0d6a7c482cc73b6ec7bb93b95c90f45e98c63f6b0d71cb0dcd2480d89db7cf72505c3ad1d49d2e33a7b4e3246
+        JwtExpirationTime: 14400
       prod:
         ApiGatewayId: '1111'
         V1Resource: '1111'
-
+        JwtSecretHash: c6e88f6e2f0d05fa96c8307e56eb2a3b073f71d2d2c774187aae109f1d7edbfa987c05f27c4df4030e2514e51a7e21b5
+        JwtExpirationTime: 14400
 Parameters:
   Environment:
     Description: Environment where stack will be deployed
@@ -48,9 +51,25 @@ Resources:
       Runtime: nodejs22.x
       Environment:
         Variables:
-          TABLE_INDEX: ListIndex
+          BUCKET_DATABASE: !Sub ahocultural-database-${Environment}
+          JWT_SECRET: !FindInMap [EnvironmentMap, !Ref 'Environment', JwtSecretHash]
+          JWT_EXPIRES_IN: !FindInMap [EnvironmentMap, !Ref 'Environment', JwtExpirationTime]
       Policies: 
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - Statement:
+            - Sid: AuthenticationLambdaS3Access
+              Effect: Allow
+              Action:
+                - s3:GetObject
+                - s3:GetObjectTagging
+                - s3:PutObject
+                - s3:PutObjectTagging
+                - s3:DeleteObject
+                - s3:DeleteObjectTagging
+                - s3:ListBucket
+              Resource: 
+                - !Sub 'arn:aws:s3:::ahocultural-database-${Environment}'
+                - !Sub 'arn:aws:s3:::ahocultural-database-${Environment}/*'
   AuthenticationTrigger:
       Type: 'AWS::Lambda::Permission'
       Properties:
@@ -102,7 +121,7 @@ Resources:
       Policies: 
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
         - Statement:
-            - Sid: S3ObjectsCRUD
+            - Sid: RegisterLambdaS3Access
               Effect: Allow
               Action:
                 - s3:GetObject
@@ -112,9 +131,9 @@ Resources:
                 - s3:DeleteObject
                 - s3:DeleteObjectTagging
                 - s3:ListBucket
-              Resource: !Sub 
-                - "arn:aws:s3:::${BucketName}/*"
-                - BucketName: !Sub ahocultural-database-${Environment}
+              Resource: 
+                - !Sub 'arn:aws:s3:::ahocultural-database-${Environment}'
+                - !Sub 'arn:aws:s3:::ahocultural-database-${Environment}/*'
   RegisterTrigger:
       Type: 'AWS::Lambda::Permission'
       Properties:

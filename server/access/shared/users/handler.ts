@@ -6,23 +6,19 @@ import { getUserAsync, upsertUserAsync } from './store'
 import bcrypt from 'bcryptjs'
 
 export async function handleSaveUserAsync(
-  input: UserSaveRequest
+  input: UserSaveRequest,
+  s3Bucket: string
 ): Promise<DefaultResponse> {
-
-  // TODO: AJUSTAR NO FUTURO
-  const bucket = 'ahocultural-database-qa';
-
   let errors: string[] = validateUser(input);
   if(errors.length == 0)
   {
-    const user = await getUserAsync(input.email, bucket);
+    const user = await getUserAsync(input.email, s3Bucket);
     if (!user)
     {
       const userEntity = await toUserEntity(input, {
-        hash: (pwd) => bcrypt.hash(pwd, 12),
-        clock: () => new Date()
+        hash: (pwd) => bcrypt.hash(pwd, 12)
       })
-      const res = await upsertUserAsync(userEntity, bucket);
+      const res = await upsertUserAsync(userEntity, s3Bucket);
       if(res)
         return {
           success: true,

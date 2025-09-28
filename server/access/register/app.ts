@@ -3,6 +3,7 @@ import { tryParseJson } from '../shared/request/parser';
 import { DefaultResponse } from '../shared/response/types';
 import { UserSaveRequest } from '../shared/users/types';
 import { handleSaveUserAsync } from '../shared/users/handler'
+import { config } from './config'
 
 export const lambdaHandler: APIGatewayProxyHandlerV2 = async (event) => {
   const req: UserSaveRequest = tryParseJson<UserSaveRequest>(event.body, {
@@ -14,7 +15,7 @@ export const lambdaHandler: APIGatewayProxyHandlerV2 = async (event) => {
   console.log("Request:", req);
 
   try{
-    const res: DefaultResponse = await handleSaveUserAsync(req);
+    const res: DefaultResponse = await handleSaveUserAsync(req, config.s3.bucket);
 
     return {
       statusCode: res.success ? 200 : 400,

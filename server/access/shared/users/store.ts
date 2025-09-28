@@ -37,13 +37,15 @@ export async function getUserAsync(
                 createdAt: Date;
                 updatedAt: Date;
                 password: string;
+                active: boolean;
             };
             return {
                 email: raw.email,
                 firstName: raw.firstName,
                 createdAt: raw.createdAt,
                 updatedAt: raw.updatedAt,
-                password: raw.password
+                password: raw.password,
+                active: raw.active
             }
         }
     }
