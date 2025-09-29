@@ -1,0 +1,163 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Sample SAM Template for Admin Endpoints
+
+Mappings:
+    EnvironmentMap:
+      qa:
+        ApiGatewayId: bjomeyg8y0
+        V1Resource: mbsw8v
+      prod:
+        ApiGatewayId: '1111'
+        V1Resource: '1111'
+Parameters:
+  Environment:
+    Description: Environment where stack will be deployed
+    Type: String
+    AllowedValues:
+    - qa
+    - prod
+Globals:
+  Function:
+    Timeout: 5
+    MemorySize: 512
+Resources:
+  ## OpenSearch (Free Tier)
+  OpenSearchDomain:
+    Type: AWS::OpenSearchService::Domain
+    Properties:
+      DomainName: !Sub ahocultural-${Environment}         # 3–28 chars
+      EngineVersion: OpenSearch_2.11                     # ajuste se quiser outra versão suportada
+      ClusterConfig:
+        InstanceType: t3.small.search                    # ✅ elegível Free Tier
+        InstanceCount: 1                                 # single-AZ (sem AZ awareness)
+        ZoneAwarenessEnabled: false
+      EBSOptions:
+        EBSEnabled: true
+        VolumeType: gp2                                  # ✅ Free Tier menciona Magnetic / gp2
+        VolumeSize: 10                                   # ✅ 10 GB
+      EncryptionAtRestOptions:
+        Enabled: true
+      NodeToNodeEncryptionOptions:
+        Enabled: true
+      DomainEndpointOptions:
+        EnforceHTTPS: true
+        TLSSecurityPolicy: Policy-Min-TLS-1-2-2019-07
+      # Acesso só por IAM (mesma conta). Se quiser VPC, troque por VPCOptions.
+      AccessPolicies:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: AllowLocal
+            Effect: Allow
+            Principal: '*'
+            # Principal:
+            #   AWS: !Sub arn:aws:iam::${AWS::AccountId}:root
+            Action: "es:*"
+            Resource: !Sub arn:aws:es:${AWS::Region}:${AWS::AccountId}:domain/ahocultural-${Environment}/*
+            Condition:
+              IpAddress:
+                aws:SourceIp:
+                  - '189.34.145.240/32'
+          - Sid: WriteFromLambdaRole
+            Effect: Allow
+            Principal:
+              AWS: !GetAtt CompanyLambdaRole.Arn   # ajuste o Logical ID da Role da sua função
+            Action:
+              - es:*
+            Resource: !Sub arn:aws:es:${AWS::Region}:${AWS::AccountId}:domain/ahocultural-${Environment}/*
+  
+  CompanyQueueDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub 'ahocultural-companies-index-${Environment}-dlq'
+  CompanyQueue:
+    Type: AWS::SQS::Queue
+    DependsOn:
+      - CompanyQueueDLQ
+    Properties:
+      QueueName: !Sub 'ahocultural-companies-index-${Environment}'
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt CompanyQueueDLQ.Arn
+        maxReceiveCount: 2
+      VisibilityTimeout: 30
+      DelaySeconds: 3
+  CompanyQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    DependsOn:
+      - CompanyQueue
+    Properties:
+      PolicyDocument: 
+        Version: '2012-10-17'
+        Statement:
+          Effect: Allow
+          Principal: "*"
+          Action: 
+            - SQS:SendMessage
+            - SQS:GetQueueAttributes
+          Resource: !GetAtt CompanyQueue.Arn
+          Condition: 
+            ArnEquals:
+              aws:SourceArn: !Ref CompanyNotifier
+      Queues:
+        - !GetAtt CompanyQueue.QueueName
+  CompanyNotifier:
+    Type: AWS::SNS::Topic
+  CompanyNotifierSubscription:
+    Type: 'AWS::SNS::Subscription'
+    Properties:
+      TopicArn: !Ref CompanyNotifier
+      Endpoint: !GetAtt CompanyQueue.Arn
+      Protocol: sqs
+      RawMessageDelivery: true
+  CompanyLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: dist/
+      Handler: company/app.lambdaHandler
+      Runtime: nodejs22.x
+      Environment:
+        Variables:
+          BUCKET_DATABASE: !Sub ahocultural-database-${Environment}
+          OPENSEARCH_ENDPOINT: !GetAtt OpenSearchDomain.DomainEndpoint
+          COMPANY_INDEX: companies
+      Policies: 
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - Statement:
+          - Sid: CompanyLambdaIngestorOpenSearch
+            Effect: Allow
+            Action: 
+              - es:*
+            Resource:
+              !Sub arn:aws:es:${AWS::Region}:${AWS::AccountId}:domain/ahocultural-${Environment}*
+        - Statement:
+            - Sid: CompanyLambdaS3Admin
+              Effect: Allow
+              Action:
+                - s3:GetObject
+                - s3:GetObjectTagging
+                - s3:PutObject
+                - s3:PutObjectTagging
+                - s3:DeleteObject
+                - s3:DeleteObjectTagging
+                - s3:ListBucket
+              Resource: 
+                - !Sub 'arn:aws:s3:::ahocultural-database-${Environment}'
+                - !Sub 'arn:aws:s3:::ahocultural-database-${Environment}/*'
+        - Statement:
+          - Sid: CompanyLambdaSQSPermissions
+            Effect: Allow
+            Action:
+              - sqs:ReceiveMessage
+              - sqs:DeleteMessage
+              - sqs:GetQueueAttributes
+              - sqs:ChangeMessageVisibility
+              - sqs:GetQueueUrl
+            Resource: !GetAtt CompanyQueue.Arn
+  CompanyLambdaTrigger:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      BatchSize: 1
+      Enabled: true
+      EventSourceArn: !GetAtt CompanyQueue.Arn
+      FunctionName: !Ref CompanyLambda

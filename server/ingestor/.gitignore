@@ -1,0 +1,24 @@
+# macOS settings file 
+.DS_Store
+
+# Contains all dependencies
+node_modules
+
+# Deploy files
+dist
+
+# Eventually env files
+.env
+.env.*
+
+# Visual Studio Code configuration
+.vscode/
+
+# npm and yarn debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# sam files
+.aws-sam
+deployment.yaml
