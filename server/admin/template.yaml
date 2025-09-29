@@ -147,7 +147,7 @@ Resources:
     Properties: 
       AuthorizationType: NONE
       HttpMethod: PATCH
-      ResourceId: !Ref CompanyResource
+      ResourceId: !Ref CompanyIdResource
       RestApiId: !FindInMap [EnvironmentMap, !Ref 'Environment', ApiGatewayId]
       MethodResponses:
         - StatusCode: 200

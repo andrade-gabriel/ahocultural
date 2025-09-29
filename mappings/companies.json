@@ -1,0 +1,70 @@
+PUT companies
+{
+  "mappings": {
+    "properties": {
+      "id": {
+        "type": "keyword"
+      },
+      "name": {
+        "type": "text",
+        "fields": {
+          "keyword": { "type": "keyword" }
+        }
+      },
+      "street": {
+        "type": "text",
+        "fields": {
+          "keyword": { "type": "keyword" }
+        }
+      },
+      "number": {
+        "type": "keyword"
+      },
+      "complement": {
+        "type": "text",
+        "fields": {
+          "keyword": { "type": "keyword" }
+        }
+      },
+      "district": {
+        "type": "text",
+        "fields": {
+          "keyword": { "type": "keyword" }
+        }
+      },
+      "city": {
+        "type": "text",
+        "fields": {
+          "keyword": { "type": "keyword" }
+        }
+      },
+      "state": {
+        "type": "keyword"
+      },
+      "state_full": {
+        "type": "text",
+        "fields": {
+          "keyword": { "type": "keyword" }
+        }
+      },
+      "postal_code": {
+        "type": "keyword"
+      },
+      "country": {
+        "type": "text",
+        "fields": {
+          "keyword": { "type": "keyword" }
+        }
+      },
+      "country_code": {
+        "type": "keyword"
+      },
+      "geo": {
+        "type": "geo_point"
+      },
+      "active": {
+        "type": "boolean"
+      }
+    }
+  }
+}
