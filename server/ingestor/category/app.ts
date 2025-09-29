@@ -1,12 +1,12 @@
 import type { SQSEvent, SQSHandler, SQSRecord } from "aws-lambda";
-import { CompanyPayload } from "@company/types";
+import { CategoryEntity, CategoryPayload } from "@category/types";
 import { tryParseJson } from "@utils/request/parser";
 import { indexAsync } from "./handler";
 
 export const lambdaHandler: SQSHandler = async (event: SQSEvent) => {
     for (const record of event.Records) {
         try {
-            const req: CompanyPayload = tryParseJson<CompanyPayload>(record.body, {
+            const req: CategoryPayload = tryParseJson<CategoryPayload>(record.body, {
                 id: ""
             });
             if(!req.id)

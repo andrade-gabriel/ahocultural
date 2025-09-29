@@ -11,10 +11,10 @@ export const config = {
     bucket: requireEnv("BUCKET_DATABASE"),
   },
   sns: {
-    companyNotifier: requireEnv("COMPANY_NOTIFIER"),
+    companyTopic: requireEnv("COMPANY_NOTIFIER"),
   },
   elasticsearch: {
     domain: requireEnv("OPENSEARCH_ENDPOINT").replace(/\/+$/, ""),
-    company_index: requireEnv("COMPANY_INDEX")
+    companyIndex: requireEnv("COMPANY_INDEX")
   }
 };

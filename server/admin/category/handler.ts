@@ -1,18 +1,18 @@
-import type { APIGatewayProxyEvent } from 'aws-lambda';
 import { config } from './config'
+import type { APIGatewayProxyEvent } from 'aws-lambda';
 import { tryParseJson } from '@utils/request/parser';
 import { DefaultResponse } from "@utils/response/types"
-import { CompanyEntity, CompanyIndex, CompanyListRequest, CompanyRequest, CompanyToggleRequest } from '@company/types';
-import { validateCompany } from '@company/validator';
-import { toCompanyEntity, toCompanyListRequest, toCompanyRequest } from '@company/mapper';
-import { getCompanyAsync, upsertCompanyAsync } from '@company/store';
-import { notifyAsync } from '@company/notifier';
-import { getAsync } from '@company/indexer';
+import { CategoryEntity, CategoryIndex, CategoryListRequest, CategoryRequest, CategoryToggleRequest } from '@category/types';
+import { validateCategory } from '@category/validator';
+import { toCategoryEntity, toCategoryListRequest, toCategoryRequest } from '@category/mapper';
+import { getCategoryAsync, upsertCategoryAsync } from '@category/store';
+import { notifyAsync } from '@category/notifier';
+import { getAsync } from '@category/indexer';
 
 type HandlerFn = (event: APIGatewayProxyEvent) => Promise<DefaultResponse>;
 const handlerFactory = new Map<string, HandlerFn>([
-    ["/v1/admin/company", listIdHandler],
-    ["/v1/admin/company/{id}", getByIdHandler]
+    ["/v1/admin/category", listIdHandler],
+    ["/v1/admin/category/{id}", getByIdHandler]
 ]);
 
 // Only determines which get will be triggered
@@ -30,11 +30,11 @@ export async function getHandler(event: APIGatewayProxyEvent): Promise<DefaultRe
 export async function getByIdHandler(event: APIGatewayProxyEvent): Promise<DefaultResponse> {
     const id: string | undefined = event.pathParameters?.id;
     if (id) {
-        const companyEntity: CompanyEntity | undefined = await getCompanyAsync(id, config.s3.bucket);
-        if (companyEntity) {
+        const categoryEntity: CategoryEntity | undefined = await getCategoryAsync(id, config.s3.bucket);
+        if (categoryEntity) {
             return {
                 success: true,
-                data: toCompanyRequest(companyEntity)
+                data: toCategoryRequest(categoryEntity)
             };
         }
         return {
@@ -56,8 +56,8 @@ export async function listIdHandler(event: APIGatewayProxyEvent): Promise<Defaul
     const take = qs.take ? parseInt(qs.take, 10) : 10;
     const name = qs.name ? qs.name : null;
 
-    const indexedCompanies: CompanyIndex[] = await getAsync(config, skip, take, name);
-    const companies: CompanyListRequest[] = indexedCompanies.map(indexedCompany => toCompanyListRequest(indexedCompany));
+    const indexedCompanies: CategoryIndex[] = await getAsync(config, skip, take, name);
+    const companies: CategoryListRequest[] = indexedCompanies.map(indexedCategory => toCategoryListRequest(indexedCategory));
     return {
         success: true,
         data: companies
@@ -65,35 +65,20 @@ export async function listIdHandler(event: APIGatewayProxyEvent): Promise<Defaul
 }
 
 export async function postHandler(event: APIGatewayProxyEvent): Promise<DefaultResponse> {
-    const req: CompanyRequest = tryParseJson<CompanyRequest>(event.body, {
+    const req: CategoryRequest = tryParseJson<CategoryRequest>(event.body, {
         id: "",
         name: "",
-        address: {
-            street: "",
-            number: "",
-            complement: "",
-            district: "",
-            city: "",
-            state: "",
-            state_full: "",
-            postal_code: "",
-            country: "",
-            country_code: ""
-        },
-        geo: {
-            lat: null,
-            lng: null
-        },
+        description: "",
         active: true
     });
-    let errors: string[] = validateCompany(req);
+    let errors: string[] = validateCategory(req);
     if (errors.length == 0) {
-        const existingCompanyEntity: CompanyEntity | undefined = await getCompanyAsync(req.id, config.s3.bucket);
-        const companyEntity = await toCompanyEntity(req, existingCompanyEntity);
-        if (!await upsertCompanyAsync(companyEntity, config.s3.bucket))
-            errors = ["Failed to Upsert Company - Please, contact suport."];
+        const existingCategoryEntity: CategoryEntity | undefined = await getCategoryAsync(req.id, config.s3.bucket);
+        const categoryEntity = await toCategoryEntity(req, existingCategoryEntity);
+        if (!await upsertCategoryAsync(categoryEntity, config.s3.bucket))
+            errors = ["Failed to Upsert Category - Please, contact suport."];
         else {
-            if (await notifyAsync(config.sns.companyTopic, {
+            if (await notifyAsync(config.sns.categoryTopic, {
                 id: req.id
             }))
                 return {
@@ -110,7 +95,7 @@ export async function postHandler(event: APIGatewayProxyEvent): Promise<DefaultR
 
 export async function patchHandler(event: APIGatewayProxyEvent): Promise<DefaultResponse> {
     const id: string | undefined = event.pathParameters?.id;
-    const req: CompanyToggleRequest = tryParseJson<CompanyToggleRequest>(event.body, {
+    const req: CategoryToggleRequest = tryParseJson<CategoryToggleRequest>(event.body, {
         active: false
     });
     let errors: string[] = [];
@@ -118,13 +103,13 @@ export async function patchHandler(event: APIGatewayProxyEvent): Promise<Default
         errors.push('Campo `id` deve ser preenchido.');
 
     if (req.active != null && id && errors.length == 0) {
-        const existingCompanyEntity: CompanyEntity | undefined = await getCompanyAsync(id, config.s3.bucket);
-        if (existingCompanyEntity) {
-            existingCompanyEntity.active = req.active;
-            if (!await upsertCompanyAsync(existingCompanyEntity, config.s3.bucket))
-                errors = ["Failed to Upsert Company `" + id + "`- Please, contact suport."];
+        const existingCategoryEntity: CategoryEntity | undefined = await getCategoryAsync(id, config.s3.bucket);
+        if (existingCategoryEntity) {
+            existingCategoryEntity.active = req.active;
+            if (!await upsertCategoryAsync(existingCategoryEntity, config.s3.bucket))
+                errors = ["Failed to Upsert Category `" + id + "`- Please, contact suport."];
             else {
-                if (await notifyAsync(config.sns.companyTopic, {
+                if (await notifyAsync(config.sns.categoryTopic, {
                     id
                 }))
                     return {
@@ -133,7 +118,7 @@ export async function patchHandler(event: APIGatewayProxyEvent): Promise<Default
                     }
             }
         } else
-            errors = ["Empresa `" + id + "` não existe para ser alterada"]
+            errors: ["Empresa `" + id + "` não existe para ser alterada"]
     }
     return {
         success: false,

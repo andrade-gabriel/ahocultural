@@ -58,7 +58,7 @@ Resources:
             Condition:
               IpAddress:
                 aws:SourceIp:
-                  - '189.34.145.240/32'
+                  - '187.74.132.211/32'
           - Sid: WriteFromLambdaRole
             Effect: Allow
             Principal:
@@ -67,6 +67,7 @@ Resources:
               - es:*
             Resource: !Sub arn:aws:es:${AWS::Region}:${AWS::AccountId}:domain/ahocultural-${Environment}/*
   
+  ## Company
   CompanyQueueDLQ:
     Type: AWS::SQS::Queue
     Properties:
@@ -115,7 +116,7 @@ Resources:
   CompanyLambda:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: dist/
+      CodeUri: .dist/
       Handler: company/app.lambdaHandler
       Runtime: nodejs22.x
       Environment:
@@ -163,3 +164,101 @@ Resources:
       Enabled: true
       EventSourceArn: !GetAtt CompanyQueue.Arn
       FunctionName: !Ref CompanyLambda
+
+  ## Category
+  CategoryQueueDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub 'ahocultural-categories-index-${Environment}-dlq'
+  CategoryQueue:
+    Type: AWS::SQS::Queue
+    DependsOn:
+      - CategoryQueueDLQ
+    Properties:
+      QueueName: !Sub 'ahocultural-categories-index-${Environment}'
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt CategoryQueueDLQ.Arn
+        maxReceiveCount: 2
+      VisibilityTimeout: 30
+      DelaySeconds: 3
+  CategoryQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    DependsOn:
+      - CategoryQueue
+    Properties:
+      PolicyDocument: 
+        Version: '2012-10-17'
+        Statement:
+          Effect: Allow
+          Principal: "*"
+          Action: 
+            - SQS:SendMessage
+            - SQS:GetQueueAttributes
+          Resource: !GetAtt CategoryQueue.Arn
+          Condition: 
+            ArnEquals:
+              aws:SourceArn: !Ref CategoryNotifier
+      Queues:
+        - !GetAtt CategoryQueue.QueueName
+  CategoryNotifier:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub 'ahocultural-categories-index-${Environment}'
+  CategoryNotifierSubscription:
+    Type: 'AWS::SNS::Subscription'
+    Properties:
+      TopicArn: !Ref CategoryNotifier
+      Endpoint: !GetAtt CategoryQueue.Arn
+      Protocol: sqs
+      RawMessageDelivery: true
+  CategoryLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .dist/
+      Handler: category/app.lambdaHandler
+      Runtime: nodejs22.x
+      Environment:
+        Variables:
+          BUCKET_DATABASE: !Sub ahocultural-database-${Environment}
+          OPENSEARCH_ENDPOINT: !GetAtt OpenSearchDomain.DomainEndpoint
+          CATEGORY_INDEX: categories
+      Policies: 
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - Statement:
+          - Sid: CategoryLambdaIngestorOpenSearch
+            Effect: Allow
+            Action: 
+              - es:*
+            Resource:
+              !Sub arn:aws:es:${AWS::Region}:${AWS::AccountId}:domain/ahocultural-${Environment}*
+        - Statement:
+            - Sid: CategoryLambdaS3Admin
+              Effect: Allow
+              Action:
+                - s3:GetObject
+                - s3:GetObjectTagging
+                - s3:PutObject
+                - s3:PutObjectTagging
+                - s3:DeleteObject
+                - s3:DeleteObjectTagging
+                - s3:ListBucket
+              Resource: 
+                - !Sub 'arn:aws:s3:::ahocultural-database-${Environment}'
+                - !Sub 'arn:aws:s3:::ahocultural-database-${Environment}/*'
+        - Statement:
+          - Sid: CategoryLambdaSQSPermissions
+            Effect: Allow
+            Action:
+              - sqs:ReceiveMessage
+              - sqs:DeleteMessage
+              - sqs:GetQueueAttributes
+              - sqs:ChangeMessageVisibility
+              - sqs:GetQueueUrl
+            Resource: !GetAtt CategoryQueue.Arn
+  CategoryLambdaTrigger:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      BatchSize: 1
+      Enabled: true
+      EventSourceArn: !GetAtt CategoryQueue.Arn
+      FunctionName: !Ref CategoryLambda

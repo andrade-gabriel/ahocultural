@@ -1,8 +1,8 @@
 import type { APIGatewayProxyHandlerV2 } from 'aws-lambda';
-import { tryParseJson } from '../shared/request/parser';
-import { DefaultResponse } from '../shared/response/types';
-import { UserSaveRequest } from '../shared/users/types';
-import { handleSaveUserAsync } from '../shared/users/handler'
+import { tryParseJson } from '@utils/request/parser'; 
+import { DefaultResponse } from '@utils/response/types';
+import { UserSaveRequest } from '@user/types';
+import { handleSaveUserAsync } from './handler'
 import { config } from './config'
 
 export const lambdaHandler: APIGatewayProxyHandlerV2 = async (event) => {

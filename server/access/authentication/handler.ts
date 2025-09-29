@@ -1,8 +1,8 @@
 import { JwtAuthentication } from './types';
-import { getUserAsync } from '../shared/users/store'
+import { getUserAsync } from '@user/store'
 import bcrypt from 'bcryptjs'
-import jwt from 'jsonwebtoken';
 import { config } from './config'
+import jwt from 'jsonwebtoken';
 
 export async function handleAuthentication(
     email: string,

@@ -4,16 +4,19 @@ S3_BUCKET_QA=ahocultural-sam-artifacts-qa
 S3_BUCKET_PROD=ahocultural-sam-artifacts-prod
 STACK_NAME=AhoCultural-Access
 REGION=us-east-1
+TSCONFIG:=../tsconfig.json
 
 ts:
 	npm install
 	npx esbuild ./register/app.ts \
 		--bundle --platform=node --target=node22 \
-		--outfile=dist/register/app.js
+		--tsconfig=$(TSCONFIG) \
+		--outfile=.dist/register/app.js
 
 	npx esbuild ./authentication/app.ts \
 		--bundle --platform=node --target=node22 \
-		--outfile=dist/authentication/app.js
+		--tsconfig=$(TSCONFIG) \
+		--outfile=.dist/authentication/app.js
 
 build: ts
 	sam build

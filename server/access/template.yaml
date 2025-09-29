@@ -46,7 +46,7 @@ Resources:
   AuthenticationLambda:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: dist/
+      CodeUri: .dist/
       Handler: authentication/app.lambdaHandler
       Runtime: nodejs22.x
       Environment:
@@ -112,7 +112,7 @@ Resources:
   RegisterLambda:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: dist/
+      CodeUri: .dist/
       Handler: register/app.lambdaHandler
       Runtime: nodejs22.x
       Environment:
