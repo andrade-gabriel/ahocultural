@@ -10,4 +10,11 @@ export const config = {
   s3: {
     bucket: requireEnv("BUCKET_DATABASE"),
   },
+  sns: {
+    companyNotifier: requireEnv("COMPANY_NOTIFIER"),
+  },
+  elasticsearch: {
+    domain: requireEnv("OPENSEARCH_ENDPOINT").replace(/\/+$/, ""),
+    company_index: requireEnv("COMPANY_INDEX")
+  }
 };

@@ -45,6 +45,36 @@ export interface CompanyRequest {
     active: boolean;
 }
 
+export interface CompanyIndex {
+  id: string;              // keyword
+  name: string;            // text (full-text search) + keyword (para filtros/sort exato)
+  street: string;          // text + keyword
+  number?: string;         // keyword (exato)
+  complement?: string;     // text + keyword
+  district?: string;       // text + keyword
+  city: string;            // text + keyword
+  state: string;           // keyword (exato)
+  state_full?: string;     // text + keyword
+  postal_code?: string;    // keyword (exato)
+  country: string;         // text + keyword
+  country_code: string;    // keyword (exato)
+  geo: {
+    lat: number;           // parte do geo_point
+    lon: number;           // parte do geo_point (⚠️ ES espera "lon", não "lng")
+  };
+  active: boolean;         // boolean
+}
+
+export interface CompanyListRequest {
+    id: string;
+    name: string;
+    active: boolean;
+}
+
 export interface CompanyToggleRequest {
     active: boolean;
+}
+
+export interface CompanyPayload {
+    id: string;
 }

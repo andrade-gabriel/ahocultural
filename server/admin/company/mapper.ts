@@ -1,4 +1,4 @@
-import { CompanyRequest, CompanyEntity } from "./types";
+import { CompanyRequest, CompanyEntity, CompanyIndex, CompanyListRequest } from "./types";
 
 export function toCompanyEntity(
     input: CompanyRequest,
@@ -54,4 +54,14 @@ export function toCompanyRequest(
         },
         active: input.active
     };
+}
+
+export function toCompanyListRequest(
+    input: CompanyIndex
+) : CompanyListRequest {
+    return {
+        id: input.id,
+        name: input.name,
+        active: input.active
+    }
 }

@@ -8,9 +8,11 @@ Mappings:
       qa:
         ApiGatewayId: bjomeyg8y0
         V1Resource: mbsw8v
+        OpenSearchDomain: search-ahocultural-qa-2o6wra2alh6cjmp6ycl5nzgpvy.us-east-1.es.amazonaws.com
       prod:
         ApiGatewayId: '1111'
         V1Resource: '1111'
+        OpenSearchDomain: '1111'
 Parameters:
   Environment:
     Description: Environment where stack will be deployed
@@ -54,8 +56,18 @@ Resources:
       Environment:
         Variables:
           BUCKET_DATABASE: !Sub ahocultural-database-${Environment}
+          COMPANY_NOTIFIER: !Sub arn:aws:sns:${AWS::Region}:${AWS::AccountId}:ahocultural-companies-index-${Environment}
+          OPENSEARCH_ENDPOINT: !FindInMap [EnvironmentMap, !Ref Environment, OpenSearchDomain]
+          COMPANY_INDEX: companies
       Policies: 
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - Statement:
+          - Sid: CompanyLambdaIngestorOpenSearch
+            Effect: Allow
+            Action: 
+              - es:*
+            Resource:
+              !Sub arn:aws:es:${AWS::Region}:${AWS::AccountId}:domain/ahocultural-${Environment}*
         - Statement:
             - Sid: CompanyLambdaS3Admin
               Effect: Allow
@@ -70,6 +82,13 @@ Resources:
               Resource: 
                 - !Sub 'arn:aws:s3:::ahocultural-database-${Environment}'
                 - !Sub 'arn:aws:s3:::ahocultural-database-${Environment}/*'
+        - Statement:
+            - Sid: CompanyLambdaSnsAdmin
+              Effect: Allow
+              Action:
+                - sns:Publish
+              Resource:
+                - !Sub 'arn:aws:sns:${AWS::Region}:${AWS::AccountId}:ahocultural-companies-index-${Environment}'
   CompanyTrigger:
     Type: 'AWS::Lambda::Permission'
     Properties:

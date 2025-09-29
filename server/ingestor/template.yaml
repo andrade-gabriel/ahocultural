@@ -103,6 +103,8 @@ Resources:
         - !GetAtt CompanyQueue.QueueName
   CompanyNotifier:
     Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub 'ahocultural-companies-index-${Environment}'
   CompanyNotifierSubscription:
     Type: 'AWS::SNS::Subscription'
     Properties:

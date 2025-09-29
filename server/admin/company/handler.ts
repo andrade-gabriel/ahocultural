@@ -1,11 +1,13 @@
 import type { APIGatewayProxyEvent } from 'aws-lambda';
 import { tryParseJson } from '../shared/request/parser';
-import { CompanyEntity, CompanyRequest, CompanyToggleRequest } from './types';
+import { CompanyEntity, CompanyIndex, CompanyListRequest, CompanyRequest, CompanyToggleRequest } from './types';
 import { DefaultResponse } from "../shared/response/types"
 import { validateCompany } from './validator';
-import { toCompanyEntity, toCompanyRequest } from './mapper';
+import { toCompanyEntity, toCompanyListRequest, toCompanyRequest } from './mapper';
 import { getCompanyAsync, upsertCompanyAsync } from './store';
 import { config } from './config'
+import { notifyAsync } from './notifier';
+import { getAsync } from './index';
 
 type HandlerFn = (event: APIGatewayProxyEvent) => Promise<DefaultResponse>;
 const handlerFactory = new Map<string, HandlerFn>([
@@ -48,9 +50,17 @@ export async function getByIdHandler(event: APIGatewayProxyEvent): Promise<Defau
 }
 
 export async function listIdHandler(event: APIGatewayProxyEvent): Promise<DefaultResponse> {
+    const qs = event.queryStringParameters || {};
+
+    const skip = qs.skip ? parseInt(qs.skip, 10) : 0;
+    const take = qs.take ? parseInt(qs.take, 10) : 10;
+    const name = qs.name ? qs.name : null;
+
+    const indexedCompanies: CompanyIndex[] = await getAsync(skip, take, name);
+    const companies: CompanyListRequest[] = indexedCompanies.map(indexedCompany => toCompanyListRequest(indexedCompany));
     return {
         success: true,
-        data: null
+        data: companies
     };
 }
 
@@ -82,11 +92,15 @@ export async function postHandler(event: APIGatewayProxyEvent): Promise<DefaultR
         const companyEntity = await toCompanyEntity(req, existingCompanyEntity);
         if (!await upsertCompanyAsync(companyEntity, config.s3.bucket))
             errors = ["Failed to Upsert Company - Please, contact suport."];
-        else
-            return {
-                success: true,
-                data: true
-            }
+        else {
+            if (await notifyAsync({
+                id: req.id
+            }))
+                return {
+                    success: true,
+                    data: true
+                }
+        }
     }
     return {
         success: false,
@@ -109,11 +123,15 @@ export async function patchHandler(event: APIGatewayProxyEvent): Promise<Default
             existingCompanyEntity.active = req.active;
             if (!await upsertCompanyAsync(existingCompanyEntity, config.s3.bucket))
                 errors = ["Failed to Upsert Company `" + id + "`- Please, contact suport."];
-            else
-                return {
-                    success: true,
-                    data: true
-                }
+            else {
+                if (await notifyAsync({
+                    id
+                }))
+                    return {
+                        success: true,
+                        data: true
+                    }
+            }
         } else
             errors: ["Empresa `" + id + "` não existe para ser alterada"]
     }
