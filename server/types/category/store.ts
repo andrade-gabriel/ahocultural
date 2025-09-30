@@ -2,7 +2,7 @@ import { S3Client, GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3
 import type { CategoryEntity } from "./types";
 
 /** Constant Properties */
-const DEFAULT_PREFIX = "companies";
+const DEFAULT_PREFIX = "categories";
 const amazons3Client = new S3Client({
     region: 'us-east-1'
 });
@@ -31,6 +31,7 @@ export async function getCategoryAsync(
         if (text) {
             const raw = JSON.parse(text) as {
                 id: string;
+                parent_id: string;
                 name: string;
                 description: string;
                 created_at: Date;
@@ -40,6 +41,7 @@ export async function getCategoryAsync(
 
             const category: CategoryEntity = {
                 id: raw.id,
+                parent_id: raw.parent_id,
                 name: raw.name,
                 description: raw.description,
                 created_at: raw.created_at,

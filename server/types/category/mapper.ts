@@ -6,12 +6,13 @@ export function toCategoryEntity(
 ): CategoryEntity {
     const now = new Date();
     return {
-        id: input.id.trim(),
-        name: input.name.trim(),
-        description: input.description,
+        id: input?.id.trim(),
+        parent_id: input?.parent_id,
+        name: input?.name.trim(),
+        description: input?.description,
         created_at: existingCategoryEntity ? existingCategoryEntity.created_at : now,
         updated_at: now,
-        active: input.active
+        active: input?.active
     };
 }
 
@@ -20,6 +21,7 @@ export function toCategoryRequest(
 ): CategoryRequest {
     return {
         id: input.id,
+        parent_id: input.parent_id,
         name: input.name,
         description: input.description,
         active: input.active
@@ -31,6 +33,7 @@ export function toCategoryListRequest(
 ) : CategoryListRequest {
     return {
         id: input.id,
+        parent_id: input.parent_id,
         name: input.name,
         active: input.active
     }
@@ -41,6 +44,7 @@ export function toCategoryIndex(
 ): CategoryIndex {
   return {
     id: input.id.trim(),
+    parent_id: input.parent_id,
     name: input.name.trim(),
     description: input.description,
     active: input.active

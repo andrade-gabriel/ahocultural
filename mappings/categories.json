@@ -5,6 +5,9 @@ PUT categories
       "id": {
         "type": "keyword"
       },
+      "parent_id": {
+        "type": "keyword"
+      },
       "name": {
         "type": "text",
         "fields": {

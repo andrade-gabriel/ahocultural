@@ -44,9 +44,13 @@ export async function getAsync(config: any, skip: number, take: number, name: st
     const base_url = base_path.startsWith("http") ? base_path : `https://${base_path}`;
     const url = new URL(`${base_url}/_search`);
 
-    const query = name
-        ? { match: { name: name } }
-        : { match_all: {} };
+    const must: any[] = [];
+    if (name && name.trim() !== "") {
+        must.push({ match: { name } }); // mantém seu filtro por nome
+    }
+
+    const must_not = [{ exists: { field: "parent_id" } }];
+    const query = { bool: { must, must_not } };
 
     // Corpo da busca com paginação simples
     const body = {

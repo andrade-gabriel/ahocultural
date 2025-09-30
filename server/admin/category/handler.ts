@@ -65,15 +65,16 @@ export async function listIdHandler(event: APIGatewayProxyEvent): Promise<Defaul
 }
 
 export async function postHandler(event: APIGatewayProxyEvent): Promise<DefaultResponse> {
-    const req: CategoryRequest = tryParseJson<CategoryRequest>(event.body, {
+    const req = event.body ? JSON.parse(event.body) : {
         id: "",
+        parent_id: null,
         name: "",
         description: "",
         active: true
-    });
+    };
     let errors: string[] = validateCategory(req);
     if (errors.length == 0) {
-        const existingCategoryEntity: CategoryEntity | undefined = await getCategoryAsync(req.id, config.s3.bucket);
+        const existingCategoryEntity: CategoryEntity | undefined = await getCategoryAsync(req?.id, config.s3.bucket);
         const categoryEntity = await toCategoryEntity(req, existingCategoryEntity);
         if (!await upsertCategoryAsync(categoryEntity, config.s3.bucket))
             errors = ["Failed to Upsert Category - Please, contact suport."];

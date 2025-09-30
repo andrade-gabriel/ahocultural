@@ -1,5 +1,6 @@
 export interface CategoryEntity {
     id: string;
+    parent_id: string | null;
     name: string;
     description: string | null;
     active: boolean;
@@ -9,6 +10,7 @@ export interface CategoryEntity {
 
 export interface CategoryRequest {
     id: string;
+    parent_id: string | null;
     name: string;
     description: string | null;
     active: boolean;
@@ -16,6 +18,7 @@ export interface CategoryRequest {
 
 export interface CategoryIndex {
   id: string;
+  parent_id: string | null;
   name: string;
   description: string | null;
   active: boolean;
@@ -23,6 +26,7 @@ export interface CategoryIndex {
 
 export interface CategoryListRequest {
     id: string;
+    parent_id: string | null;
     name: string;
     active: boolean;
 }
