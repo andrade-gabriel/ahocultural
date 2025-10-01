@@ -1,4 +1,4 @@
-import type { SQSEvent, SQSHandler, SQSRecord } from "aws-lambda";
+import type { SQSEvent, SQSHandler } from "aws-lambda";
 import { CompanyPayload } from "@company/types";
 import { tryParseJson } from "@utils/request/parser";
 import { indexAsync } from "./handler";

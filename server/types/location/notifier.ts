@@ -1,9 +1,9 @@
-import { CategoryPayload } from "./types";
+import { LocationPayload } from "./types";
 import { SNSClient, PublishCommand } from "@aws-sdk/client-sns";
 
 const sns = new SNSClient({ region: 'us-east-1' });
 
-export async function notifyAsync(snsTopic: string, payload: CategoryPayload): Promise<boolean> {
+export async function notifyAsync(snsTopic: string, payload: LocationPayload): Promise<boolean> {
   try {
     const command = new PublishCommand({
       TopicArn: snsTopic,

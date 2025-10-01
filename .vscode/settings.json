@@ -1,0 +1,6 @@
+{
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "typescript.validate.enable": true,
+  "explorer.excludeGitIgnore": true,
+  "typescript.tsserver.experimental.enableProjectDiagnostics": true
+}

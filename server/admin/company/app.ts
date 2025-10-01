@@ -1,4 +1,4 @@
-import type { APIGatewayProxyHandler, APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
+import type { APIGatewayProxyHandler, APIGatewayProxyEvent } from 'aws-lambda';
 import { getHandler, postHandler, patchHandler } from './handler'
 import { DefaultResponse } from '@utils/response/types';
 

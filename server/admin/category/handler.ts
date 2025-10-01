@@ -2,7 +2,7 @@ import { config } from './config'
 import type { APIGatewayProxyEvent } from 'aws-lambda';
 import { tryParseJson } from '@utils/request/parser';
 import { DefaultResponse } from "@utils/response/types"
-import { CategoryEntity, CategoryIndex, CategoryListRequest, CategoryRequest, CategoryToggleRequest } from '@category/types';
+import { CategoryEntity, CategoryIndex, CategoryListRequest, CategoryToggleRequest } from '@category/types';
 import { validateCategory } from '@category/validator';
 import { toCategoryEntity, toCategoryListRequest, toCategoryRequest } from '@category/mapper';
 import { getCategoryAsync, upsertCategoryAsync } from '@category/store';

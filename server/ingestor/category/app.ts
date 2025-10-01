@@ -1,5 +1,5 @@
-import type { SQSEvent, SQSHandler, SQSRecord } from "aws-lambda";
-import { CategoryEntity, CategoryPayload } from "@category/types";
+import type { SQSEvent, SQSHandler } from "aws-lambda";
+import { CategoryPayload } from "@category/types";
 import { tryParseJson } from "@utils/request/parser";
 import { indexAsync } from "./handler";
 

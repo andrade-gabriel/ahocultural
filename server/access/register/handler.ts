@@ -1,4 +1,4 @@
-import { UserSaveRequest, UserEntity } from "@user/types";
+import { UserSaveRequest } from "@user/types";
 import { validateUser } from '@user/validator';
 import { DefaultResponse } from "@utils/response/types"
 import { toUserEntity } from "@user/mapper";

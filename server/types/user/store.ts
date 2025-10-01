@@ -1,5 +1,5 @@
 import { S3Client, GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
-import type { UserEntity, UserGetRequest } from "./types";
+import type { UserEntity } from "./types";
 
 /** Constant Properties */
 const DEFAULT_PREFIX = "users";

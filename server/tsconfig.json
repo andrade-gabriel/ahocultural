@@ -12,7 +12,12 @@
       "@user/*": ["types/user/*"],
       "@category/*": ["types/category/*"],
       "@company/*": ["types/company/*"]
-    }
+    },
+    // Real Warnings
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitReturns": true
   },
   "include": ["**/*.ts"],
   "exclude": ["node_modules", "dist", "artifacts"]

@@ -9,7 +9,7 @@ export async function indexAsync(id: string) : Promise<boolean> {
     if(company)
     {
         const companyIndex: CompanyIndex = toCompanyIndex(company);
-        return await postAsync(companyIndex);
+        return await postAsync(config, companyIndex);
     }
     throw new Error(`Company does not exists: ${id}`);
 } 
