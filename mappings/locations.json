@@ -4,32 +4,23 @@
       "id": {
         "type": "keyword"
       },
-      "name": {
+      "country": {
         "type": "text",
         "fields": {
           "keyword": { "type": "keyword" }
         }
       },
-      "street": {
-        "type": "text",
-        "fields": {
-          "keyword": { "type": "keyword" }
-        }
-      },
-      "number": {
+      "countrySlug": {
         "type": "keyword"
       },
-      "complement": {
+      "state": {
         "type": "text",
         "fields": {
           "keyword": { "type": "keyword" }
         }
       },
-      "district": {
-        "type": "text",
-        "fields": {
-          "keyword": { "type": "keyword" }
-        }
+      "stateSlug": {
+        "type": "keyword"
       },
       "city": {
         "type": "text",
@@ -37,29 +28,15 @@
           "keyword": { "type": "keyword" }
         }
       },
-      "state": {
-        "type": "keyword"
+      "districtsAndSlugs": {
+        "type": "object",
+        "enabled": true
       },
-      "state_full": {
+      "description": {
         "type": "text",
         "fields": {
           "keyword": { "type": "keyword" }
         }
-      },
-      "postal_code": {
-        "type": "keyword"
-      },
-      "country": {
-        "type": "text",
-        "fields": {
-          "keyword": { "type": "keyword" }
-        }
-      },
-      "country_code": {
-        "type": "keyword"
-      },
-      "geo": {
-        "type": "geo_point"
       },
       "active": {
         "type": "boolean"

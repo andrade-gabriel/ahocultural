@@ -8,10 +8,11 @@
     "outDir": "dist",
     "baseUrl": ".",
     "paths": {
-      "@utils/*": ["utils/*"],
-      "@user/*": ["types/user/*"],
-      "@category/*": ["types/category/*"],
-      "@company/*": ["types/company/*"]
+      "@utils/*": ["./utils/*"],
+      "@user/*": ["./types/user/*"],
+      "@category/*": ["./types/category/*"],
+      "@company/*": ["./types/company/*"],
+      "@location/*": ["./types/location/*"]
     },
     // Real Warnings
     "noUnusedLocals": true,

@@ -1,34 +1,46 @@
 export interface LocationEntity {
-    id: string; // slug de city
+    id: string;
     country: string;
+    countrySlug: string;
     state: string;
+    stateSlug: string;
     city: string;
+    citySlug: string;
     districtsAndSlugs: Record<string, string>;
+    description: string;
     active: boolean;
     created_at: Date;
     updated_at: Date;
 }
 
 export interface LocationRequest {
-    id: string; // slug de city
+    id: string;
     country: string;
+    countrySlug: string;
     state: string;
+    stateSlug: string;
     city: string;
+    citySlug: string;
     districtsAndSlugs: Record<string, string>;
+    description: string;
     active: boolean;
 }
 
 export interface LocationIndex {
-    id: string; // slug de city
+    id: string;
     country: string;
+    countrySlug: string;
     state: string;
+    stateSlug: string;
     city: string;
+    citySlug: string;
     districtsAndSlugs: Record<string, string>;
+    description: string;
     active: boolean;
 }
 
 export interface LocationListRequest {
-    id: string; // slug de city
+    id: string;
     country: string;
     state: string;
     city: string;
@@ -36,9 +48,9 @@ export interface LocationListRequest {
 }
 
 export interface LocationToggleRequest {
-    active: boolean; // slug de city
+    active: boolean;
 }
 
 export interface LocationPayload {
-    id: string; // slug de city
+    id: string;
 }

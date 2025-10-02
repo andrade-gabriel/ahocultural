@@ -8,9 +8,13 @@ export function toLocationEntity(
     return {
         id: input.id.toLowerCase().trim(),
         country: input.country,
+        countrySlug: input.countrySlug,
         state: input.state,
+        stateSlug: input.stateSlug,
         city: input.city,
+        citySlug: input.citySlug,
         districtsAndSlugs: input.districtsAndSlugs,
+        description: input.description,
         created_at: existingLocationEntity ? existingLocationEntity.created_at : now,
         updated_at: now,
         active: input?.active
@@ -23,9 +27,13 @@ export function toLocationRequest(
     return {
         id: input.id,
         country: input.country,
+        countrySlug: input.countrySlug,
         state: input.state,
+        stateSlug: input.stateSlug,
         city: input.city,
+        citySlug: input.citySlug,
         districtsAndSlugs: input.districtsAndSlugs,
+        description: input.description,
         active: input.active
     };
 }
@@ -48,9 +56,13 @@ export function toLocationIndex(
     return {
         id: input.id.trim(),
         country: input.country,
+        countrySlug: input.countrySlug,
         state: input.state,
+        stateSlug: input.stateSlug,
         city: input.city,
+        citySlug: input.citySlug,
         districtsAndSlugs: input.districtsAndSlugs,
+        description: input.description,
         active: input.active
     };
 }

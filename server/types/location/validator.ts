@@ -4,19 +4,27 @@ export function validateLocation(
   location: LocationRequest
 ): string[] {
   const errors: string[] = [];
-
-  if (!location.id || location.id.trim().length < 3)
-    errors.push("O campo `id` deve ser um slug válido (mínimo 3 caracteres).");
-
   // country
   if (!location.country || location.country.trim().length < 2)
     errors.push("O campo `country` deve ser informado.");
+
+  // countrySlug
+  if (!location.countrySlug || location.countrySlug.trim().length < 2)
+    errors.push("O campo `countrySlug` deve ser informado.");
 
   // state
   if (!location.state || location.state.trim().length < 2)
     errors.push("O campo `state` deve ser informado.");
 
-  // state
+  // stateSlug
+  if (!location.stateSlug || location.stateSlug.trim().length < 2)
+    errors.push("O campo `stateSlug` deve ser informado.");
+
+  // citySlug
+  if (!location.citySlug || location.citySlug.trim().length < 2)
+    errors.push("O campo `citySlug` deve ser informado.");
+
+  // city
   if (!location.city || location.city.trim().length < 2)
     errors.push("O campo `city` deve ser informado.");
 
