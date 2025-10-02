@@ -626,6 +626,154 @@ Resources:
           - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
           - LambdaArn: !GetAtt ArticleLambda.Arn
 
+  ## Event
+  EventResource:
+    Type: 'AWS::ApiGateway::Resource'
+    Properties:
+      RestApiId: !FindInMap [EnvironmentMap, !Ref 'Environment', ApiGatewayId]
+      ParentId: !Ref AdminResource
+      PathPart: event
+  EventIdResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !FindInMap [EnvironmentMap, !Ref Environment, ApiGatewayId]
+      ParentId:  !Ref EventResource
+      PathPart: '{id}'
+  EventLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .dist/
+      Handler: event/app.lambdaHandler
+      Runtime: nodejs22.x
+      Environment:
+        Variables:
+          BUCKET_DATABASE: !Sub ahocultural-database-${Environment}
+          OPENSEARCH_ENDPOINT: !FindInMap [EnvironmentMap, !Ref Environment, OpenSearchDomain]
+          EVENT_NOTIFIER: !Sub arn:aws:sns:${AWS::Region}:${AWS::AccountId}:ahocultural-events-index-${Environment}
+          EVENT_INDEX: events
+      Policies: 
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - Statement:
+          - Sid: EventLambdaIngestorOpenSearch
+            Effect: Allow
+            Action: 
+              - es:*
+            Resource:
+              !Sub arn:aws:es:${AWS::Region}:${AWS::AccountId}:domain/ahocultural-${Environment}*
+        - Statement:
+            - Sid: EventLambdaS3Admin
+              Effect: Allow
+              Action:
+                - s3:GetObject
+                - s3:GetObjectTagging
+                - s3:PutObject
+                - s3:PutObjectTagging
+                - s3:DeleteObject
+                - s3:DeleteObjectTagging
+                - s3:ListBucket
+              Resource: 
+                - !Sub 'arn:aws:s3:::ahocultural-database-${Environment}'
+                - !Sub 'arn:aws:s3:::ahocultural-database-${Environment}/*'
+        - Statement:
+            - Sid: EventLambdaSnsAdmin
+              Effect: Allow
+              Action:
+                - sns:Publish
+              Resource:
+                - !Sub 'arn:aws:sns:${AWS::Region}:${AWS::AccountId}:ahocultural-events-index-${Environment}'
+  EventTrigger:
+    Type: 'AWS::Lambda::Permission'
+    Properties:
+      Action: 'lambda:invokeFunction'
+      FunctionName: !Ref EventLambda
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 
+        - arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGatewayId}/*/*/v1/admin/event*
+        - ApiGatewayId: !FindInMap [EnvironmentMap, !Ref 'Environment', ApiGatewayId]
+  EventGetByIdMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: GET
+      ResourceId: !Ref EventIdResource
+      RestApiId: !FindInMap [EnvironmentMap, !Ref Environment, ApiGatewayId]
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${EventLambda.Arn}/invocations
+      MethodResponses:
+        - StatusCode: 200
+        - StatusCode: 404
+        - StatusCode: 400
+        - StatusCode: 401
+        - StatusCode: 500
+  EventGetMethod:
+    DependsOn: 
+      - EventTrigger
+    Type: 'AWS::ApiGateway::Method'
+    Properties: 
+      AuthorizationType: NONE
+      HttpMethod: GET
+      ResourceId: !Ref EventResource
+      RestApiId: !FindInMap [EnvironmentMap, !Ref 'Environment', ApiGatewayId]
+      MethodResponses:
+        - StatusCode: 200
+        - StatusCode: 204
+        - StatusCode: 302
+        - StatusCode: 400
+        - StatusCode: 401
+        - StatusCode: 500
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub 
+          - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+          - LambdaArn: !GetAtt EventLambda.Arn
+  EventPostMethod:
+    DependsOn: 
+      - EventTrigger
+    Type: 'AWS::ApiGateway::Method'
+    Properties: 
+      AuthorizationType: NONE
+      HttpMethod: POST
+      ResourceId: !Ref EventResource
+      RestApiId: !FindInMap [EnvironmentMap, !Ref 'Environment', ApiGatewayId]
+      MethodResponses:
+        - StatusCode: 200
+        - StatusCode: 204
+        - StatusCode: 302
+        - StatusCode: 400
+        - StatusCode: 401
+        - StatusCode: 500
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub 
+          - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+          - LambdaArn: !GetAtt EventLambda.Arn
+  EventPatchMethod:
+    DependsOn: 
+      - EventTrigger
+    Type: 'AWS::ApiGateway::Method'
+    Properties: 
+      AuthorizationType: NONE
+      HttpMethod: PATCH
+      ResourceId: !Ref EventIdResource
+      RestApiId: !FindInMap [EnvironmentMap, !Ref 'Environment', ApiGatewayId]
+      MethodResponses:
+        - StatusCode: 200
+        - StatusCode: 204
+        - StatusCode: 302
+        - StatusCode: 400
+        - StatusCode: 401
+        - StatusCode: 500
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub 
+          - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+          - LambdaArn: !GetAtt EventLambda.Arn
+
   ## Deployment
   ApiGatewayDeployment:
       Type: 'AWS::ApiGateway::Deployment'
@@ -646,6 +794,10 @@ Resources:
         - ArticleGetMethod
         - ArticlePostMethod
         - ArticlePatchMethod
+        - EventGetByIdMethod
+        - EventGetMethod
+        - EventPostMethod
+        - EventPatchMethod
       Properties:
         RestApiId: !FindInMap [EnvironmentMap, !Ref 'Environment', ApiGatewayId]
         StageName: !Ref Environment
