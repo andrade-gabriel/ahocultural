@@ -101,7 +101,41 @@ Resources:
         Uri: !Sub 
           - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
           - LambdaArn: !GetAtt AuthenticationLambda.Arn
-  
+
+  ## Authorization
+  AuthorizationLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .dist/
+      Handler: authorization/app.lambdaHandler
+      Runtime: nodejs22.x
+      Environment:
+        Variables:
+          BUCKET_DATABASE: !Sub ahocultural-database-${Environment}
+          JWT_SECRET: !FindInMap [EnvironmentMap, !Ref 'Environment', JwtSecretHash]
+          JWT_EXPIRES_IN: !FindInMap [EnvironmentMap, !Ref 'Environment', JwtExpirationTime]
+      Policies:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+  AuthorizationTrigger:
+      Type: 'AWS::Lambda::Permission'
+      Properties:
+        Action: 'lambda:invokeFunction'
+        FunctionName: !Ref AuthorizationLambda
+        Principal: apigateway.amazonaws.com
+        SourceArn: !Sub 
+          - arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGatewayId}/authorizers/*
+          - ApiGatewayId: !FindInMap [EnvironmentMap, !Ref 'Environment', ApiGatewayId]
+  JwtAuthorizer:
+    Type: AWS::ApiGateway::Authorizer
+    Properties:
+      Name: JwtAuthorizer
+      Type: TOKEN
+      IdentitySource: method.request.header.Authorization
+      RestApiId: !FindInMap [EnvironmentMap, !Ref Environment, ApiGatewayId]
+      AuthorizerUri:
+        Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AuthorizationLambda.Arn}/invocations
+      AuthorizerResultTtlInSeconds: 300
+
   ## Register
   RegisterResource:
     Type: 'AWS::ApiGateway::Resource'

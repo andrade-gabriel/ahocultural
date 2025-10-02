@@ -8,10 +8,12 @@ Mappings:
       qa:
         ApiGatewayId: bjomeyg8y0
         V1Resource: mbsw8v
+        AuthorizerId: 1apnn6
         OpenSearchDomain: search-ahocultural-qa-2o6wra2alh6cjmp6ycl5nzgpvy.us-east-1.es.amazonaws.com
       prod:
         ApiGatewayId: '1111'
         V1Resource: '1111'
+        AuthorizerId: '1111'
         OpenSearchDomain: '1111'
 Parameters:
   Environment:
@@ -101,7 +103,8 @@ Resources:
   CompanyGetByIdMethod:
     Type: AWS::ApiGateway::Method
     Properties:
-      AuthorizationType: NONE
+      AuthorizationType: CUSTOM
+      AuthorizerId: !FindInMap [EnvironmentMap, !Ref 'Environment', AuthorizerId]
       HttpMethod: GET
       ResourceId: !Ref CompanyIdResource
       RestApiId: !FindInMap [EnvironmentMap, !Ref Environment, ApiGatewayId]
@@ -120,7 +123,8 @@ Resources:
       - CompanyTrigger
     Type: 'AWS::ApiGateway::Method'
     Properties: 
-      AuthorizationType: NONE
+      AuthorizationType: CUSTOM
+      AuthorizerId: !FindInMap [EnvironmentMap, !Ref 'Environment', AuthorizerId]
       HttpMethod: GET
       ResourceId: !Ref CompanyResource
       RestApiId: !FindInMap [EnvironmentMap, !Ref 'Environment', ApiGatewayId]
@@ -142,7 +146,8 @@ Resources:
       - CompanyTrigger
     Type: 'AWS::ApiGateway::Method'
     Properties: 
-      AuthorizationType: NONE
+      AuthorizationType: CUSTOM
+      AuthorizerId: !FindInMap [EnvironmentMap, !Ref 'Environment', AuthorizerId]
       HttpMethod: POST
       ResourceId: !Ref CompanyResource
       RestApiId: !FindInMap [EnvironmentMap, !Ref 'Environment', ApiGatewayId]
@@ -164,7 +169,8 @@ Resources:
       - CompanyTrigger
     Type: 'AWS::ApiGateway::Method'
     Properties: 
-      AuthorizationType: NONE
+      AuthorizationType: CUSTOM
+      AuthorizerId: !FindInMap [EnvironmentMap, !Ref 'Environment', AuthorizerId]
       HttpMethod: PATCH
       ResourceId: !Ref CompanyIdResource
       RestApiId: !FindInMap [EnvironmentMap, !Ref 'Environment', ApiGatewayId]
@@ -249,7 +255,8 @@ Resources:
   CategoryGetByIdMethod:
     Type: AWS::ApiGateway::Method
     Properties:
-      AuthorizationType: NONE
+      AuthorizationType: CUSTOM
+      AuthorizerId: !FindInMap [EnvironmentMap, !Ref 'Environment', AuthorizerId]
       HttpMethod: GET
       ResourceId: !Ref CategoryIdResource
       RestApiId: !FindInMap [EnvironmentMap, !Ref Environment, ApiGatewayId]
@@ -268,7 +275,8 @@ Resources:
       - CategoryTrigger
     Type: 'AWS::ApiGateway::Method'
     Properties: 
-      AuthorizationType: NONE
+      AuthorizationType: CUSTOM
+      AuthorizerId: !FindInMap [EnvironmentMap, !Ref 'Environment', AuthorizerId]
       HttpMethod: GET
       ResourceId: !Ref CategoryResource
       RestApiId: !FindInMap [EnvironmentMap, !Ref 'Environment', ApiGatewayId]
@@ -290,7 +298,8 @@ Resources:
       - CategoryTrigger
     Type: 'AWS::ApiGateway::Method'
     Properties: 
-      AuthorizationType: NONE
+      AuthorizationType: CUSTOM
+      AuthorizerId: !FindInMap [EnvironmentMap, !Ref 'Environment', AuthorizerId]
       HttpMethod: POST
       ResourceId: !Ref CategoryResource
       RestApiId: !FindInMap [EnvironmentMap, !Ref 'Environment', ApiGatewayId]
@@ -312,7 +321,8 @@ Resources:
       - CategoryTrigger
     Type: 'AWS::ApiGateway::Method'
     Properties: 
-      AuthorizationType: NONE
+      AuthorizationType: CUSTOM
+      AuthorizerId: !FindInMap [EnvironmentMap, !Ref 'Environment', AuthorizerId]
       HttpMethod: PATCH
       ResourceId: !Ref CategoryIdResource
       RestApiId: !FindInMap [EnvironmentMap, !Ref 'Environment', ApiGatewayId]
@@ -397,7 +407,8 @@ Resources:
   LocationGetByIdMethod:
     Type: AWS::ApiGateway::Method
     Properties:
-      AuthorizationType: NONE
+      AuthorizationType: CUSTOM
+      AuthorizerId: !FindInMap [EnvironmentMap, !Ref 'Environment', AuthorizerId]
       HttpMethod: GET
       ResourceId: !Ref LocationIdResource
       RestApiId: !FindInMap [EnvironmentMap, !Ref Environment, ApiGatewayId]
@@ -416,7 +427,8 @@ Resources:
       - LocationTrigger
     Type: 'AWS::ApiGateway::Method'
     Properties: 
-      AuthorizationType: NONE
+      AuthorizationType: CUSTOM
+      AuthorizerId: !FindInMap [EnvironmentMap, !Ref 'Environment', AuthorizerId]
       HttpMethod: GET
       ResourceId: !Ref LocationResource
       RestApiId: !FindInMap [EnvironmentMap, !Ref 'Environment', ApiGatewayId]
@@ -438,7 +450,8 @@ Resources:
       - LocationTrigger
     Type: 'AWS::ApiGateway::Method'
     Properties: 
-      AuthorizationType: NONE
+      AuthorizationType: CUSTOM
+      AuthorizerId: !FindInMap [EnvironmentMap, !Ref 'Environment', AuthorizerId]
       HttpMethod: POST
       ResourceId: !Ref LocationResource
       RestApiId: !FindInMap [EnvironmentMap, !Ref 'Environment', ApiGatewayId]
@@ -460,7 +473,8 @@ Resources:
       - LocationTrigger
     Type: 'AWS::ApiGateway::Method'
     Properties: 
-      AuthorizationType: NONE
+      AuthorizationType: CUSTOM
+      AuthorizerId: !FindInMap [EnvironmentMap, !Ref 'Environment', AuthorizerId]
       HttpMethod: PATCH
       ResourceId: !Ref LocationIdResource
       RestApiId: !FindInMap [EnvironmentMap, !Ref 'Environment', ApiGatewayId]
@@ -545,7 +559,8 @@ Resources:
   ArticleGetByIdMethod:
     Type: AWS::ApiGateway::Method
     Properties:
-      AuthorizationType: NONE
+      AuthorizationType: CUSTOM
+      AuthorizerId: !FindInMap [EnvironmentMap, !Ref 'Environment', AuthorizerId]
       HttpMethod: GET
       ResourceId: !Ref ArticleIdResource
       RestApiId: !FindInMap [EnvironmentMap, !Ref Environment, ApiGatewayId]
@@ -564,7 +579,8 @@ Resources:
       - ArticleTrigger
     Type: 'AWS::ApiGateway::Method'
     Properties: 
-      AuthorizationType: NONE
+      AuthorizationType: CUSTOM
+      AuthorizerId: !FindInMap [EnvironmentMap, !Ref 'Environment', AuthorizerId]
       HttpMethod: GET
       ResourceId: !Ref ArticleResource
       RestApiId: !FindInMap [EnvironmentMap, !Ref 'Environment', ApiGatewayId]
@@ -586,7 +602,8 @@ Resources:
       - ArticleTrigger
     Type: 'AWS::ApiGateway::Method'
     Properties: 
-      AuthorizationType: NONE
+      AuthorizationType: CUSTOM
+      AuthorizerId: !FindInMap [EnvironmentMap, !Ref 'Environment', AuthorizerId]
       HttpMethod: POST
       ResourceId: !Ref ArticleResource
       RestApiId: !FindInMap [EnvironmentMap, !Ref 'Environment', ApiGatewayId]
@@ -608,7 +625,8 @@ Resources:
       - ArticleTrigger
     Type: 'AWS::ApiGateway::Method'
     Properties: 
-      AuthorizationType: NONE
+      AuthorizationType: CUSTOM
+      AuthorizerId: !FindInMap [EnvironmentMap, !Ref 'Environment', AuthorizerId]
       HttpMethod: PATCH
       ResourceId: !Ref ArticleIdResource
       RestApiId: !FindInMap [EnvironmentMap, !Ref 'Environment', ApiGatewayId]
@@ -693,7 +711,8 @@ Resources:
   EventGetByIdMethod:
     Type: AWS::ApiGateway::Method
     Properties:
-      AuthorizationType: NONE
+      AuthorizationType: CUSTOM
+      AuthorizerId: !FindInMap [EnvironmentMap, !Ref 'Environment', AuthorizerId]
       HttpMethod: GET
       ResourceId: !Ref EventIdResource
       RestApiId: !FindInMap [EnvironmentMap, !Ref Environment, ApiGatewayId]
@@ -712,7 +731,8 @@ Resources:
       - EventTrigger
     Type: 'AWS::ApiGateway::Method'
     Properties: 
-      AuthorizationType: NONE
+      AuthorizationType: CUSTOM
+      AuthorizerId: !FindInMap [EnvironmentMap, !Ref 'Environment', AuthorizerId]
       HttpMethod: GET
       ResourceId: !Ref EventResource
       RestApiId: !FindInMap [EnvironmentMap, !Ref 'Environment', ApiGatewayId]
@@ -734,7 +754,8 @@ Resources:
       - EventTrigger
     Type: 'AWS::ApiGateway::Method'
     Properties: 
-      AuthorizationType: NONE
+      AuthorizationType: CUSTOM
+      AuthorizerId: !FindInMap [EnvironmentMap, !Ref 'Environment', AuthorizerId]
       HttpMethod: POST
       ResourceId: !Ref EventResource
       RestApiId: !FindInMap [EnvironmentMap, !Ref 'Environment', ApiGatewayId]
@@ -756,7 +777,8 @@ Resources:
       - EventTrigger
     Type: 'AWS::ApiGateway::Method'
     Properties: 
-      AuthorizationType: NONE
+      AuthorizationType: CUSTOM
+      AuthorizerId: !FindInMap [EnvironmentMap, !Ref 'Environment', AuthorizerId]
       HttpMethod: PATCH
       ResourceId: !Ref EventIdResource
       RestApiId: !FindInMap [EnvironmentMap, !Ref 'Environment', ApiGatewayId]

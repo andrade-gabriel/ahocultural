@@ -18,6 +18,11 @@ ts:
 		--tsconfig=$(TSCONFIG) \
 		--outfile=.dist/authentication/app.js
 
+	npx esbuild ./authorization/app.ts \
+		--bundle --platform=node --target=node22 \
+		--tsconfig=$(TSCONFIG) \
+		--outfile=.dist/authorization/app.js
+
 build: ts
 	sam build
 
