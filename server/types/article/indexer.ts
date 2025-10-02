@@ -1,5 +1,5 @@
 // indexClient.ts
-import { LocationIndex } from "./types";
+import { ArticleIndex } from "./types";
 
 // AWS SDK v3 – assinatura SigV4
 import { SignatureV4 } from "@aws-sdk/signature-v4";
@@ -38,7 +38,7 @@ async function signedFetchEs(url: URL, method: string, bodyObj?: unknown) {
     });
 }
 
-export async function getAsync(config: any, skip: number, take: number, name: string | null): Promise<LocationIndex[]> {
+export async function getAsync(config: any, skip: number, take: number, name: string | null): Promise<ArticleIndex[]> {
     // Monta a URL para /_search do índice
     const base_path = `${config.elasticsearch.domain}/${config.elasticsearch.articleIndex}`;
     const base_url = base_path.startsWith("http") ? base_path : `https://${base_path}`;
@@ -70,25 +70,24 @@ export async function getAsync(config: any, skip: number, take: number, name: st
         };
     };
 
-    const json = (await resp.json()) as EsSearchResponse<LocationIndex>;
+    const json = (await resp.json()) as EsSearchResponse<ArticleIndex>;
 
     const results =
-        json?.hits?.hits?.map(h => h._source).filter((x): x is LocationIndex => !!x) ?? [];
+        json?.hits?.hits?.map(h => h._source).filter((x): x is ArticleIndex => !!x) ?? [];
 
     return results;
 }
 
 
-export async function postAsync(config: any, doc: LocationIndex): Promise<boolean> {
-    if (!doc?.id && !doc?.countrySlug && !doc?.stateSlug)
+export async function postAsync(config: any, doc: ArticleIndex): Promise<boolean> {
+    if (!doc?.id)
         throw new Error("`id` é obrigatório.");
 
-    const id = `${doc.countrySlug}-${doc.stateSlug}-${doc.id}`
     // Monta a URL para /_search do índice
     const base_path = `${config.elasticsearch.domain}/${config.elasticsearch.articleIndex}`;
     const base_url = base_path.startsWith("http") ? base_path : `https://${base_path}`;
 
-    const url = new URL(`${base_url}/_doc/${encodeURIComponent(id)}`)
+    const url = new URL(`${base_url}/_doc/${encodeURIComponent(doc.id)}`)
     const res = await signedFetchEs(url, "PUT", doc);
 
     console.log('url', url);

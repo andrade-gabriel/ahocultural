@@ -12,7 +12,8 @@
       "@user/*": ["./types/user/*"],
       "@category/*": ["./types/category/*"],
       "@company/*": ["./types/company/*"],
-      "@location/*": ["./types/location/*"]
+      "@location/*": ["./types/location/*"],
+      "@article/*": ["./types/article/*"],
     },
     // Real Warnings
     "noUnusedLocals": true,

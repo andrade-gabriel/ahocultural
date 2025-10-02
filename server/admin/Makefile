@@ -23,6 +23,11 @@ ts:
 		--tsconfig=$(TSCONFIG) \
 		--outfile=.dist/location/app.js
 
+	npx esbuild ./article/app.ts \
+		--bundle --platform=node --target=node22 \
+		--tsconfig=$(TSCONFIG) \
+		--outfile=.dist/article/app.js
+
 build: ts
 	sam build
 

@@ -1,0 +1,33 @@
+{
+  "mappings": {
+    "properties": {
+      "id": {
+        "type": "keyword"
+      },
+      "title": {
+        "type": "text",
+        "fields": {
+          "keyword": { "type": "keyword" }
+        }
+      },
+      "imageUrl": {
+        "type": "keyword"
+      },
+      "situation": {
+        "type": "integer"
+      },
+      "publicationDate": {
+        "type": "date"
+      },
+      "active": {
+        "type": "boolean"
+      },
+      "created_at": {
+        "type": "date"
+      },
+      "updated_at": {
+        "type": "date"
+      }
+    }
+  }
+}

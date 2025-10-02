@@ -360,3 +360,101 @@ Resources:
       Enabled: true
       EventSourceArn: !GetAtt LocationQueue.Arn
       FunctionName: !Ref LocationLambda
+
+  ## Article
+  ArticleQueueDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub 'ahocultural-articles-index-${Environment}-dlq'
+  ArticleQueue:
+    Type: AWS::SQS::Queue
+    DependsOn:
+      - ArticleQueueDLQ
+    Properties:
+      QueueName: !Sub 'ahocultural-articles-index-${Environment}'
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt ArticleQueueDLQ.Arn
+        maxReceiveCount: 2
+      VisibilityTimeout: 30
+      DelaySeconds: 3
+  ArticleQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    DependsOn:
+      - ArticleQueue
+    Properties:
+      PolicyDocument: 
+        Version: '2012-10-17'
+        Statement:
+          Effect: Allow
+          Principal: "*"
+          Action: 
+            - SQS:SendMessage
+            - SQS:GetQueueAttributes
+          Resource: !GetAtt ArticleQueue.Arn
+          Condition: 
+            ArnEquals:
+              aws:SourceArn: !Ref ArticleNotifier
+      Queues:
+        - !GetAtt ArticleQueue.QueueName
+  ArticleNotifier:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub 'ahocultural-articles-index-${Environment}'
+  ArticleNotifierSubscription:
+    Type: 'AWS::SNS::Subscription'
+    Properties:
+      TopicArn: !Ref ArticleNotifier
+      Endpoint: !GetAtt ArticleQueue.Arn
+      Protocol: sqs
+      RawMessageDelivery: true
+  ArticleLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .dist/
+      Handler: article/app.lambdaHandler
+      Runtime: nodejs22.x
+      Environment:
+        Variables:
+          BUCKET_DATABASE: !Sub ahocultural-database-${Environment}
+          OPENSEARCH_ENDPOINT: !GetAtt OpenSearchDomain.DomainEndpoint
+          ARTICLE_INDEX: articles
+      Policies: 
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - Statement:
+          - Sid: ArticleLambdaIngestorOpenSearch
+            Effect: Allow
+            Action: 
+              - es:*
+            Resource:
+              !Sub arn:aws:es:${AWS::Region}:${AWS::AccountId}:domain/ahocultural-${Environment}*
+        - Statement:
+            - Sid: ArticleLambdaS3Admin
+              Effect: Allow
+              Action:
+                - s3:GetObject
+                - s3:GetObjectTagging
+                - s3:PutObject
+                - s3:PutObjectTagging
+                - s3:DeleteObject
+                - s3:DeleteObjectTagging
+                - s3:ListBucket
+              Resource: 
+                - !Sub 'arn:aws:s3:::ahocultural-database-${Environment}'
+                - !Sub 'arn:aws:s3:::ahocultural-database-${Environment}/*'
+        - Statement:
+          - Sid: ArticleLambdaSQSPermissions
+            Effect: Allow
+            Action:
+              - sqs:ReceiveMessage
+              - sqs:DeleteMessage
+              - sqs:GetQueueAttributes
+              - sqs:ChangeMessageVisibility
+              - sqs:GetQueueUrl
+            Resource: !GetAtt ArticleQueue.Arn
+  ArticleLambdaTrigger:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      BatchSize: 1
+      Enabled: true
+      EventSourceArn: !GetAtt ArticleQueue.Arn
+      FunctionName: !Ref ArticleLambda
