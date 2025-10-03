@@ -19,13 +19,23 @@ export const lambdaHandler: APIGatewayProxyHandlerV2 = async (event) => {
 
     return {
       statusCode: res.success ? 200 : 400,
-      headers: { 'content-type': 'application/json' },
+      headers: {
+      'content-type': 'application/json',
+      'access-control-allow-origin': '*',
+      'access-control-allow-headers': '*',
+      'access-control-allow-methods': '*'
+    },
       body: JSON.stringify(res),
     };
   } catch(e){
     return {
       statusCode: 500,
-      headers: { 'content-type': 'application/json' },
+      headers: {
+      'content-type': 'application/json',
+      'access-control-allow-origin': '*',
+      'access-control-allow-headers': '*',
+      'access-control-allow-methods': '*'
+    },
       body: "Internal Server Error!",
     };
   }

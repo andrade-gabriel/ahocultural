@@ -16,7 +16,12 @@ export const lambdaHandler: APIGatewayProxyHandlerV2 = async (event) => {
       if (jwt) {
         return {
           statusCode: 200,
-          headers: { 'content-type': 'application/json' },
+          headers: {
+            'content-type': 'application/json',
+            'access-control-allow-origin': '*',
+            'access-control-allow-headers': '*',
+            'access-control-allow-methods': '*'
+          },
           body: JSON.stringify(jwt),
         };
       }
@@ -24,7 +29,12 @@ export const lambdaHandler: APIGatewayProxyHandlerV2 = async (event) => {
   }
   return {
     statusCode: 401,
-    headers: { 'content-type': 'application/json' },
+    headers: {
+      'content-type': 'application/json',
+      'access-control-allow-origin': '*',
+      'access-control-allow-headers': '*',
+      'access-control-allow-methods': '*'
+    },
     body: '',
   };
 };
