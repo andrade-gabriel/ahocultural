@@ -56,7 +56,7 @@ export function AppSidebar() {
   return (
     <Sidebar variant="inset" collapsible="icon">
       <SidebarHeader className="text-center">
-        AHO Cultural
+        Portal Administrativo
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>

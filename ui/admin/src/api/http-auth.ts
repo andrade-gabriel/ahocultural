@@ -46,7 +46,7 @@ httpAuth.interceptors.response.use(
   (resp) => resp,
   (error) => {
     if (error?.response?.status === 401) {
-      clearAuthToken();
+      clearToken();
       window.location.href = "/access";
     }
     return Promise.reject(error);

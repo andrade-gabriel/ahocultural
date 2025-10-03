@@ -7,7 +7,7 @@ import {
   useCallback,
   useRef,
 } from "react";
-import { Link } from 'react-router';
+import { Link } from "react-router";
 import type { PropsWithChildren } from "react";
 import { listCompanies, type Company, updateCompanyActivity } from "@/api/company";
 
@@ -16,11 +16,20 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Loader2, RefreshCcw, ChevronLeft, ChevronRight, Building2 } from "lucide-react";
 
 /* =========================
@@ -37,7 +46,7 @@ type CompanyContextShape = {
   search: string;
   hasNextPage: boolean;
   mutating: Set<string>;
-  toggleActivity: (id: string) => Promise<void>;
+  toggleActivity: (id: string, next?: boolean) => Promise<void>; // aceita próximo estado
   setSearch: (v: string) => void;
   setPageSize: (take: number) => void;
   nextPage: () => void;
@@ -96,36 +105,37 @@ function CompanyProvider({ children }: PropsWithChildren) {
     setParams((p) => (p.search === newSearch ? p : { ...p, search: newSearch, skip: 0 }));
   }, [debouncedSearch]);
 
-  const toggleActivity = useCallback(async (id: string) => {
-    // se já está salvando essa linha, ignore
-    if (mutating.has(id)) return;
+  const toggleActivity = useCallback(
+    async (id: string, nextFromCaller?: boolean) => {
+      if (mutating.has(id)) return;
 
-    // acha o atual
-    const current = items.find((c) => c.id === id)?.active;
-    if (typeof current !== "boolean") return;
+      const current = items.find((c) => c.id === id)?.active;
+      if (typeof current !== "boolean") return;
 
-    const next = !current;
+      const next = nextFromCaller ?? !current;
 
-    // otimista
-    setMutating((s) => new Set(s).add(id));
-    setItems((prev) => prev.map((c) => (c.id === id ? { ...c, active: next } : c)));
+      // otimista
+      setMutating((s) => new Set(s).add(id));
+      setItems((prev) => prev.map((c) => (c.id === id ? { ...c, active: next } : c)));
 
-    try {
-      await updateCompanyActivity(id, next);
-      // ok (mantém otimista)
-    } catch (e) {
-      // reverte
-      setItems((prev) => prev.map((c) => (c.id === id ? { ...c, active: current } : c)));
-      const msg = e instanceof Error ? e.message : "Não foi possível atualizar a empresa.";
-      setError(msg);
-    } finally {
-      setMutating((s) => {
-        const n = new Set(s);
-        n.delete(id);
-        return n;
-      });
-    }
-  }, [items, mutating]);
+      try {
+        await updateCompanyActivity(id, next);
+        // mantém otimista
+      } catch (e) {
+        // reverte
+        setItems((prev) => prev.map((c) => (c.id === id ? { ...c, active: current } : c)));
+        const msg = e instanceof Error ? e.message : "Não foi possível atualizar a empresa.";
+        setError(msg);
+      } finally {
+        setMutating((s) => {
+          const n = new Set(s);
+          n.delete(id);
+          return n;
+        });
+      }
+    },
+    [items, mutating]
+  );
 
   const fetchData = useCallback(async () => {
     // cancela a anterior
@@ -168,22 +178,25 @@ function CompanyProvider({ children }: PropsWithChildren) {
     return () => abortRef.current?.abort();
   }, [fetchData]);
 
-  const value = useMemo<CompanyContextShape>(() => ({
-    items,
-    loading,
-    error,
-    params,
-    search: searchInput,
-    mutating: mutating,
-    toggleActivity: toggleActivity,
-    hasNextPage,
-    setSearch: (v: string) => setSearchInput(v),
-    setPageSize: (take: number) =>
-      setParams((p) => ({ ...p, take: Math.max(1, take), skip: 0 })),
-    nextPage: () => setParams((p) => ({ ...p, skip: p.skip + p.take })),
-    prevPage: () => setParams((p) => ({ ...p, skip: Math.max(0, p.skip - p.take) })),
-    refresh: fetchData,
-  }), [items, loading, error, params, hasNextPage, searchInput, fetchData, mutating, toggleActivity]);
+  const value = useMemo<CompanyContextShape>(
+    () => ({
+      items,
+      loading,
+      error,
+      params,
+      search: searchInput,
+      mutating,
+      toggleActivity, // expõe com next opcional
+      hasNextPage,
+      setSearch: (v: string) => setSearchInput(v),
+      setPageSize: (take: number) =>
+        setParams((p) => ({ ...p, take: Math.max(1, take), skip: 0 })),
+      nextPage: () => setParams((p) => ({ ...p, skip: p.skip + p.take })),
+      prevPage: () => setParams((p) => ({ ...p, skip: Math.max(0, p.skip - p.take) })),
+      refresh: fetchData,
+    }),
+    [items, loading, error, params, hasNextPage, searchInput, fetchData, mutating, toggleActivity]
+  );
 
   return <CompanyContext.Provider value={value}>{children}</CompanyContext.Provider>;
 }
@@ -218,10 +231,19 @@ function Toolbar() {
           onChange={(e) => setPageSize(Number(e.target.value))}
         >
           {[5, 10, 20, 50].map((n) => (
-            <option key={n} value={n}>{n}/página</option>
+            <option key={n} value={n}>
+              {n}/página
+            </option>
           ))}
         </select>
-        <Button type="button" variant="outline" size="sm" onClick={refresh} disabled={loading} className="gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={refresh}
+          disabled={loading}
+          className="gap-2"
+        >
           <RefreshCcw className="h-4 w-4" />
           Atualizar
         </Button>
@@ -232,6 +254,28 @@ function Toolbar() {
 
 function CompaniesTable() {
   const { items, loading, error, mutating, toggleActivity } = useCompaniesContext();
+
+  // estado do modal
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [targetId, setTargetId] = useState<string | null>(null);
+  const [targetName, setTargetName] = useState<string>("");
+  const [nextActive, setNextActive] = useState<boolean | null>(null);
+
+  function askToggleConfirm(company: Company) {
+    setTargetId(company.id);
+    setTargetName(company.name);
+    setNextActive(!company.active);
+    setConfirmOpen(true);
+  }
+
+  async function confirmToggle() {
+    if (!targetId || nextActive == null) {
+      setConfirmOpen(false);
+      return;
+    }
+    await toggleActivity(targetId, nextActive);
+    setConfirmOpen(false);
+  }
 
   if (error) {
     return (
@@ -257,42 +301,66 @@ function CompaniesTable() {
   }
 
   if (!loading && items.length === 0) {
-    return <div className="py-8 text-center text-sm text-muted-foreground">Nenhuma empresa encontrada.</div>;
+    return (
+      <div className="py-8 text-center text-sm text-muted-foreground">
+        Nenhuma empresa encontrada.
+      </div>
+    );
   }
 
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead className="w-[160px]">Slug</TableHead>
-          <TableHead>Nome</TableHead>
-          <TableHead className="w-[120px]"></TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {items.map((c) => {
-          const isSaving = mutating.has(c.id);
-          return (
-            <TableRow key={c.id}>
-              <TableCell className="font-mono text-xs text-muted-foreground">{c.id}</TableCell>
-              <TableCell className="font-medium underline">
-                <Link to={`/company/${c.id}`}>
-                  {c.name}
-                </Link>
-              </TableCell>
-              <TableCell>
-                <Switch
-                  checked={c.active}
-                  onCheckedChange={() => toggleActivity(c.id)}
-                  disabled={isSaving || loading}
-                  aria-label={`Ativar/desativar ${c.name}`}
-                />
-              </TableCell>
-            </TableRow>
-          )
-        })}
-      </TableBody>
-    </Table>
+    <>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="w-[160px]">Slug</TableHead>
+            <TableHead>Nome</TableHead>
+            <TableHead className="w-[120px]"></TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {items.map((c) => {
+            const isSaving = mutating.has(c.id);
+            return (
+              <TableRow key={c.id}>
+                <TableCell className="font-mono text-xs text-muted-foreground">{c.id}</TableCell>
+                <TableCell className="font-medium underline">
+                  <Link to={`/company/${c.id}`}>{c.name}</Link>
+                </TableCell>
+                <TableCell>
+                  <Switch
+                    checked={c.active}
+                    onCheckedChange={() => askToggleConfirm(c)} // abre modal
+                    disabled={isSaving || loading}
+                    aria-label={`Ativar/desativar ${c.name}`}
+                  />
+                </TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {nextActive ? "Ativar empresa?" : "Desativar empresa?"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {nextActive
+                ? `Confirma ativar "${targetName}"? Ela ficará visível e utilizável no painel.`
+                : `Confirma desativar "${targetName}"? Usuários podem perder acesso a recursos desta empresa.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmToggle}>
+              {nextActive ? "Ativar" : "Desativar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
 
@@ -306,11 +374,25 @@ function Pagination() {
         Página <span className="font-medium">{page}</span>
       </div>
       <div className="flex items-center gap-2">
-        <Button type="button" variant="outline" size="sm" onClick={prevPage} disabled={loading || params.skip === 0} className="gap-1">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={prevPage}
+          disabled={loading || params.skip === 0}
+          className="gap-1"
+        >
           <ChevronLeft className="h-4 w-4" />
           Anterior
         </Button>
-        <Button type="button" variant="outline" size="sm" onClick={nextPage} disabled={loading || !hasNextPage} className="gap-1">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={nextPage}
+          disabled={loading || !hasNextPage}
+          className="gap-1"
+        >
           Próxima <ChevronRight className="h-4 w-4" />
         </Button>
       </div>
