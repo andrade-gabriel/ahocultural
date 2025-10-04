@@ -1,11 +1,12 @@
 import type { APIGatewayProxyHandler, APIGatewayProxyEvent } from 'aws-lambda';
-import { getHandler, postHandler, patchHandler } from './handler'
+import { getHandler, postHandler, patchHandler, putHandler } from './handler'
 import { DefaultResponse } from '@utils/response/types';
 
 type HandlerFn = (event: APIGatewayProxyEvent) => Promise<DefaultResponse>;
 const handlerFactory = new Map<string, HandlerFn>([
     ["get", getHandler],
     ["post", postHandler],
+    ["put", putHandler],
     ["patch", patchHandler],
 ]);
 

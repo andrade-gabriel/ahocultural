@@ -4,9 +4,9 @@ export function validateArticle(
   article: ArticleRequest
 ): string[] {
   const errors: string[] = [];
-  // id
-  if (!article.id || article.id.trim().length < 2)
-    errors.push("O campo `id` deve ser informado.");
+  // slug
+  if (!article.slug || article.slug.trim().length < 2)
+    errors.push("O campo `slug` deve ser informado.");
 
   // title
   if (!article.title || article.title.trim().length < 2)

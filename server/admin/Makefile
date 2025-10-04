@@ -40,7 +40,7 @@ package-qa:
 	sam package --output-template-file deployment.yaml --s3-bucket $(S3_BUCKET_QA) --profile AHO
 
 deploy-qa:
-	sam deploy --template-file deployment.yaml --region $(REGION) --capabilities CAPABILITY_IAM --stack-name $(STACK_NAME)-Qa --parameter-overrides Environment=qa --profile AHO
+	sam deploy --template-file deployment.yaml --region $(REGION) --capabilities CAPABILITY_IAM --s3-bucket $(S3_BUCKET_QA) --stack-name $(STACK_NAME)-Qa --parameter-overrides Environment=qa --profile AHO
 
 qa: build package-qa deploy-qa
 
@@ -48,6 +48,6 @@ package-prod:
 	sam package --output-template-file deployment.yaml --s3-bucket $(S3_BUCKET_PROD) --profile AHO
 
 deploy-prod:
-	sam deploy --template-file deployment.yaml --region $(REGION) --capabilities CAPABILITY_IAM --stack-name $(STACK_NAME)-Prod --parameter-overrides Environment=prod --profile AHO
+	sam deploy --template-file deployment.yaml --region $(REGION) --capabilities CAPABILITY_IAM --s3-bucket $(S3_BUCKET_QA) --stack-name $(STACK_NAME)-Prod --parameter-overrides Environment=prod --profile AHO
 
 prod: build package-prod deploy-prod

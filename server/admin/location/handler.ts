@@ -8,6 +8,7 @@ import { toLocationEntity, toLocationListRequest, toLocationRequest } from '@loc
 import { getLocationAsync, upsertLocationAsync } from '@location/store';
 import { notifyAsync } from '@location/notifier';
 import { getAsync } from '@location/indexer';
+import { randomUUID } from 'node:crypto';
 
 type HandlerFn = (event: APIGatewayProxyEvent) => Promise<DefaultResponse>;
 const handlerFactory = new Map<string, HandlerFn>([
@@ -78,20 +79,57 @@ export async function postHandler(event: APIGatewayProxyEvent): Promise<DefaultR
     };
     let errors: string[] = validateLocation(req);
     if (errors.length == 0) {
-        // Build Compound Key
-        req.id = `${req.countrySlug}-${req.stateSlug}-${req.citySlug}`;
-        const existingLocationEntity: LocationEntity | undefined = await getLocationAsync(req?.id, config.s3.bucket);
-        const locationEntity = await toLocationEntity(req, existingLocationEntity);
+        req.id = randomUUID();
+        // TODO: Validate if already exists one location w/ same Country + State + City
+        const locationEntity = await toLocationEntity(req, undefined);
         if (!await upsertLocationAsync(locationEntity, config.s3.bucket))
-            errors = ["Failed to Upsert Location - Please, contact suport."];
+            errors = ["Failed to Insert Location - Please, contact suport."];
         else {
             if (await notifyAsync(config.sns.locationTopic, {
                 id: req.id
             }))
                 return {
                     success: true,
-                    data: true
+                    data: req.id
                 }
+        }
+    }
+    return {
+        success: false,
+        errors: errors
+    };
+}
+
+export async function putHandler(event: APIGatewayProxyEvent): Promise<DefaultResponse> {
+    const req = event.body ? JSON.parse(event.body) : {
+        id: '',
+        country: '',
+        countrySlug: '',
+        state: '',
+        stateSlug: '',
+        city: '',
+        citySlug: '',
+        districtsAndSlugs: {},
+        active: false
+    };
+    // Force Id in put handler
+    req.id = event.pathParameters?.id ?? '';
+    let errors: string[] = validateLocation(req);
+    if (req && req.id && errors.length == 0) {
+        const existingLocationEntity: LocationEntity | undefined = await getLocationAsync(req?.id, config.s3.bucket);
+        if (existingLocationEntity) {
+            const locationEntity = await toLocationEntity(req, existingLocationEntity);
+            if (!await upsertLocationAsync(locationEntity, config.s3.bucket))
+                errors = ["Failed to Update Location - Please, contact suport."];
+            else {
+                if (await notifyAsync(config.sns.locationTopic, {
+                    id: req.id
+                }))
+                    return {
+                        success: true,
+                        data: true
+                    }
+            }
         }
     }
     return {

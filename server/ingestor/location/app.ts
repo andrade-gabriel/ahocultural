@@ -10,10 +10,10 @@ export const lambdaHandler: SQSHandler = async (event: SQSEvent) => {
                 id: ""
             });
             if(!req.id)
-                throw new Error(`Invalid Id: ${req.id}`);
+                throw new Error(`Invalid Id: ${req.id}.`);
 
             if(!await indexAsync(req.id))
-                throw new Error(`Failed to index: ${req.id}`);    
+                throw new Error(`Failed to index: ${req.id}.`);    
         } catch (err) {
             console.error("Error:", err);
             throw err;

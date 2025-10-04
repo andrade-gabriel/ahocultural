@@ -385,6 +385,29 @@ Resources:
         Uri: !Sub 
           - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
           - LambdaArn: !GetAtt CategoryLambda.Arn
+  CategoryPutMethod:
+    DependsOn: 
+      - CategoryTrigger
+    Type: 'AWS::ApiGateway::Method'
+    Properties: 
+      AuthorizationType: CUSTOM
+      AuthorizerId: !FindInMap [EnvironmentMap, !Ref 'Environment', AuthorizerId]
+      HttpMethod: PUT
+      ResourceId: !Ref CategoryIdResource
+      RestApiId: !FindInMap [EnvironmentMap, !Ref 'Environment', ApiGatewayId]
+      MethodResponses:
+        - StatusCode: 200
+        - StatusCode: 204
+        - StatusCode: 302
+        - StatusCode: 400
+        - StatusCode: 401
+        - StatusCode: 500
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub 
+          - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+          - LambdaArn: !GetAtt CategoryLambda.Arn
   CategoryPatchMethod:
     DependsOn: 
       - CategoryTrigger
@@ -569,6 +592,29 @@ Resources:
       AuthorizerId: !FindInMap [EnvironmentMap, !Ref 'Environment', AuthorizerId]
       HttpMethod: POST
       ResourceId: !Ref LocationResource
+      RestApiId: !FindInMap [EnvironmentMap, !Ref 'Environment', ApiGatewayId]
+      MethodResponses:
+        - StatusCode: 200
+        - StatusCode: 204
+        - StatusCode: 302
+        - StatusCode: 400
+        - StatusCode: 401
+        - StatusCode: 500
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub 
+          - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+          - LambdaArn: !GetAtt LocationLambda.Arn
+  LocationPutMethod:
+    DependsOn: 
+      - LocationTrigger
+    Type: 'AWS::ApiGateway::Method'
+    Properties: 
+      AuthorizationType: CUSTOM
+      AuthorizerId: !FindInMap [EnvironmentMap, !Ref 'Environment', AuthorizerId]
+      HttpMethod: PUT
+      ResourceId: !Ref LocationIdResource
       RestApiId: !FindInMap [EnvironmentMap, !Ref 'Environment', ApiGatewayId]
       MethodResponses:
         - StatusCode: 200
@@ -781,6 +827,29 @@ Resources:
         Uri: !Sub 
           - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
           - LambdaArn: !GetAtt ArticleLambda.Arn
+  ArticlePutMethod:
+    DependsOn: 
+      - ArticleTrigger
+    Type: 'AWS::ApiGateway::Method'
+    Properties: 
+      AuthorizationType: CUSTOM
+      AuthorizerId: !FindInMap [EnvironmentMap, !Ref 'Environment', AuthorizerId]
+      HttpMethod: PUT
+      ResourceId: !Ref ArticleIdResource
+      RestApiId: !FindInMap [EnvironmentMap, !Ref 'Environment', ApiGatewayId]
+      MethodResponses:
+        - StatusCode: 200
+        - StatusCode: 204
+        - StatusCode: 302
+        - StatusCode: 400
+        - StatusCode: 401
+        - StatusCode: 500
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub 
+          - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+          - LambdaArn: !GetAtt ArticleLambda.Arn
   ArticlePatchMethod:
     DependsOn: 
       - ArticleTrigger
@@ -979,6 +1048,29 @@ Resources:
         Uri: !Sub 
           - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
           - LambdaArn: !GetAtt EventLambda.Arn
+  EventPutMethod:
+    DependsOn: 
+      - EventTrigger
+    Type: 'AWS::ApiGateway::Method'
+    Properties: 
+      AuthorizationType: CUSTOM
+      AuthorizerId: !FindInMap [EnvironmentMap, !Ref 'Environment', AuthorizerId]
+      HttpMethod: PUT
+      ResourceId: !Ref EventIdResource
+      RestApiId: !FindInMap [EnvironmentMap, !Ref 'Environment', ApiGatewayId]
+      MethodResponses:
+        - StatusCode: 200
+        - StatusCode: 204
+        - StatusCode: 302
+        - StatusCode: 400
+        - StatusCode: 401
+        - StatusCode: 500
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub 
+          - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+          - LambdaArn: !GetAtt EventLambda.Arn
   EventPatchMethod:
     DependsOn: 
       - EventTrigger
@@ -1063,24 +1155,28 @@ Resources:
         - CategoryGetByIdMethod
         - CategoryGetMethod
         - CategoryPostMethod
+        - CategoryPutMethod
         - CategoryPatchMethod
         - CategoryOptionsMethod
         - CategoryOptionsIdMethod
         - LocationGetByIdMethod
         - LocationGetMethod
         - LocationPostMethod
+        - LocationPutMethod
         - LocationPatchMethod
         - LocationOptionsMethod
         - LocationOptionsIdMethod
         - ArticleGetByIdMethod
         - ArticleGetMethod
         - ArticlePostMethod
+        - ArticlePutMethod
         - ArticlePatchMethod
         - ArticleOptionsMethod
         - ArticleOptionsIdMethod
         - EventGetByIdMethod
         - EventGetMethod
         - EventPostMethod
+        - EventPutMethod
         - EventPatchMethod
         - EventOptionsMethod
         - EventOptionsIdMethod

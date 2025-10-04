@@ -8,6 +8,7 @@ import { toCategoryEntity, toCategoryListRequest, toCategoryRequest } from '@cat
 import { getCategoryAsync, upsertCategoryAsync } from '@category/store';
 import { notifyAsync } from '@category/notifier';
 import { getAsync } from '@category/indexer';
+import { randomUUID } from 'node:crypto';
 
 type HandlerFn = (event: APIGatewayProxyEvent) => Promise<DefaultResponse>;
 const handlerFactory = new Map<string, HandlerFn>([
@@ -69,23 +70,59 @@ export async function postHandler(event: APIGatewayProxyEvent): Promise<DefaultR
         id: "",
         parent_id: null,
         name: "",
+        slug: "",
         description: "",
         active: true
     };
     let errors: string[] = validateCategory(req);
-    if (errors.length == 0) {
-        const existingCategoryEntity: CategoryEntity | undefined = await getCategoryAsync(req?.id, config.s3.bucket);
-        const categoryEntity = await toCategoryEntity(req, existingCategoryEntity);
+    if (req && errors.length == 0) {
+        req.id = randomUUID();
+        const categoryEntity = await toCategoryEntity(req, undefined);
         if (!await upsertCategoryAsync(categoryEntity, config.s3.bucket))
-            errors = ["Failed to Upsert Category - Please, contact suport."];
+            errors = ["Failed to Insert Category - Please, contact suport."];
         else {
             if (await notifyAsync(config.sns.categoryTopic, {
                 id: req.id
             }))
                 return {
                     success: true,
-                    data: true
+                    data: req.id
                 }
+        }
+    }
+    return {
+        success: false,
+        errors: errors
+    };
+}
+
+export async function putHandler(event: APIGatewayProxyEvent): Promise<DefaultResponse> {
+    const req = event.body ? JSON.parse(event.body) : {
+        id: "",
+        parent_id: null,
+        name: "",
+        slug: "",
+        description: "",
+        active: true
+    };
+    // Force Id in put handler
+    req.id = event.pathParameters?.id ?? '';
+    let errors: string[] = validateCategory(req);
+    if (req && req.id && errors.length == 0) {
+        const existingCategoryEntity: CategoryEntity | undefined = await getCategoryAsync(req.id, config.s3.bucket);
+        if(existingCategoryEntity){
+            const categoryEntity = await toCategoryEntity(req, existingCategoryEntity);
+            if (!await upsertCategoryAsync(categoryEntity, config.s3.bucket))
+                errors = ["Failed to Update Category - Please, contact suport."];
+            else {
+                if (await notifyAsync(config.sns.categoryTopic, {
+                    id: req.id
+                }))
+                    return {
+                        success: true,
+                        data: true
+                    }
+            }
         }
     }
     return {

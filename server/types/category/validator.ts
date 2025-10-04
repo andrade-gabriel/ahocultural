@@ -5,8 +5,8 @@ export function validateCategory(
 ): string[] {
   const errors: string[] = [];
 
-  if (!category.id || category.id.trim().length < 3) 
-    errors.push("O campo `id` deve ser um slug válido (mínimo 3 caracteres).");
+  if (!category.slug || category.slug.trim().length < 3) 
+    errors.push("O campo `slug` deve ser um slug válido (mínimo 3 caracteres).");
 
   // name
   if (!category.name || category.name.trim().length < 2)

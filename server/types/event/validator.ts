@@ -4,9 +4,9 @@ export function validateEvent(
   event: EventRequest
 ): string[] {
   const errors: string[] = [];
-  // id
-  if (!event.id || event.id.trim().length < 2)
-    errors.push("O campo `id` deve ser informado.");
+  // slug
+  if (!event.slug || event.slug.trim().length < 2)
+    errors.push("O campo `slug` deve ser informado.");
 
   // title
   if (!event.title || event.title.trim().length < 2)
@@ -20,5 +20,6 @@ export function validateEvent(
   if (!event.body || event.body.trim().length < 2)
     errors.push("O campo `body` deve ser informado.");
 
+  // TODO: Validate if category already exists
   return errors;
 }

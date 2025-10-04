@@ -8,6 +8,7 @@ import { toArticleEntity, toArticleListRequest, toArticleRequest } from '@articl
 import { getArticleAsync, upsertArticleAsync } from '@article/store';
 import { notifyAsync } from '@article/notifier';
 import { getAsync } from '@article/indexer';
+import { randomUUID } from 'node:crypto';
 
 type HandlerFn = (event: APIGatewayProxyEvent) => Promise<DefaultResponse>;
 const handlerFactory = new Map<string, HandlerFn>([
@@ -75,10 +76,10 @@ export async function postHandler(event: APIGatewayProxyEvent): Promise<DefaultR
     };
     let errors: string[] = validateArticle(req);
     if (errors.length == 0) {
-        const existingArticleEntity: ArticleEntity | undefined = await getArticleAsync(req?.id, config.s3.bucket);
-        const articleEntity = await toArticleEntity(req, existingArticleEntity);
+        req.id = randomUUID();
+        const articleEntity = await toArticleEntity(req, undefined);
         if (!await upsertArticleAsync(articleEntity, config.s3.bucket))
-            errors = ["Failed to Upsert Article - Please, contact suport."];
+            errors = ["Failed to Insert Article - Please, contact suport."];
         else {
             if (await notifyAsync(config.sns.articleTopic, {
                 id: req.id
@@ -87,6 +88,41 @@ export async function postHandler(event: APIGatewayProxyEvent): Promise<DefaultR
                     success: true,
                     data: true
                 }
+        }
+    }
+    return {
+        success: false,
+        errors: errors
+    };
+}
+
+export async function putHandler(event: APIGatewayProxyEvent): Promise<DefaultResponse> {
+    const req = event.body ? JSON.parse(event.body) : {
+        id: '',
+        title: '',
+        imageUrl: '',
+        body: '',
+        publicationDate: new Date(),
+        active: false
+    };
+    // Force Id in put handler
+    req.id = event.pathParameters?.id ?? '';
+    let errors: string[] = validateArticle(req);
+    if (req && req.id && errors.length == 0) {
+        const existingArticleEntity: ArticleEntity | undefined = await getArticleAsync(req.id, config.s3.bucket);
+        if(existingArticleEntity){
+            const articleEntity = await toArticleEntity(req, existingArticleEntity);
+            if (!await upsertArticleAsync(articleEntity, config.s3.bucket))
+                errors = ["Failed to Update Article - Please, contact suport."];
+            else {
+                if (await notifyAsync(config.sns.articleTopic, {
+                    id: req.id
+                }))
+                    return {
+                        success: true,
+                        data: true
+                    }
+            }
         }
     }
     return {

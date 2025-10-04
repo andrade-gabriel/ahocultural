@@ -40,7 +40,7 @@ async function signedFetchEs(url: URL, method: string, bodyObj?: unknown) {
 
 export async function getAsync(config: any, skip: number, take: number, name: string | null): Promise<LocationIndex[]> {
     // Monta a URL para /_search do índice
-    const base_path = `${config.elasticsearch.domain}/${config.elasticsearch.articleIndex}`;
+    const base_path = `${config.elasticsearch.domain}/${config.elasticsearch.locationIndex}`;
     const base_url = base_path.startsWith("http") ? base_path : `https://${base_path}`;
     const url = new URL(`${base_url}/_search`);
 
@@ -85,7 +85,7 @@ export async function postAsync(config: any, doc: LocationIndex): Promise<boolea
 
     const id = `${doc.countrySlug}-${doc.stateSlug}-${doc.id}`
     // Monta a URL para /_search do índice
-    const base_path = `${config.elasticsearch.domain}/${config.elasticsearch.articleIndex}`;
+    const base_path = `${config.elasticsearch.domain}/${config.elasticsearch.locationIndex}`;
     const base_url = base_path.startsWith("http") ? base_path : `https://${base_path}`;
 
     const url = new URL(`${base_url}/_doc/${encodeURIComponent(id)}`)
