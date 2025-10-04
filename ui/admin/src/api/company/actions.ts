@@ -25,12 +25,34 @@ export async function getCompanyById(
   throw new Error("Resposta inválida do serviço de empresas.");
 }
 
+export async function insertCompany(
+  payload: CompanyDetail,
+  opts?: { signal?: AbortSignal }
+): Promise<boolean> {
+  const { data } = await httpAuth.post<DefaultResponse<boolean>>(
+    `/admin/company`,
+    payload,
+    { signal: opts?.signal, headers: { "Content-Type": "application/json" } }
+  );
+
+  if (data?.success === true)
+  {
+    setTimeout(() => {}, 3000);
+    return true;
+  }
+
+  if (data?.success === false && Array.isArray(data.errors)) {
+    throw new Error(data.errors[0] || "Falha ao salvar empresa.");
+  }
+  throw new Error("Resposta inválida ao salvar empresa.");
+}
+
 export async function updateCompany(
   id: string,
   payload: CompanyDetail,
   opts?: { signal?: AbortSignal }
 ): Promise<boolean> {
-  const { data } = await httpAuth.post<DefaultResponse<boolean>>(
+  const { data } = await httpAuth.put<DefaultResponse<boolean>>(
     `/admin/company/${encodeURIComponent(id)}`,
     payload,
     { signal: opts?.signal, headers: { "Content-Type": "application/json" } }

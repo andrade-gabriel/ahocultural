@@ -7,6 +7,7 @@ export type ListCompaniesParams = {
 export type Company = {
   id: string;
   name: string;
+  slug: string;
   active: boolean;
 };
 
@@ -17,8 +18,8 @@ export type ApiResponse<T> = {
 };
 
 export type CompanyDetail = {
-  id: string;
   name: string;
+  slug: string;
   active: boolean;
   address?: {
     street?: string;

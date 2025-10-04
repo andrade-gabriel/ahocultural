@@ -5,8 +5,8 @@ export function validateCompany(
 ): string[] {
   const errors: string[] = [];
 
-  if (!company.id || company.id.trim().length < 3) 
-    errors.push("O campo `id` deve ser um slug válido (mínimo 3 caracteres).");
+  if (!company.slug || company.slug.trim().length < 3) 
+    errors.push("O campo `slug` deve ser um slug válido (mínimo 3 caracteres).");
 
   // name
   if (!company.name || company.name.trim().length < 2)

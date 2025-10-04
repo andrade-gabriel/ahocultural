@@ -1,6 +1,7 @@
 export interface CompanyEntity {
     id: string;
     name: string;
+    slug: string;
     address: {
         street: string;         // "Av. Paulista"
         number?: string;        // "1578"
@@ -24,8 +25,9 @@ export interface CompanyEntity {
 }
 
 export interface CompanyRequest {
-    id: string;
+    id: string | undefined;
     name: string;
+    slug: string;
     address: {
         street: string;         // "Av. Paulista"
         number?: string;        // "1578"
@@ -48,6 +50,7 @@ export interface CompanyRequest {
 export interface CompanyIndex {
   id: string;              // keyword
   name: string;            // text (full-text search) + keyword (para filtros/sort exato)
+  slug: string;            // text + keyword
   street: string;          // text + keyword
   number?: string;         // keyword (exato)
   complement?: string;     // text + keyword
@@ -68,6 +71,7 @@ export interface CompanyIndex {
 export interface CompanyListRequest {
     id: string;
     name: string;
+    slug: string;
     active: boolean;
 }
 

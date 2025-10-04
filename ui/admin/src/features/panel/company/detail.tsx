@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { z } from "zod";
-import { useForm } from "react-hook-form";
+import { useForm, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 import {
   getCompanyById,
+  insertCompany,
   updateCompany,
   type CompanyDetail,
 } from "@/api/company";
@@ -21,18 +22,6 @@ import {
 } from "@/components/ui/form";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Loader2 } from "lucide-react";
-
-/* ---------- utils ---------- */
-
-// trata ""/null/undefined -> undefined; número válido -> number
-const NumberUndef = z.preprocess(
-  (v) => {
-    if (v === "" || v == null) return undefined;
-    const n = Number(v);
-    return Number.isFinite(n) ? n : undefined;
-  },
-  z.number().optional()
-);
 
 // detectar erro de cancelamento (axios/fetch)
 function isAbortError(e: unknown) {
@@ -60,15 +49,17 @@ const AddressSchema = z.object({
   country_code: z.string().default(""),
 });
 
+const GeoSchema = z.object({
+  lat: z.coerce.number().default(0),
+  lng: z.coerce.number().default(0)
+});
+
 const Schema = z.object({
-  id: z.string().min(1, "Slug obrigatório"),
+  slug: z.string().min(1, "Slug obrigatório"),
   name: z.string().min(1, "Nome obrigatório"),
-  active: z.boolean().default(true),
+  active: z.boolean(),
   address: AddressSchema,
-  geo: z.object({
-    lat: NumberUndef,
-    lng: NumberUndef,
-  }),
+  geo: GeoSchema,
 });
 type FormValues = z.infer<typeof Schema>;
 
@@ -85,11 +76,14 @@ export function CompanyDetailLayout() {
   const acRef = useRef<AbortController | null>(null);
   const requestIdRef = useRef(0); // garante "última request vence"
 
-  const form = useForm<FormValues>({
+  type FormInput = z.input<typeof Schema>;
+  type FormOutput = z.output<typeof Schema>;
+
+  const form = useForm<FormInput, any, FormOutput>({
     resolver: zodResolver(Schema),
     defaultValues: {
-      id: idParam ?? "",
       name: "",
+      slug: "",
       active: true,
       address: {
         street: "",
@@ -103,7 +97,7 @@ export function CompanyDetailLayout() {
         country: "",
         country_code: "",
       },
-      geo: { lat: undefined, lng: undefined },
+      geo: { lat: 0, lng: 0 },
     },
     mode: "onTouched",
   });
@@ -128,8 +122,8 @@ export function CompanyDetailLayout() {
         if (reqId !== requestIdRef.current) return; // resposta antiga, ignora
 
         const defaults: FormValues = {
-          id: data.id,
           name: data.name ?? "",
+          slug: data.slug ?? "",
           active: !!data.active,
           address: {
             street: data.address?.street ?? "",
@@ -143,7 +137,10 @@ export function CompanyDetailLayout() {
             country: data.address?.country ?? "",
             country_code: data.address?.country_code ?? "",
           },
-          geo: { lat: data.geo?.lat, lng: data.geo?.lng },
+          geo: {
+            lat: data.geo?.lat ?? 0
+            , lng: data.geo?.lng ?? 0
+          },
         };
 
         form.reset(defaults);
@@ -164,18 +161,18 @@ export function CompanyDetailLayout() {
 
   const title = useMemo(() => (idParam ? "Editar empresa" : "Nova empresa"), [idParam]);
 
-  const onSubmit = async (values: FormValues) => {
+  const onSubmit: SubmitHandler<FormOutput> = async (values: FormOutput) => {
+
     try {
       setSaving(true);
       setError(undefined);
 
-      const idForPath = idParam || values.id;
-      if (!idForPath) throw new Error("Slug (id) é obrigatório.");
+      const idForPath = idParam;
 
       // envia o objeto COMPLETO sempre (alinha com seu backend)
       const payload: CompanyDetail = {
-        id: values.id,
         name: values.name,
+        slug: values.slug,
         active: values.active,
         address: {
           street: values.address.street,
@@ -196,8 +193,10 @@ export function CompanyDetailLayout() {
           return g;
         })(),
       };
-
-      await updateCompany(idForPath, payload);
+      if (idForPath)
+        await updateCompany(idForPath, payload);
+      else
+        await insertCompany(payload);
       navigate("/company", { replace: true });
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Falha ao salvar empresa.";
@@ -231,16 +230,15 @@ export function CompanyDetailLayout() {
         ) : (
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-6" aria-busy={saving}>
-              {/* Identificação */}
               <div className="grid gap-4 md:grid-cols-2">
                 <FormField
                   control={form.control}
-                  name="id"
+                  name="slug"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Slug (id)</FormLabel>
+                      <FormLabel>Slug</FormLabel>
                       <FormControl>
-                        <Input placeholder="livraria-paulista" {...field} disabled={!!idParam} />
+                        <Input placeholder="nome-da-empresa" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -265,34 +263,34 @@ export function CompanyDetailLayout() {
               <div className="grid gap-4 md:grid-cols-3">
                 <FormField name="address.street" control={form.control} render={({ field }) => (
                   <FormItem><FormLabel>Logradouro</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-                )}/>
+                )} />
                 <FormField name="address.number" control={form.control} render={({ field }) => (
                   <FormItem><FormLabel>Número</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-                )}/>
+                )} />
                 <FormField name="address.complement" control={form.control} render={({ field }) => (
                   <FormItem><FormLabel>Complemento</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-                )}/>
+                )} />
                 <FormField name="address.district" control={form.control} render={({ field }) => (
                   <FormItem><FormLabel>Bairro</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-                )}/>
+                )} />
                 <FormField name="address.city" control={form.control} render={({ field }) => (
                   <FormItem><FormLabel>Cidade</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-                )}/>
+                )} />
                 <FormField name="address.state" control={form.control} render={({ field }) => (
                   <FormItem><FormLabel>UF</FormLabel><FormControl><Input maxLength={2} {...field} /></FormControl><FormMessage /></FormItem>
-                )}/>
+                )} />
                 <FormField name="address.state_full" control={form.control} render={({ field }) => (
                   <FormItem><FormLabel>Estado</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-                )}/>
+                )} />
                 <FormField name="address.postal_code" control={form.control} render={({ field }) => (
                   <FormItem><FormLabel>CEP</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-                )}/>
+                )} />
                 <FormField name="address.country" control={form.control} render={({ field }) => (
                   <FormItem><FormLabel>País</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-                )}/>
+                )} />
                 <FormField name="address.country_code" control={form.control} render={({ field }) => (
                   <FormItem><FormLabel>Cód. País</FormLabel><FormControl><Input maxLength={2} {...field} /></FormControl><FormMessage /></FormItem>
-                )}/>
+                )} />
               </div>
 
               {/* Geo + Status */}
@@ -310,7 +308,7 @@ export function CompanyDetailLayout() {
                     </FormControl>
                     <FormMessage />
                   </FormItem>
-                )}/>
+                )} />
                 <FormField name="geo.lng" control={form.control} render={({ field }) => (
                   <FormItem>
                     <FormLabel>Longitude</FormLabel>
@@ -324,7 +322,7 @@ export function CompanyDetailLayout() {
                     </FormControl>
                     <FormMessage />
                   </FormItem>
-                )}/>
+                )} />
                 <FormField name="active" control={form.control} render={({ field }) => (
                   <FormItem className="flex items-center gap-3 pt-6">
                     <FormLabel className="mb-0">Ativa</FormLabel>
@@ -332,7 +330,7 @@ export function CompanyDetailLayout() {
                       <Switch checked={field.value} onCheckedChange={(v) => field.onChange(Boolean(v))} />
                     </FormControl>
                   </FormItem>
-                )}/>
+                )} />
               </div>
 
               <div className="flex items-center justify-end gap-2">
@@ -342,8 +340,8 @@ export function CompanyDetailLayout() {
                 <Button type="submit" disabled={saving}>
                   {saving ? (
                     <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Salvando…
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span className="sr-only">Salvando</span>
                     </>
                   ) : (
                     "Salvar"

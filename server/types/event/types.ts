@@ -1,6 +1,7 @@
 export interface EventEntity {
-    id: string; // slug
+    id: string;
     title: string;
+    slug: string;
     category: string;
     imageUrl: string;
     body: string;
@@ -16,8 +17,9 @@ export interface EventEntity {
 }
 
 export interface EventRequest {
-    id: string; // slug
+    id: string;
     title: string;
+    slug: string;
     category: string;
     imageUrl: string;
     body: string;
@@ -33,8 +35,9 @@ export interface EventRequest {
 }
 
 export interface EventIndex {
-    id: string; // slug
+    id: string;
     title: string;
+    slug: string;
     category: string;
     imageUrl: string;
     startDate: Date;
@@ -49,8 +52,9 @@ export interface EventIndex {
 }
 
 export interface EventListRequest {
-    id: string; // slug
+    id: string;
     title: string;
+    slug: string,
     active: boolean;
 }
 

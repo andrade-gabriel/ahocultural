@@ -10,6 +10,12 @@
           "keyword": { "type": "keyword" }
         }
       },
+      "slug": {
+        "type": "text",
+        "fields": {
+          "keyword": { "type": "keyword" }
+        }
+      },
       "category": {
         "type": "text",
         "fields": {

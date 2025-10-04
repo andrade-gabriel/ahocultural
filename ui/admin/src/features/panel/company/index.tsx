@@ -323,7 +323,7 @@ function CompaniesTable() {
             const isSaving = mutating.has(c.id);
             return (
               <TableRow key={c.id}>
-                <TableCell className="font-mono text-xs text-muted-foreground">{c.id}</TableCell>
+                <TableCell className="font-mono text-xs text-muted-foreground">{c.slug}</TableCell>
                 <TableCell className="font-medium underline">
                   <Link to={`/company/${c.id}`}>{c.name}</Link>
                 </TableCell>

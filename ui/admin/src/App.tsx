@@ -32,7 +32,8 @@ function App() {
           </Route>
           <Route path="company">
             <Route index element={<CompanyLayout />} />
-            <Route path=":id" element={<CompanyDetailLayout />} /> {/* /company/{id} */}
+            <Route path="new" element={<CompanyDetailLayout />} />
+            <Route path=":id" element={<CompanyDetailLayout />} />
           </Route>
           <Route path="subway">
             <Route index element={<SubwayLayout />} />

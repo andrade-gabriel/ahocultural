@@ -4,6 +4,12 @@
       "id": {
         "type": "keyword"
       },
+      "slug": {
+        "type": "text",
+        "fields": {
+          "keyword": { "type": "keyword" }
+        }
+      },
       "parent_id": {
         "type": "keyword"
       },

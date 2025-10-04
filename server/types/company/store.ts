@@ -32,6 +32,7 @@ export async function getCompanyAsync(
             const raw = JSON.parse(text) as {
                 id: string;
                 name: string;
+                slug: string;
                 address: {
                     street: string;
                     number?: string;
@@ -56,6 +57,7 @@ export async function getCompanyAsync(
             const company: CompanyEntity = {
                 id: raw.id,
                 name: raw.name,
+                slug: raw.slug,
                 address: {
                     street: raw.address.street,
                     number: raw.address.number,

@@ -8,6 +8,7 @@ export function toEventEntity(
     return {
         id: input.id.toLowerCase().trim(),
         title: input.title,
+        slug: input.slug,
         category: input.category,
         imageUrl: input.imageUrl,
         body: input.body,
@@ -29,6 +30,7 @@ export function toEventRequest(
     return {
         id: input.id,
         title: input.title,
+        slug: input.slug,
         category: input.category,
         imageUrl: input.imageUrl,
         body: input.body,
@@ -50,6 +52,7 @@ export function toEventListRequest(
     return {
         id: input.id,
         title: input.title,
+        slug: input.slug,
         active: input.active
     }
 }
@@ -60,6 +63,7 @@ export function toEventIndex(
     return {
         id: input.id.trim(),
         title: input.title,
+        slug: input.slug,
         category: input.category,
         imageUrl: input.imageUrl,
         startDate: input.startDate,

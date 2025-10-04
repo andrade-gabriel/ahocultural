@@ -9,6 +9,7 @@ export function toCategoryEntity(
         id: input?.id.trim(),
         parent_id: input?.parent_id,
         name: input?.name.trim(),
+        slug: input?.slug.trim(),
         description: input?.description,
         created_at: existingCategoryEntity ? existingCategoryEntity.created_at : now,
         updated_at: now,
@@ -23,6 +24,7 @@ export function toCategoryRequest(
         id: input.id,
         parent_id: input.parent_id,
         name: input.name,
+        slug: input?.slug.trim(),
         description: input.description,
         active: input.active
     };
@@ -35,6 +37,7 @@ export function toCategoryListRequest(
         id: input.id,
         parent_id: input.parent_id,
         name: input.name,
+        slug: input.slug,
         active: input.active
     }
 }
@@ -46,6 +49,7 @@ export function toCategoryIndex(
     id: input.id.trim(),
     parent_id: input.parent_id,
     name: input.name.trim(),
+    slug: input.slug,
     description: input.description,
     active: input.active
   };

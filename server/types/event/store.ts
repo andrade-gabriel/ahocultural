@@ -32,6 +32,7 @@ export async function getEventAsync(
             const raw = JSON.parse(text) as {
                 id: string;
                 title: string;
+                slug: string;
                 category: string;
                 imageUrl: string;
                 body: string;
@@ -49,6 +50,7 @@ export async function getEventAsync(
             const location: EventEntity = {
                 id: raw.id,
                 title: raw.title,
+                slug: raw.slug,
                 category: raw.category,
                 imageUrl: raw.imageUrl,
                 body: raw.body,

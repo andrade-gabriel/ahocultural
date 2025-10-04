@@ -6,8 +6,9 @@ export function toCompanyEntity(
 ): CompanyEntity {
     const now = new Date();
     return {
-        id: input.id.trim(),
+        id: input.id?.trim() ?? '',
         name: input.name.trim(),
+        slug: input.slug.trim(),
         address: {
             street: input.address.street.trim(),
             number: input.address.number?.trim(),
@@ -36,6 +37,7 @@ export function toCompanyRequest(
     return {
         id: input.id,
         name: input.name,
+        slug: input.slug,
         address: {
             street: input.address.street,
             number: input.address.number,
@@ -62,6 +64,7 @@ export function toCompanyListRequest(
     return {
         id: input.id,
         name: input.name,
+        slug: input.slug,
         active: input.active
     }
 }
@@ -72,6 +75,7 @@ export function toCompanyIndex(
   return {
     id: input.id.trim(),
     name: input.name.trim(),
+    slug: input.slug.trim(),
     street: input.address.street.trim(),
     number: input.address.number?.trim(),
     complement: input.address.complement?.trim(),

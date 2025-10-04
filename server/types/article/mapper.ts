@@ -8,6 +8,7 @@ export function toArticleEntity(
     return {
         id: input.id.toLowerCase().trim(),
         title: input.title,
+        slug: input.slug,
         imageUrl: input.imageUrl,
         body: input.body,
         publicationDate: input.publicationDate,
@@ -23,6 +24,7 @@ export function toArticleRequest(
     return {
         id: input.id,
         title: input.title,
+        slug: input.slug,
         imageUrl: input.imageUrl,
         body: input.body,
         publicationDate: input.publicationDate,
@@ -38,6 +40,7 @@ export function toArticleListRequest(
     return {
         id: input.id,
         title: input.title,
+        slug: input.slug,
         publicationDate: input.publicationDate,
         active: input.active
     }
@@ -49,6 +52,7 @@ export function toArticleIndex(
     return {
         id: input.id.trim(),
         title: input.title,
+        slug: input.slug,
         imageUrl: input.imageUrl,
         publicationDate: input.publicationDate,
         created_at: input.created_at,

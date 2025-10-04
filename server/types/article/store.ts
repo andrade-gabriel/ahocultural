@@ -32,6 +32,7 @@ export async function getArticleAsync(
             const raw = JSON.parse(text) as {
                 id: string;
                 title: string;
+                slug: string;
                 imageUrl: string;
                 body: string;
                 publicationDate: Date;
@@ -43,6 +44,7 @@ export async function getArticleAsync(
             const location: ArticleEntity = {
                 id: raw.id,
                 title: raw.title,
+                slug: raw.slug,
                 imageUrl: raw.imageUrl,
                 body: raw.body,
                 publicationDate: raw.publicationDate,

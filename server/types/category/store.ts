@@ -33,6 +33,7 @@ export async function getCategoryAsync(
                 id: string;
                 parent_id: string;
                 name: string;
+                slug: string;
                 description: string;
                 created_at: Date;
                 updated_at: Date;
@@ -43,6 +44,7 @@ export async function getCategoryAsync(
                 id: raw.id,
                 parent_id: raw.parent_id,
                 name: raw.name,
+                slug: raw.slug,
                 description: raw.description,
                 created_at: raw.created_at,
                 updated_at: raw.updated_at,
