@@ -11,12 +11,6 @@ export type Company = {
   active: boolean;
 };
 
-export type ApiResponse<T> = {
-  success: boolean;
-  data?: T;
-  errors?: string[];
-};
-
 export type CompanyDetail = {
   name: string;
   slug: string;

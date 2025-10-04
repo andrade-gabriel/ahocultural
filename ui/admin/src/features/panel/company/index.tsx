@@ -30,7 +30,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Loader2, RefreshCcw, ChevronLeft, ChevronRight, Building2 } from "lucide-react";
+import { Loader2, RefreshCcw, ChevronLeft, ChevronRight, Building2, Plus } from "lucide-react";
 
 /* =========================
    Contexto
@@ -246,6 +246,12 @@ function Toolbar() {
         >
           <RefreshCcw className="h-4 w-4" />
           Atualizar
+        </Button>
+        <Button asChild className="gap-2">
+          <Link to="/company/new">
+            <Plus className="h-4 w-4" />
+            Nova Empresa
+          </Link>
         </Button>
       </div>
     </div>

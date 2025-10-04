@@ -34,11 +34,11 @@ const items = [
     url: "location",
     icon: MapPinCheckInside,
   },
-  {
-    title: "Estações de Metrô",
-    url: "subway",
-    icon: TrainFront,
-  },
+  // {
+  //   title: "Estações de Metrô",
+  //   url: "subway",
+  //   icon: TrainFront,
+  // },
   {
     title: "Matérias",
     url: "article",

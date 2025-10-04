@@ -1,18 +1,18 @@
-// packages/app/src/api/company/actions.ts
+// packages/app/src/api/article/actions.ts
 import { httpAuth } from "../http-auth";
 import type { DefaultResponse } from "../response/types";
 import type {
-  Company,
-  CompanyDetail,
-  ListCompaniesParams,
+  Article,
+  ArticleDetail,
+  ListArticlesParams,
 } from "./types";
 
-export async function getCompanyById(
+export async function getArticleById(
   id: string,
   opts?: { signal?: AbortSignal }
-): Promise<CompanyDetail> {
-  const { data } = await httpAuth.get<DefaultResponse<CompanyDetail>>(
-    `/admin/company/${encodeURIComponent(id)}`,
+): Promise<ArticleDetail> {
+  const { data } = await httpAuth.get<DefaultResponse<ArticleDetail>>(
+    `/admin/article/${encodeURIComponent(id)}`,
     { signal: opts?.signal }
   );
 
@@ -20,17 +20,17 @@ export async function getCompanyById(
     return data.data;
 
   if (data?.success === false && Array.isArray(data.errors)) {
-    throw new Error(data.errors[0] || "Falha ao carregar empresa.");
+    throw new Error(data.errors[0] || "Falha ao carregar matéria.");
   }
-  throw new Error("Resposta inválida do serviço de empresas.");
+  throw new Error("Resposta inválida do serviço de matérias.");
 }
 
-export async function insertCompany(
-  payload: CompanyDetail,
+export async function insertArticle(
+  payload: ArticleDetail,
   opts?: { signal?: AbortSignal }
 ): Promise<boolean> {
   const { data } = await httpAuth.post<DefaultResponse<boolean>>(
-    `/admin/company`,
+    `/admin/article`,
     payload,
     { signal: opts?.signal, headers: { "Content-Type": "application/json" } }
   );
@@ -41,18 +41,18 @@ export async function insertCompany(
   }
 
   if (data?.success === false && Array.isArray(data.errors)) {
-    throw new Error(data.errors[0] || "Falha ao salvar empresa.");
+    throw new Error(data.errors[0] || "Falha ao salvar matéria.");
   }
-  throw new Error("Resposta inválida ao salvar empresa.");
+  throw new Error("Resposta inválida ao salvar matéria.");
 }
 
-export async function updateCompany(
+export async function updateArticle(
   id: string,
-  payload: CompanyDetail,
+  payload: ArticleDetail,
   opts?: { signal?: AbortSignal }
 ): Promise<boolean> {
   const { data } = await httpAuth.put<DefaultResponse<boolean>>(
-    `/admin/company/${encodeURIComponent(id)}`,
+    `/admin/article/${encodeURIComponent(id)}`,
     payload,
     { signal: opts?.signal, headers: { "Content-Type": "application/json" } }
   );
@@ -61,24 +61,24 @@ export async function updateCompany(
     return true;
 
   if (data?.success === false && Array.isArray(data.errors)) {
-    throw new Error(data.errors[0] || "Falha ao salvar empresa.");
+    throw new Error(data.errors[0] || "Falha ao salvar matéria.");
   }
-  throw new Error("Resposta inválida ao salvar empresa.");
+  throw new Error("Resposta inválida ao salvar matéria.");
 }
 
 /**
- * GET /admin/company?skip=0&take=10&search=...
- * Retorna o array de empresas (Company[]).
+ * GET /admin/article?skip=0&take=10&search=...
+ * Retorna o array de matérias (Article[]).
  * Lança erro amigável se a API responder success:false ou payload inválido.
  */
-export async function listCompanies(
-  params: ListCompaniesParams = {},
+export async function listArticle(
+  params: ListArticlesParams = {},
   opts?: { signal?: AbortSignal }
-): Promise<Company[]> {
+): Promise<Article[]> {
   const { skip = 0, take = 10, search } = params;
 
-  const { data } = await httpAuth.get<DefaultResponse<Company[]>>(
-    "/admin/company",
+  const { data } = await httpAuth.get<DefaultResponse<Article[]>>(
+    "/admin/article",
     {
       params: { skip, take, name: search },
       signal: opts?.signal,
@@ -93,25 +93,25 @@ export async function listCompanies(
   // success:false + errors => erro claro
   if (data?.success === false && Array.isArray(data.errors)) {
     const msg =
-      data.errors.find(Boolean) || "Não foi possível carregar as empresas.";
+      data.errors.find(Boolean) || "Não foi possível carregar as matérias.";
     throw new Error(msg);
   }
 
   // fallback para payload inesperado
-  throw new Error("Resposta inválida do serviço de empresas.");
+  throw new Error("Resposta inválida do serviço de matérias.");
 }
 
 /**
- * PATCH /admin/company/:id  { active: boolean }
+ * PATCH /admin/article/:id  { active: boolean }
  * Resposta: { success: true, data: true }
  */
-export async function updateCompanyActivity(
+export async function updateArticleActivity(
   id: string,
   active: boolean,
   opts?: { signal?: AbortSignal }
 ): Promise<boolean> {
   const { data } = await httpAuth.patch<DefaultResponse<boolean>>(
-    `/admin/company/${encodeURIComponent(id)}`,
+    `/admin/article/${encodeURIComponent(id)}`,
     { active },
     { signal: opts?.signal, headers: { "Content-Type": "application/json" } }
   );
@@ -119,8 +119,8 @@ export async function updateCompanyActivity(
   if (data?.success === true && data.data === true) return true;
 
   if (data?.success === false && Array.isArray(data.errors)) {
-    throw new Error(data.errors.find(Boolean) || "Falha ao atualizar empresa.");
+    throw new Error(data.errors.find(Boolean) || "Falha ao atualizar matéria.");
   }
 
-  throw new Error("Resposta inválida ao atualizar empresa.");
+  throw new Error("Resposta inválida ao atualizar matéria.");
 }
