@@ -72,9 +72,15 @@ const Schema = z.object({
 });
 
 type FormValues = z.infer<typeof Schema>;
+type FormInput = z.input<typeof Schema>;
+type FormOutput = z.output<typeof Schema>;
 
+type LocControl = Control<FormInput, any, FormOutput>;
 /* ---------- Districts editor ---------- */
-function DistrictsEditor({ control, disabled }: { control: Control<FormValues>; disabled?: boolean }) {
+function DistrictsEditor({ 
+  control
+  , disabled 
+}: { control: LocControl; disabled?: boolean }) {
   const { fields, append, remove } = useFieldArray({ control, name: "districts" });
 
   return (

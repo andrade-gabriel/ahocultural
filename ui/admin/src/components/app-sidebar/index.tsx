@@ -3,7 +3,6 @@ import {
   Tags,
   Building2,
   MapPinCheckInside,
-  TrainFront,
   Newspaper,
   CalendarCheck
 } from "@/components/icons";

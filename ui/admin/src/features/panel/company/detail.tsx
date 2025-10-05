@@ -97,7 +97,10 @@ export function CompanyDetailLayout() {
         country: "",
         country_code: "",
       },
-      geo: { lat: 0, lng: 0 },
+      geo: {
+        lat: 0
+        , lng: 0
+      },
     },
     mode: "onTouched",
   });
@@ -186,12 +189,10 @@ export function CompanyDetailLayout() {
           country: values.address.country,
           country_code: values.address.country_code,
         },
-        geo: (() => {
-          const g: CompanyDetail["geo"] = {};
-          if (values.geo.lat !== undefined) g.lat = values.geo.lat;
-          if (values.geo.lng !== undefined) g.lng = values.geo.lng;
-          return g;
-        })(),
+        geo: {
+          lat: values.geo.lat,
+          lng: values.geo.lng
+        }
       };
       if (idForPath)
         await updateCompany(idForPath, payload);
@@ -302,13 +303,18 @@ export function CompanyDetailLayout() {
                       <Input
                         type="number"
                         step="any"
-                        value={field.value ?? ""}
-                        onChange={(e) => field.onChange(e.target.value)}
+                        // field.value aqui é unknown por causa do TFieldValues (input de zod)
+                        value={(field.value as number | undefined) ?? ""}
+                        onChange={(e) => {
+                          const v = e.currentTarget.valueAsNumber;
+                          field.onChange(Number.isFinite(v) ? v : undefined);
+                        }}
                       />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )} />
+
                 <FormField name="geo.lng" control={form.control} render={({ field }) => (
                   <FormItem>
                     <FormLabel>Longitude</FormLabel>
@@ -316,13 +322,17 @@ export function CompanyDetailLayout() {
                       <Input
                         type="number"
                         step="any"
-                        value={field.value ?? ""}
-                        onChange={(e) => field.onChange(e.target.value)}
+                        value={(field.value as number | undefined) ?? ""}
+                        onChange={(e) => {
+                          const v = e.currentTarget.valueAsNumber;
+                          field.onChange(Number.isFinite(v) ? v : undefined);
+                        }}
                       />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )} />
+
                 <FormField name="active" control={form.control} render={({ field }) => (
                   <FormItem className="flex items-center gap-3 pt-6">
                     <FormLabel className="mb-0">Ativa</FormLabel>

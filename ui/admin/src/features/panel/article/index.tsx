@@ -9,7 +9,7 @@ import {
 } from "react";
 import { Link } from "react-router";
 import type { PropsWithChildren } from "react";
-import { listArticle, updateArticleActivity, type Article } from "@/api/article/actions";
+import { listArticle, updateArticleActivity, type Article } from "@/api/article";
 
 import {
   Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter,
