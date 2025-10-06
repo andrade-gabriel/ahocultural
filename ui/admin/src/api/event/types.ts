@@ -9,11 +9,11 @@ export type Event = {
   title: string;
   slug: string;
   category: string;
+  company: string;
   imageUrl: string;
   body: string;
   startDate: Date;
   endDate: Date;
-  location: string;
   pricing: number;
   facilities: string[];
   sponsored: boolean;
@@ -25,11 +25,11 @@ export type EventDetail = {
   title: string;
   slug: string;
   category: string;
+  company: string;
   imageUrl: string;
   body: string;
   startDate: Date;
   endDate: Date;
-  location: string;
   pricing: number;
   facilities: string[];
   sponsored: boolean;

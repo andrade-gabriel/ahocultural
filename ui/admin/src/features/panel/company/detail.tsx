@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/form";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Loader2 } from "lucide-react";
+import { LocationAutocomplete } from "@/components/autocomplete";
 
 // detectar erro de cancelamento (axios/fetch)
 function isAbortError(e: unknown) {
@@ -55,10 +56,12 @@ const GeoSchema = z.object({
 });
 
 const Schema = z.object({
+  id: z.string().default('').optional(),
   slug: z.string().min(1, "Slug obrigatório"),
   name: z.string().min(1, "Nome obrigatório"),
   active: z.boolean(),
   address: AddressSchema,
+  location: z.string().default(""),
   geo: GeoSchema,
 });
 type FormValues = z.infer<typeof Schema>;
@@ -82,6 +85,7 @@ export function CompanyDetailLayout() {
   const form = useForm<FormInput, any, FormOutput>({
     resolver: zodResolver(Schema),
     defaultValues: {
+      id: "",
       name: "",
       slug: "",
       active: true,
@@ -97,6 +101,7 @@ export function CompanyDetailLayout() {
         country: "",
         country_code: "",
       },
+      location: '',
       geo: {
         lat: 0
         , lng: 0
@@ -125,6 +130,7 @@ export function CompanyDetailLayout() {
         if (reqId !== requestIdRef.current) return; // resposta antiga, ignora
 
         const defaults: FormValues = {
+          id: data.id ?? "",
           name: data.name ?? "",
           slug: data.slug ?? "",
           active: !!data.active,
@@ -140,6 +146,7 @@ export function CompanyDetailLayout() {
             country: data.address?.country ?? "",
             country_code: data.address?.country_code ?? "",
           },
+          location: data.location ?? '',
           geo: {
             lat: data.geo?.lat ?? 0
             , lng: data.geo?.lng ?? 0
@@ -174,6 +181,7 @@ export function CompanyDetailLayout() {
 
       // envia o objeto COMPLETO sempre (alinha com seu backend)
       const payload: CompanyDetail = {
+        id: values.id ?? '',
         name: values.name,
         slug: values.slug,
         active: values.active,
@@ -189,6 +197,7 @@ export function CompanyDetailLayout() {
           country: values.address.country,
           country_code: values.address.country_code,
         },
+        location: values.location,
         geo: {
           lat: values.geo.lat,
           lng: values.geo.lng
@@ -262,6 +271,9 @@ export function CompanyDetailLayout() {
 
               {/* Endereço */}
               <div className="grid gap-4 md:grid-cols-3">
+                <FormField name="address.postal_code" control={form.control} render={({ field }) => (
+                  <FormItem><FormLabel>CEP</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                )} />
                 <FormField name="address.street" control={form.control} render={({ field }) => (
                   <FormItem><FormLabel>Logradouro</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
@@ -283,15 +295,30 @@ export function CompanyDetailLayout() {
                 <FormField name="address.state_full" control={form.control} render={({ field }) => (
                   <FormItem><FormLabel>Estado</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
-                <FormField name="address.postal_code" control={form.control} render={({ field }) => (
-                  <FormItem><FormLabel>CEP</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-                )} />
                 <FormField name="address.country" control={form.control} render={({ field }) => (
                   <FormItem><FormLabel>País</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
                 <FormField name="address.country_code" control={form.control} render={({ field }) => (
                   <FormItem><FormLabel>Cód. País</FormLabel><FormControl><Input maxLength={2} {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
+                {/* Categoria / Imagem */}
+                <FormField
+                  control={form.control}
+                  name="location"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Ponto de Referência</FormLabel>
+                      <FormControl>
+                        <LocationAutocomplete
+                          value={field.value ? String(field.value) : null}
+                          onChange={(id) => field.onChange(id ?? "")}
+                          disabled={saving}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
 
               {/* Geo + Status */}

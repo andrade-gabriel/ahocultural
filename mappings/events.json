@@ -22,6 +22,12 @@
           "keyword": { "type": "keyword" }
         }
       },
+      "company": {
+        "type": "text",
+        "fields": {
+          "keyword": { "type": "keyword" }
+        }
+      },
       "imageUrl": {
         "type": "keyword"
       },
@@ -30,12 +36,6 @@
       },
       "endDate": {
         "type": "date"
-      },
-      "location": {
-        "type": "text",
-        "fields": {
-          "keyword": { "type": "keyword" }
-        }
       },
       "pricing": {
         "type": "double"

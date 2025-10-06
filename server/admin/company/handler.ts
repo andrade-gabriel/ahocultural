@@ -2,7 +2,7 @@ import type { APIGatewayProxyEvent } from 'aws-lambda';
 import { config } from './config'
 import { tryParseJson } from '@utils/request/parser';
 import { DefaultResponse } from "@utils/response/types"
-import { CompanyEntity, CompanyIndex, CompanyListRequest, CompanyRequest, CompanyToggleRequest } from '@company/types';
+import { CompanyEntity, CompanyIndex, CompanyListRequest, CompanyToggleRequest } from '@company/types';
 import { validateCompany } from '@company/validator';
 import { toCompanyEntity, toCompanyListRequest, toCompanyRequest } from '@company/mapper';
 import { getCompanyAsync, upsertCompanyAsync } from '@company/store';

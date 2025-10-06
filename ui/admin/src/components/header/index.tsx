@@ -14,7 +14,7 @@ export const Header = () => {
     try {
       setIsLoggingOut(true);
       await signOut();          // limpa storage/token
-      navigate("/access", { replace: true }); // ajuste a rota de login se for outra
+      navigate("/admin/access", { replace: true }); // ajuste a rota de login se for outra
     } finally {
       setIsLoggingOut(false);
     }

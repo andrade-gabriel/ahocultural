@@ -3,11 +3,11 @@ export interface EventEntity {
     title: string;
     slug: string;
     category: string;
+    company: string;
     imageUrl: string;
     body: string;
     startDate: Date;
     endDate: Date;
-    location: string;
     pricing: number;
     facilities: string[];
     sponsored: boolean;
@@ -21,11 +21,11 @@ export interface EventRequest {
     title: string;
     slug: string;
     category: string;
+    company: string;
     imageUrl: string;
     body: string;
     startDate: Date;
     endDate: Date;
-    location: string;
     pricing: number;
     facilities: string[];
     sponsored: boolean;
@@ -39,10 +39,10 @@ export interface EventIndex {
     title: string;
     slug: string;
     category: string;
+    company: string;
     imageUrl: string;
     startDate: Date;
     endDate: Date;
-    location: string;
     pricing: number;
     facilities: string[];
     sponsored: boolean;

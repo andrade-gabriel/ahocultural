@@ -12,6 +12,7 @@ export type Company = {
 };
 
 export type CompanyDetail = {
+  id: string;
   name: string;
   slug: string;
   active: boolean;
@@ -27,6 +28,7 @@ export type CompanyDetail = {
     country?: string;
     country_code?: string;
   };
+  location: string;
   geo?: {
     lat?: number;
     lng?: number;

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { z } from "zod";
-import { useForm, type SubmitHandler, useFieldArray } from "react-hook-form";
+import { useForm, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 import {
@@ -17,11 +17,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Form, FormControl, FormField, FormItem, FormLabel, FormMessage,
 } from "@/components/ui/form";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Loader2, Plus, Trash2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 /** ---------- TipTap ---------- */
 import { EditorContent, useEditor } from "@tiptap/react";
@@ -29,6 +30,11 @@ import StarterKit from "@tiptap/starter-kit";
 import Link from "@tiptap/extension-link";
 import Image from "@tiptap/extension-image";
 import Placeholder from "@tiptap/extension-placeholder";
+import { CategoryAutocomplete, CompanyAutocomplete } from "@/components/autocomplete";
+
+/** Facilities */
+const FACILITY_OPTIONS = ["Acessibilidade", "Estacionamento", "Bicicletário"] as const;
+type Facility = typeof FACILITY_OPTIONS[number];
 
 /* ---------- helpers ---------- */
 // detectar erro de cancelamento (axios/fetch)
@@ -59,13 +65,13 @@ const Schema = z.object({
   title: z.string().min(1, "Título obrigatório"),
   slug: z.string().min(1, "Slug obrigatório"),
   category: z.string().min(1, "Categoria obrigatória"),
+  company: z.string().min(1, "Empresa obrigatória"),
   imageUrl: z.string().url("URL inválida").or(z.literal("")).transform((v) => (v === "" ? "" : v)),
   body: z.string().min(1, "Conteúdo obrigatório"),
   startDate: z.string().min(1, "Início obrigatório"),        // yyyy-mm-ddThh:mm
   endDate: z.string().min(1, "Fim obrigatório"),
-  location: z.string().min(1, "Local obrigatório"),
   pricing: z.coerce.number().min(0, "Preço inválido"),
-  facilities: z.array(z.object({ value: z.string().min(1, "Informe o item") })).default([]),
+  facilities: z.array(z.enum(FACILITY_OPTIONS)).default([]),
   sponsored: z.boolean().default(false),
   active: z.boolean().default(true),
 });
@@ -96,23 +102,17 @@ export function EventDetailLayout() {
       title: "",
       slug: "",
       category: "",
+      company: "",
       imageUrl: "",
       body: "",
       startDate: "",
       endDate: "",
-      location: "",
       pricing: 0,
       facilities: [],
       sponsored: false,
       active: true,
     },
     mode: "onTouched",
-  });
-
-  /** ---------- FieldArray para facilities ---------- */
-  const { fields, append, remove } = useFieldArray({
-    control: form.control,
-    name: "facilities",
   });
 
   /** ---------- TipTap editor ---------- */
@@ -168,13 +168,13 @@ export function EventDetailLayout() {
           slug: data.slug ?? "",
           category: data.category ?? "",
           imageUrl: data.imageUrl ?? "",
+          company: data.company ?? "",
           body: data.body ?? "",
           startDate: toDatetimeLocalInput(data.startDate),
           endDate: toDatetimeLocalInput(data.endDate),
-          location: data.location ?? "",
           pricing: typeof data.pricing === "number" ? data.pricing : 0,
           facilities: Array.isArray(data.facilities)
-            ? data.facilities.map((v) => ({ value: v }))
+            ? data.facilities.filter((v: any): v is Facility => FACILITY_OPTIONS.includes(v))
             : [],
           sponsored: !!data.sponsored,
           active: !!data.active,
@@ -209,13 +209,13 @@ export function EventDetailLayout() {
         title: values.title,
         slug: values.slug,
         category: values.category,
+        company: values.company,
         imageUrl: values.imageUrl || "",
         body: values.body, // HTML do TipTap
         startDate: new Date(values.startDate),
         endDate: new Date(values.endDate),
-        location: values.location,
         pricing: values.pricing,
-        facilities: values.facilities.map((f) => f.value).filter(Boolean),
+        facilities: values.facilities,
         sponsored: values.sponsored,
         active: values.active,
       };
@@ -295,7 +295,11 @@ export function EventDetailLayout() {
                     <FormItem>
                       <FormLabel>Categoria</FormLabel>
                       <FormControl>
-                        <Input placeholder="Categoria do evento" {...field} />
+                        <CategoryAutocomplete
+                          value={field.value ? String(field.value) : null}
+                          onChange={(id) => field.onChange(id ?? "")}
+                          disabled={saving}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -303,12 +307,16 @@ export function EventDetailLayout() {
                 />
                 <FormField
                   control={form.control}
-                  name="imageUrl"
+                  name="company"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Imagem (URL)</FormLabel>
+                      <FormLabel>Empresa</FormLabel>
                       <FormControl>
-                        <Input placeholder="https://..." {...field} />
+                        <CompanyAutocomplete
+                          value={field.value ? String(field.value) : null}
+                          onChange={(id) => field.onChange(id ?? "")}
+                          disabled={saving}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -348,19 +356,6 @@ export function EventDetailLayout() {
 
               {/* Local / Preço */}
               <div className="grid gap-4 md:grid-cols-2">
-                <FormField
-                  control={form.control}
-                  name="location"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Local</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Endereço / cidade / local do evento" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
                 <FormField
                   control={form.control}
                   name="pricing"
@@ -430,49 +425,41 @@ export function EventDetailLayout() {
 
               {/* Facilities */}
               <div className="space-y-2">
-                <FormLabel>Facilidades (ex.: estacionamento, acessibilidade)</FormLabel>
-                <div className="grid gap-2">
-                  {fields.length === 0 ? (
-                    <div className="text-xs text-muted-foreground">Nenhum item adicionado.</div>
-                  ) : null}
+                <FormLabel>Facilidades</FormLabel>
 
-                  {fields.map((f, idx) => (
-                    <div key={f.id} className="flex gap-2 items-start">
-                      <FormField
-                        control={form.control}
-                        name={`facilities.${idx}.value`}
-                        render={({ field }) => (
-                          <FormItem className="flex-1">
+                <div className="grid gap-2 md:grid-cols-3">
+                  {FACILITY_OPTIONS.map((opt) => (
+                    <FormField
+                      key={opt}
+                      control={form.control}
+                      name="facilities"
+                      render={({ field }) => {
+                        const value: Facility[] = field.value ?? [];
+                        const checked = value.includes(opt);
+                        return (
+                          <FormItem className="flex items-center gap-2 space-y-0">
                             <FormControl>
-                              <Input placeholder="Digite a facilidade" {...field} />
+                              <Checkbox
+                                checked={checked}
+                                onCheckedChange={(v) => {
+                                  const set = new Set(value);
+                                  if (v) set.add(opt);
+                                  else set.delete(opt);
+                                  field.onChange(Array.from(set));
+                                }}
+                              />
                             </FormControl>
-                            <FormMessage />
+                            <FormLabel className="font-normal">{opt}</FormLabel>
                           </FormItem>
-                        )}
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        onClick={() => remove(idx)}
-                        aria-label="Remover facilidade"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
+                        );
+                      }}
+                    />
                   ))}
                 </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="gap-2"
-                  onClick={() => append({ value: "" })}
-                >
-                  <Plus className="h-4 w-4" />
-                  Adicionar facilidade
-                </Button>
+
+                <FormMessage />
               </div>
+
 
               {/* Patrocinado / Ativo */}
               <div className="grid gap-4 md:grid-cols-2">

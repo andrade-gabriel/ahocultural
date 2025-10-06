@@ -21,6 +21,7 @@ export function toCompanyEntity(
             country: input.address.country.trim(),
             country_code: input.address.country_code.trim().toUpperCase()
         },
+        location: input.location.trim(),
         geo: {
             lat: input.geo.lat,
             lng: input.geo.lng
@@ -50,6 +51,7 @@ export function toCompanyRequest(
             country: input.address.country,
             country_code: input.address.country_code
         },
+        location: input.location,
         geo: {
             lat: input.geo.lat,
             lng: input.geo.lng
@@ -86,6 +88,7 @@ export function toCompanyIndex(
     postal_code: input.address.postal_code?.trim(),
     country: input.address.country.trim(),
     country_code: input.address.country_code.trim().toUpperCase(),
+    location: input.location.trim(),
     geo: {
       lat: input.geo.lat ?? 0,
       lon: input.geo.lng ?? 0

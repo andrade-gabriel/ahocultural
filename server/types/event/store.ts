@@ -34,11 +34,11 @@ export async function getEventAsync(
                 title: string;
                 slug: string;
                 category: string;
+                company: string;
                 imageUrl: string;
                 body: string;
                 startDate: Date;
                 endDate: Date;
-                location: string;
                 pricing: number;
                 facilities: string[];
                 sponsored: boolean;
@@ -51,12 +51,12 @@ export async function getEventAsync(
                 id: raw.id,
                 title: raw.title,
                 slug: raw.slug,
+                company: raw.company,
                 category: raw.category,
                 imageUrl: raw.imageUrl,
                 body: raw.body,
                 startDate: raw.startDate,
                 endDate: raw.endDate,
-                location: raw.location,
                 pricing: raw.pricing,
                 facilities: raw.facilities,
                 sponsored: raw.sponsored,

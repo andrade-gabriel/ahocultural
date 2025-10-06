@@ -339,7 +339,6 @@ function EventsTable() {
             <TableHead>Título</TableHead>
             <TableHead className="w-[160px]">Categoria</TableHead>
             <TableHead className="w-[210px]">Período</TableHead>
-            <TableHead className="w-[180px]">Local</TableHead>
             <TableHead className="w-[130px]">Preço</TableHead>
             <TableHead className="w-[110px]">Patrocinado</TableHead>
             <TableHead className="w-[100px]"></TableHead>
@@ -356,7 +355,6 @@ function EventsTable() {
                 </TableCell>
                 <TableCell className="text-sm text-muted-foreground">{e.category ?? "-"}</TableCell>
                 <TableCell className="text-sm text-muted-foreground">{formatRange(e.startDate, e.endDate)}</TableCell>
-                <TableCell className="text-sm text-muted-foreground">{e.location ?? "-"}</TableCell>
                 <TableCell className="text-sm flex items-center gap-1">
                   <BadgeDollarSign className="h-3.5 w-3.5 text-muted-foreground" />
                   <span className="text-muted-foreground">{formatBRL(e.pricing)}</span>

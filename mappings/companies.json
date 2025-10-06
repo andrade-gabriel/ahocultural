@@ -64,6 +64,12 @@
       "country_code": {
         "type": "keyword"
       },
+      "location": {
+        "type": "text",
+        "fields": {
+          "keyword": { "type": "keyword" }
+        }
+      },
       "geo": {
         "type": "geo_point"
       },

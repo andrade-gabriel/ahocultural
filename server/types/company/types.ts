@@ -14,6 +14,7 @@ export interface CompanyEntity {
         country: string;        // "Brasil"
         country_code: string;   // "BR"
     };
+    location: string;
     geo: {
         lat: number | null;     // WGS84
         lng: number | null;     // WGS84
@@ -40,6 +41,7 @@ export interface CompanyRequest {
         country: string;        // "Brasil"
         country_code: string;   // "BR"
     };
+    location: string;
     geo: {
         lat: number | null;     // WGS84
         lng: number | null;     // WGS84
@@ -61,6 +63,7 @@ export interface CompanyIndex {
   postal_code?: string;    // keyword (exato)
   country: string;         // text + keyword
   country_code: string;    // keyword (exato)
+  location: string;
   geo: {
     lat: number;           // parte do geo_point
     lon: number;           // parte do geo_point (⚠️ ES espera "lon", não "lng")

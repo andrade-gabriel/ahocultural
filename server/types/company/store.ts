@@ -45,6 +45,7 @@ export async function getCompanyAsync(
                     country: string;
                     country_code: string;
                 };
+                location: string;
                 geo: {
                     lat: number | null;
                     lng: number | null;
@@ -70,6 +71,7 @@ export async function getCompanyAsync(
                     country: raw.address.country,
                     country_code: raw.address.country_code,
                 },
+                location: raw.location,
                 geo: {
                     lat: raw.geo.lat,
                     lng: raw.geo.lng,
