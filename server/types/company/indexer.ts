@@ -45,7 +45,14 @@ export async function getAsync(config: any, skip: number, take: number, name: st
     const url = new URL(`${base_url}/_search`);
 
     const query = name
-        ? { match: { name: name } }
+        ? {
+            wildcard: {
+                "name.keyword": {
+                    value: `*${name.toLowerCase().replace(/([*?])/g, '\\$1')}*`,
+                    case_insensitive: true
+                }
+            }
+        }
         : { match_all: {} };
 
     // Corpo da busca com paginação simples

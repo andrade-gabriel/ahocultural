@@ -141,7 +141,7 @@ export async function putHandler(event: APIGatewayProxyEvent): Promise<DefaultRe
         if (existingCompanyEntity) {
             const companyEntity = await toCompanyEntity(req, existingCompanyEntity);
             if (!await upsertCompanyAsync(companyEntity, config.s3.bucket))
-                errors = ["Failed to Update Company - Please, contact suport."];
+                errors = ["Failed to Update Company - Please, contact suport!"];
             else {
                 if (await notifyAsync(config.sns.companyTopic, {
                     id: req.id

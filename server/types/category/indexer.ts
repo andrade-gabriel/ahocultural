@@ -44,13 +44,24 @@ export async function getAsync(config: any, skip: number, take: number, name: st
     const base_url = base_path.startsWith("http") ? base_path : `https://${base_path}`;
     const url = new URL(`${base_url}/_search`);
 
-    const must: any[] = [];
-    if (name && name.trim() !== "") {
-        must.push({ match: { name } }); // mantém seu filtro por nome
-    }
+    const baseFilter =
+        name && name.trim() !== ""
+            ? {
+                wildcard: {
+                    "name.keyword": {
+                        value: `*${name.toLowerCase().replace(/([*?])/g, '\\$1')}*`,
+                        case_insensitive: true,
+                    },
+                },
+            }
+            : { match_all: {} };
 
-    const must_not = [{ exists: { field: "parent_id" } }];
-    const query = { bool: { must, must_not } };
+    const query = {
+        bool: {
+            ...(baseFilter.match_all ? {} : { must: [baseFilter] }),
+            must_not: [{ exists: { field: "parent_id" } }],
+        },
+    };
 
     // Corpo da busca com paginação simples
     const body = {
