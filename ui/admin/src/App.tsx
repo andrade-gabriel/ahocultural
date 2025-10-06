@@ -8,24 +8,24 @@ import { LoginLayout } from "@/features/access/login";
 import { PanelLayout } from "@/features/panel/layout";
 
 /** CATEGORY */
-import { CategoryLayout  } from "./features/panel/category";
+import { CategoryLayout } from "./features/panel/category";
 import { CategoryDetailLayout } from "./features/panel/category/detail";
 
 /** LOCATION */
-import { LocationLayout  } from "./features/panel/location";
+import { LocationLayout } from "./features/panel/location";
 import { LocationDetailLayout } from "./features/panel/location/detail";
 
 /** COMPANY */
-import { CompanyLayout  } from "./features/panel/company";
+import { CompanyLayout } from "./features/panel/company";
 import { CompanyDetailLayout } from "./features/panel/company/detail";
 
 /** ARTICLE */
-import { ArticleLayout  } from "./features/panel/article";
+import { ArticleLayout } from "./features/panel/article";
 import { ArticleDetailLayout } from "./features/panel/article/detail";
 
 /** EVENT */
-import { EventLayout  } from "./features/panel/event";
-import { EventDetailLayout  } from "./features/panel/event/detail";
+import { EventLayout } from "./features/panel/event";
+import { EventDetailLayout } from "./features/panel/event/detail";
 
 // import { SubwayLayout  } from "./features/panel/subway";
 
@@ -68,7 +68,10 @@ function App() {
             <Route path=":id" element={<EventDetailLayout />} />
           </Route>
         </Route>
-        <Route path="/" element={<Navigate to="/access" />} />
+        {/* DEFAULT ROUTE */}
+        <Route path="/" element={<Navigate to="/access" replace />} />
+        {/* opcionalmente, captura 404 */}
+        <Route path="*" element={<Navigate to="/access" replace />} />
       </Routes>
     </>
   )
