@@ -946,6 +946,7 @@ Resources:
       Environment:
         Variables:
           BUCKET_DATABASE: !Sub ahocultural-database-${Environment}
+          BUCKET_ASSETS: !Sub ahocultural-assets-${Environment}
           OPENSEARCH_ENDPOINT: !FindInMap [EnvironmentMap, !Ref Environment, OpenSearchDomain]
           EVENT_NOTIFIER: !Sub arn:aws:sns:${AWS::Region}:${AWS::AccountId}:ahocultural-events-index-${Environment}
           EVENT_INDEX: events
@@ -972,6 +973,8 @@ Resources:
               Resource: 
                 - !Sub 'arn:aws:s3:::ahocultural-database-${Environment}'
                 - !Sub 'arn:aws:s3:::ahocultural-database-${Environment}/*'
+                - !Sub 'arn:aws:s3:::ahocultural-assets-${Environment}'
+                - !Sub 'arn:aws:s3:::ahocultural-assets-${Environment}/*'
         - Statement:
             - Sid: EventLambdaSnsAdmin
               Effect: Allow

@@ -31,6 +31,8 @@ import Link from "@tiptap/extension-link";
 import Image from "@tiptap/extension-image";
 import Placeholder from "@tiptap/extension-placeholder";
 import { CategoryAutocomplete, CompanyAutocomplete } from "@/components/autocomplete";
+import { FileUpload } from "@/components/file-upload";
+import { getPreviewUrl } from "@/api/file";
 
 /** Facilities */
 const FACILITY_OPTIONS = ["Acessibilidade", "Estacionamento", "Bicicletário"] as const;
@@ -66,11 +68,19 @@ const Schema = z.object({
   slug: z.string().min(1, "Slug obrigatório"),
   category: z.string().min(1, "Categoria obrigatória"),
   company: z.string().min(1, "Empresa obrigatória"),
-  imageUrl: z.string().url("URL inválida").or(z.literal("")).transform((v) => (v === "" ? "" : v)),
+  heroImage: z.string().min(1, "Imagem principal obrigatória").nullable().refine(
+    (v) => v !== null && v.trim().length > 0,
+    "Imagem principal obrigatória"
+  ),
+  thumbnail: z.string().min(1, "Thumbnail obrigatória").nullable().refine(
+    (v) => v !== null && v.trim().length > 0,
+    "Thumbnail obrigatória"
+  ),
   body: z.string().min(1, "Conteúdo obrigatório"),
   startDate: z.string().min(1, "Início obrigatório"),        // yyyy-mm-ddThh:mm
   endDate: z.string().min(1, "Fim obrigatório"),
   pricing: z.coerce.number().min(0, "Preço inválido"),
+  externalTicketLink: z.string().optional(),
   facilities: z.array(z.enum(FACILITY_OPTIONS)).default([]),
   sponsored: z.boolean().default(false),
   active: z.boolean().default(true),
@@ -103,7 +113,9 @@ export function EventDetailLayout() {
       slug: "",
       category: "",
       company: "",
-      imageUrl: "",
+      heroImage: "",
+      thumbnail: "",
+      externalTicketLink: "",
       body: "",
       startDate: "",
       endDate: "",
@@ -167,7 +179,9 @@ export function EventDetailLayout() {
           title: data.title ?? "",
           slug: data.slug ?? "",
           category: data.category ?? "",
-          imageUrl: data.imageUrl ?? "",
+          heroImage: data.heroImage ?? "",
+          thumbnail: data.thumbnail ?? "",
+          externalTicketLink: data.externalTicketLink ?? "",
           company: data.company ?? "",
           body: data.body ?? "",
           startDate: toDatetimeLocalInput(data.startDate),
@@ -210,7 +224,9 @@ export function EventDetailLayout() {
         slug: values.slug,
         category: values.category,
         company: values.company,
-        imageUrl: values.imageUrl || "",
+        heroImage: values.heroImage ?? "",
+        thumbnail: values.thumbnail ?? "",
+        externalTicketLink: values.externalTicketLink ?? "",
         body: values.body, // HTML do TipTap
         startDate: new Date(values.startDate),
         endDate: new Date(values.endDate),
@@ -284,6 +300,66 @@ export function EventDetailLayout() {
                     </FormItem>
                   )}
                 />
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="min-w-0 overflow-hidden">
+                  <FormField
+                    control={form.control}
+                    name="heroImage"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Imagem Principal</FormLabel>
+                        <FormControl>
+                          <FileUpload
+                            accept="image/*"
+                            maxSizeMB={5}
+                            name={field.name}
+                            value={field.value}
+                            onChange={field.onChange}
+                            onBlur={field.onBlur}
+                            ref={field.ref}
+                            loadPreview={async (id) => {
+                              // usa sua action que devolve URL assinada de GET
+                              const { url, name, size, contentType } = await getPreviewUrl(id);
+                              return { url, name, size, contentType };
+                            }}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="min-w-0 overflow-hidden">
+                  <FormField
+                    control={form.control}
+                    name="thumbnail"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Thumbnail</FormLabel>
+                        <FormControl>
+                          <FileUpload
+                            accept="image/*"
+                            maxSizeMB={5}
+                            name={field.name}
+                            value={field.value}
+                            onChange={field.onChange}
+                            onBlur={field.onBlur}
+                            ref={field.ref}
+                            loadPreview={async (id) => {
+                              // usa sua action que devolve URL assinada de GET
+                              const { url, name, size, contentType } = await getPreviewUrl(id);
+                              return { url, name, size, contentType };
+                            }}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
               </div>
 
               {/* Categoria / Imagem */}
@@ -370,6 +446,19 @@ export function EventDetailLayout() {
                           value={Number.isFinite(field.value as number) ? String(field.value) : ""}
                           onChange={(e) => field.onChange(e.target.value === "" ? "" : Number(e.target.value))}
                         />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="externalTicketLink"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Ingresso Externo (ex.: Sympla, etc)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Link do site de ingressos" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

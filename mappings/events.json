@@ -28,7 +28,13 @@
           "keyword": { "type": "keyword" }
         }
       },
-      "imageUrl": {
+      "heroImage": {
+        "type": "keyword"
+      },
+      "thumbnail": {
+        "type": "keyword"
+      },
+      "externalTicketLink": {
         "type": "keyword"
       },
       "startDate": {

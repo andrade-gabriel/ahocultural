@@ -35,11 +35,13 @@ export async function getEventAsync(
                 slug: string;
                 category: string;
                 company: string;
-                imageUrl: string;
+                heroImage: string;
+                thumbnail: string;
                 body: string;
                 startDate: Date;
                 endDate: Date;
                 pricing: number;
+                externalTicketLink: string;
                 facilities: string[];
                 sponsored: boolean;
                 created_at: Date;
@@ -53,11 +55,13 @@ export async function getEventAsync(
                 slug: raw.slug,
                 company: raw.company,
                 category: raw.category,
-                imageUrl: raw.imageUrl,
+                heroImage: raw.heroImage,
+                thumbnail: raw.thumbnail,
                 body: raw.body,
                 startDate: raw.startDate,
                 endDate: raw.endDate,
                 pricing: raw.pricing,
+                externalTicketLink: raw.externalTicketLink,
                 facilities: raw.facilities,
                 sponsored: raw.sponsored,
                 created_at: raw.created_at,

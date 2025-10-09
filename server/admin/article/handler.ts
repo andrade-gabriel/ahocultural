@@ -143,7 +143,7 @@ export async function putHandler(event: APIGatewayProxyEvent): Promise<DefaultRe
         if(existingArticleEntity){
             const articleEntity = await toArticleEntity(req, existingArticleEntity);
             if (!await upsertArticleAsync(articleEntity, config.s3.bucket))
-                errors = ["Failed to Update Article - Please, contact suport."];
+                errors = ["Failed to Update Article - Please, contact suport!"];
             else {
                 if (await notifyAsync(config.sns.articleTopic, {
                     id: req.id

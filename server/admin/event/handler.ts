@@ -9,6 +9,8 @@ import { getEventAsync, upsertEventAsync } from '@event/store';
 import { notifyAsync } from '@event/notifier';
 import { getAsync } from '@event/indexer';
 import { randomUUID } from 'node:crypto';
+import { renameAndFinalizeAsset } from 'types/file/store';
+import { SeoImageType } from 'types/file/types';
 
 type HandlerFn = (event: APIGatewayProxyEvent) => Promise<DefaultResponse>;
 const handlerFactory = new Map<string, HandlerFn>([
@@ -77,6 +79,19 @@ export async function postHandler(event: APIGatewayProxyEvent): Promise<DefaultR
     let errors: string[] = validateEvent(req);
     if (errors.length == 0) {
         req.id = randomUUID();
+
+        req.heroImage = await renameAndFinalizeAsset({
+                    bucket: config.s3.assetsBucket
+                    , assetType: SeoImageType.Hero
+                    , id: req.heroImage
+                    , slug: req.slug })
+        
+        req.thumbnail = await renameAndFinalizeAsset({
+            bucket: config.s3.assetsBucket
+            , assetType: SeoImageType.Thumbnail
+            , id: req.thumbnail
+            , slug: req.slug })
+
         const eventEntity = await toEventEntity(req, undefined);
         if (!await upsertEventAsync(eventEntity, config.s3.bucket))
             errors = ["Failed to Upsert Event - Please, contact suport."];
@@ -109,11 +124,24 @@ export async function putHandler(event: APIGatewayProxyEvent): Promise<DefaultRe
     req.id = event.pathParameters?.id ?? '';
     let errors: string[] = validateEvent(req);
     if (req && req.id && errors.length == 0) {
+
+        req.heroImage = await renameAndFinalizeAsset({
+                    bucket: config.s3.assetsBucket
+                    , assetType: SeoImageType.Hero
+                    , id: req.heroImage
+                    , slug: req.slug })
+        
+        req.thumbnail = await renameAndFinalizeAsset({
+            bucket: config.s3.assetsBucket
+            , assetType: SeoImageType.Thumbnail
+            , id: req.thumbnail
+            , slug: req.slug })
+
         const existingEventEntity: EventEntity | undefined = await getEventAsync(req?.id, config.s3.bucket);
         if(existingEventEntity){
             const eventEntity = await toEventEntity(req, existingEventEntity);
             if (!await upsertEventAsync(eventEntity, config.s3.bucket))
-                errors = ["Failed to Upsert Event - Please, contact suport."];
+                errors = ["Failed to Upsert Event - Please, contact suport!"];
             else {
                 if (await notifyAsync(config.sns.eventTopic, {
                     id: req.id

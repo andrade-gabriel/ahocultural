@@ -23,7 +23,7 @@ export function buildKey(
                 : "file";
 
     const ext = extension(contentType) || "bin";
-    return `${DEFAULT_PREFIX}/${encodeURIComponent(
+    return `${encodeURIComponent(
         slug.toLowerCase().trim()
     )}_${suffix}.${ext}`;
 }
@@ -55,7 +55,7 @@ export async function renameAndFinalizeAsset(params: {
             new CopyObjectCommand({
                 Bucket: bucket,
                 CopySource: `${bucket}/${sourceKey}`,
-                Key: finalKey,
+                Key: `${DEFAULT_PREFIX}/${finalKey}`,
                 MetadataDirective: "REPLACE",
                 ContentType: head.ContentType,
                 TaggingDirective: "REPLACE",

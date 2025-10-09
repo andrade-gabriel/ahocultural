@@ -194,8 +194,8 @@ export function ArticleDetailLayout() {
         id: idParam ?? "", // backend pode ignorar em POST
         title: values.title,
         slug: values.slug,
-        heroImage: values.heroImage,
-        thumbnail: values.thumbnail,
+        heroImage: values.heroImage ?? "",
+        thumbnail: values.thumbnail ?? "",
         body: values.body, // HTML do TipTap
         publicationDate: new Date(values.publicationDate),
         active: values.active,

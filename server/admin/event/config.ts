@@ -9,6 +9,7 @@ function requireEnv(key: string): string {
 export const config = {
   s3: {
     bucket: requireEnv("BUCKET_DATABASE"),
+    assetsBucket: requireEnv("BUCKET_ASSETS"),
   },
   sns: {
     eventTopic: requireEnv("EVENT_NOTIFIER"),
