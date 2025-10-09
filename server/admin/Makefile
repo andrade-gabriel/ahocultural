@@ -33,6 +33,11 @@ ts:
 		--tsconfig=$(TSCONFIG) \
 		--outfile=.dist/event/app.js
 
+	npx esbuild ./file/app.ts \
+		--bundle --platform=node --target=node22 \
+		--tsconfig=$(TSCONFIG) \
+		--outfile=.dist/file/app.js
+
 build: ts
 	sam build
 

@@ -7,9 +7,17 @@ Mappings:
     qa:
       Domain: qa.ahocultural.com
       BucketName: ahocultural-static-qa
+      AssetsBucketName: ahocultural-assets-qa
+      MinTTL: 300
+      DefaultTTL: 86400
+      MaxTTL: 31536000
     prod:
       Domain: ahocultural.com
       BucketName: ahocultural-static-prod
+      AssetsBucketName: ahocultural-assets-prod
+      MinTTL: 300
+      DefaultTTL: 86400
+      MaxTTL: 31536000
 Parameters:
   Environment:
     Type: String
@@ -168,6 +176,24 @@ Resources:
             DNSName: !GetAtt ApiGatewayDomain.RegionalDomainName
 
   ## CloudFront
+  AssetsBucket:
+    Type: 'AWS::S3::Bucket'
+    Properties:
+      BucketName: !FindInMap [EnvironmentMap, !Ref Environment, AssetsBucketName]
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        IgnorePublicAcls: true
+        BlockPublicPolicy: true
+        RestrictPublicBuckets: true
+      VersioningConfiguration:
+        Status: Enabled
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
   StaticBucket:
     Type: 'AWS::S3::Bucket'
     Properties:
@@ -228,19 +254,38 @@ Resources:
             Cookies: 
                 Forward: none
           ViewerProtocolPolicy: redirect-to-https
-          MinTTL: 300
+          MinTTL: !FindInMap [EnvironmentMap, !Ref Environment, MinTTL]
           AllowedMethods:
               - GET
               - HEAD
               - OPTIONS
-              - PUT
-              - PATCH
-              - POST
-              - DELETE
           SmoothStreaming: false
-          DefaultTTL: 86400
-          MaxTTL: 31536000
+          DefaultTTL: !FindInMap [EnvironmentMap, !Ref Environment, DefaultTTL]
+          MaxTTL: !FindInMap [EnvironmentMap, !Ref Environment, MaxTTL]
           Compress: true
+        CacheBehaviors:
+          -
+            TargetOriginId: 
+              !Sub 
+                - s3-${BucketName}
+                - BucketName: !FindInMap [EnvironmentMap, !Ref Environment, BucketName]
+            ForwardedValues:
+              Headers:
+                - bot
+              QueryString: true
+              Cookies: 
+                  Forward: none
+            ViewerProtocolPolicy: redirect-to-https
+            MinTTL: !FindInMap [EnvironmentMap, !Ref Environment, MinTTL]
+            AllowedMethods:
+                - GET
+                - HEAD
+                - OPTIONS
+            SmoothStreaming: false
+            DefaultTTL: !FindInMap [EnvironmentMap, !Ref Environment, DefaultTTL]
+            MaxTTL: !FindInMap [EnvironmentMap, !Ref Environment, MaxTTL]
+            Compress: true
+            PathPattern: !Sub /assets*
         Origins: 
           - 
             Id: 
@@ -251,7 +296,17 @@ Resources:
               !Sub 
                 - ${BucketName}.s3.amazonaws.com
                 - BucketName: !FindInMap [EnvironmentMap, !Ref Environment, BucketName]
-            # OriginPath: /
+            S3OriginConfig: {}
+            OriginAccessControlId: !Ref StaticOAC
+          - 
+            Id: 
+              !Sub 
+                - s3-${AssetsBucketName}
+                - AssetsBucketName: !FindInMap [EnvironmentMap, !Ref Environment, AssetsBucketName]
+            DomainName: 
+              !Sub 
+                - ${AssetsBucketName}.s3.amazonaws.com
+                - AssetsBucketName: !FindInMap [EnvironmentMap, !Ref Environment, AssetsBucketName]
             S3OriginConfig: {}
             OriginAccessControlId: !Ref StaticOAC
   RecordSetLinktou:
@@ -307,22 +362,6 @@ Resources:
                   !Sub
                     - arn:aws:cloudfront::${AWS::AccountId}:distribution/${CloudFrontDistributionId}
                     - CloudFrontDistributionId: !Ref CloudFront
-
-  ## Lambda Configuration
-  LambdaBucket:
-    Type: AWS::S3::Bucket
-    Properties: 
-      BucketName: !Sub ahocultural-sam-artifacts-${Environment}
-      AccessControl: Private
-      LifecycleConfiguration:
-        Rules:
-          - Id: expire-after-1d
-            Status: Enabled
-            Prefix: ""                  # aplica ao bucket inteiro
-            ExpirationInDays: 1         # expira objetos atuais após 1 dia
-            AbortIncompleteMultipartUpload:
-              DaysAfterInitiation: 1    # aborta uploads incompletos após 1 dia
-
   ViewerEdgeFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -342,7 +381,6 @@ Resources:
       Policies: 
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
         - arn:aws:iam::aws:policy/CloudWatchFullAccess
-
   OriginEdgeFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -362,6 +400,21 @@ Resources:
       Policies: 
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
         - arn:aws:iam::aws:policy/CloudWatchFullAccess
+
+  ## Lambda Configuration
+  LambdaBucket:
+    Type: AWS::S3::Bucket
+    Properties: 
+      BucketName: !Sub ahocultural-sam-artifacts-${Environment}
+      AccessControl: Private
+      LifecycleConfiguration:
+        Rules:
+          - Id: expire-after-1d
+            Status: Enabled
+            Prefix: ""                  # aplica ao bucket inteiro
+            ExpirationInDays: 1         # expira objetos atuais após 1 dia
+            AbortIncompleteMultipartUpload:
+              DaysAfterInitiation: 1    # aborta uploads incompletos após 1 dia
 Outputs:
   DefaultRestApiId:
     Description: 'Rest Api Id for AhoCultural Api Gateway'
