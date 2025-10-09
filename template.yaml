@@ -206,6 +206,20 @@ Resources:
             AllowedHeaders: ["*"]
             ExposedHeaders: [ETag, x-amz-request-id, x-amz-version-id]
             MaxAge: 3000
+      LifecycleConfiguration:
+        Rules:
+          - Id: ExpireTempObjectsAfter1Day
+            Status: Enabled
+            TagFilters:
+              - Key: temp
+                Value: "true"
+            ExpirationInDays: 1
+            NoncurrentVersionExpirationInDays: 1
+          - Id: AbortIncompleteMPUsAfter1Day
+            Status: Enabled
+            Prefix: ""                       # aplica no bucket todo
+            AbortIncompleteMultipartUpload:
+              DaysAfterInitiation: 1
   StaticBucket:
     Type: 'AWS::S3::Bucket'
     Properties:

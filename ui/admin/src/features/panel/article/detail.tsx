@@ -48,8 +48,14 @@ function isAbortError(e: unknown) {
 const Schema = z.object({
   title: z.string().min(1, "Título obrigatório"),
   slug: z.string().min(1, "Slug obrigatório"),
-  heroImage: z.string().min(1, "Imagem principal obrigatória"),
-  thumbnail: z.string().min(1, "Thumbnail obrigatória"),
+  heroImage: z.string().min(1, "Imagem principal obrigatória").nullable().refine(
+    (v) => v !== null && v.trim().length > 0,
+    "Imagem principal obrigatória"
+  ),
+  thumbnail: z.string().min(1, "Thumbnail obrigatória").nullable().refine(
+    (v) => v !== null && v.trim().length > 0,
+    "Thumbnail obrigatória"
+  ),
   body: z.string().min(1, "Corpo da matéria obrigatório"),
   publicationDate: z.string().min(1, "Data obrigatória"), // YYYY-MM-DD vindo do <input type="date" />
   active: z.boolean(),

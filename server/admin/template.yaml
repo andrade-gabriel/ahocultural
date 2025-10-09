@@ -722,6 +722,7 @@ Resources:
       Environment:
         Variables:
           BUCKET_DATABASE: !Sub ahocultural-database-${Environment}
+          BUCKET_ASSETS: !Sub ahocultural-assets-${Environment}
           OPENSEARCH_ENDPOINT: !FindInMap [EnvironmentMap, !Ref Environment, OpenSearchDomain]
           ARTICLE_NOTIFIER: !Sub arn:aws:sns:${AWS::Region}:${AWS::AccountId}:ahocultural-articles-index-${Environment}
           ARTICLE_INDEX: articles
@@ -748,6 +749,8 @@ Resources:
               Resource: 
                 - !Sub 'arn:aws:s3:::ahocultural-database-${Environment}'
                 - !Sub 'arn:aws:s3:::ahocultural-database-${Environment}/*'
+                - !Sub 'arn:aws:s3:::ahocultural-assets-${Environment}'
+                - !Sub 'arn:aws:s3:::ahocultural-assets-${Environment}/*'
         - Statement:
             - Sid: ArticleLambdaSnsAdmin
               Effect: Allow

@@ -7,3 +7,8 @@ export interface FileProperty {
     lastModified: string | null;
     cacheControl: string | null;
 }
+
+export enum SeoImageType {
+    Hero,
+    Thumbnail
+}

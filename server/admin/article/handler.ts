@@ -9,6 +9,8 @@ import { getArticleAsync, upsertArticleAsync } from '@article/store';
 import { notifyAsync } from '@article/notifier';
 import { getAsync } from '@article/indexer';
 import { randomUUID } from 'node:crypto';
+import { renameAndFinalizeAsset } from 'types/file/store';
+import { SeoImageType } from 'types/file/types';
 
 type HandlerFn = (event: APIGatewayProxyEvent) => Promise<DefaultResponse>;
 const handlerFactory = new Map<string, HandlerFn>([
@@ -69,7 +71,8 @@ export async function postHandler(event: APIGatewayProxyEvent): Promise<DefaultR
     const req = event.body ? JSON.parse(event.body) : {
         id: '',
         title: '',
-        imageUrl: '',
+        heroImage: '',
+        thumbnail: '',
         body: '',
         publicationDate: new Date(),
         active: false
@@ -77,6 +80,19 @@ export async function postHandler(event: APIGatewayProxyEvent): Promise<DefaultR
     let errors: string[] = validateArticle(req);
     if (errors.length == 0) {
         req.id = randomUUID();
+
+        req.heroImage = await renameAndFinalizeAsset({
+            bucket: config.s3.assetsBucket
+            , assetType: SeoImageType.Hero
+            , id: req.heroImage
+            , slug: req.slug })
+
+        req.thumbnail = await renameAndFinalizeAsset({
+            bucket: config.s3.assetsBucket
+            , assetType: SeoImageType.Thumbnail
+            , id: req.thumbnail
+            , slug: req.slug })
+
         const articleEntity = await toArticleEntity(req, undefined);
         if (!await upsertArticleAsync(articleEntity, config.s3.bucket))
             errors = ["Failed to Insert Article - Please, contact suport."];
@@ -100,7 +116,8 @@ export async function putHandler(event: APIGatewayProxyEvent): Promise<DefaultRe
     const req = event.body ? JSON.parse(event.body) : {
         id: '',
         title: '',
-        imageUrl: '',
+        heroImage: '',
+        thumbnail: '',
         body: '',
         publicationDate: new Date(),
         active: false
@@ -109,6 +126,19 @@ export async function putHandler(event: APIGatewayProxyEvent): Promise<DefaultRe
     req.id = event.pathParameters?.id ?? '';
     let errors: string[] = validateArticle(req);
     if (req && req.id && errors.length == 0) {
+
+        req.heroImage = await renameAndFinalizeAsset({
+            bucket: config.s3.assetsBucket
+            , assetType: SeoImageType.Hero
+            , id: req.heroImage
+            , slug: req.slug })
+
+        req.thumbnail = await renameAndFinalizeAsset({
+            bucket: config.s3.assetsBucket
+            , assetType: SeoImageType.Thumbnail
+            , id: req.thumbnail
+            , slug: req.slug })
+
         const existingArticleEntity: ArticleEntity | undefined = await getArticleAsync(req.id, config.s3.bucket);
         if(existingArticleEntity){
             const articleEntity = await toArticleEntity(req, existingArticleEntity);
