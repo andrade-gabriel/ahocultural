@@ -373,6 +373,7 @@ export function EventDetailLayout() {
                       <FormControl>
                         <CategoryAutocomplete
                           value={field.value ? String(field.value) : null}
+                          parent={false}
                           onChange={(id) => field.onChange(id ?? "")}
                           disabled={saving}
                         />

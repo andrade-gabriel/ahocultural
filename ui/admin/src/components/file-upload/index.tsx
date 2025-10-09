@@ -48,7 +48,7 @@ export const FileUpload = forwardRef<HTMLInputElement, Props>(
     const fileInputRef = useRef<HTMLInputElement | null>(null);
     const [uiError, setUiError] = useState<string | null>(null);
     const [item, setItem] = useState<SelectedFile | null>(null);
-    const { upload, isUploading, progress, cancel } = usePresignedUploader();
+    const { upload, progress, cancel } = usePresignedUploader();
 
     // quando o campo já vem preenchido, carrega preview
     useEffect(() => {
