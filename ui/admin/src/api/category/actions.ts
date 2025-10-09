@@ -75,12 +75,12 @@ export async function listCategories(
   params: ListCategorysParams = {},
   opts?: { signal?: AbortSignal }
 ): Promise<Category[]> {
-  const { skip = 0, take = 10, search } = params;
+  const { skip = 0, take = 10, search, parent } = params;
 
   const { data } = await httpAuth.get<DefaultResponse<Category[]>>(
     "/admin/category",
     {
-      params: { skip, take, name: search },
+      params: { skip, take, name: search, parent },
       signal: opts?.signal,
     }
   );

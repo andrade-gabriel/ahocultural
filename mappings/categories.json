@@ -13,6 +13,12 @@
       "parent_id": {
         "type": "keyword"
       },
+      "parent_name": {
+        "type": "keyword"
+      },
+      "parent_slug": {
+        "type": "keyword"
+      },
       "name": {
         "type": "text",
         "fields": {

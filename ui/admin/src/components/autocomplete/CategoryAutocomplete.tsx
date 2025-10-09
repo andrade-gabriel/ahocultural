@@ -6,29 +6,32 @@ const DEFAULT_TAKE = 10;
 
 export function CategoryAutocomplete({
   value,
+  parent,
   onChange,
   disabled,
 }: {
   value: string | null;
+  parent: boolean | null;
   onChange: (id: string | null) => void;
   disabled?: boolean;
 }) {
   const fetchOptions = useCallback(async (q: string, signal?: AbortSignal): Promise<Option[]> => {
+    parent = parent ? parent : false;
     const term = q.trim();
     // 1) quando não digitou nada -> top 10
     if (!term) {
-      const items = await listCategories({ skip: 0, take: DEFAULT_TAKE }, { signal });
+      const items = await listCategories({ skip: 0, take: DEFAULT_TAKE, parent: parent }, { signal });
       return items.map(c => ({ value: c.id, label: c.name }));
     }
 
     // 2) quando digitou -> tenta filtrar
-    const filtered = await listCategories({ skip: 0, take: DEFAULT_TAKE, search: term }, { signal });
+    const filtered = await listCategories({ skip: 0, take: DEFAULT_TAKE, parent: parent, search: term }, { signal });
     if (filtered.length > 0) {
       return filtered.map(c => ({ value: c.id, label: c.name }));
     }
 
     // 3) fallback: se não encontrou nada, volta top 10
-    const fallback = await listCategories({ skip: 0, take: DEFAULT_TAKE }, { signal });
+    const fallback = await listCategories({ skip: 0, take: DEFAULT_TAKE, parent: parent }, { signal });
     return fallback.map(c => ({ value: c.id, label: c.name }));
   }, []);
 
@@ -49,7 +52,7 @@ export function CategoryAutocomplete({
       resolveById={resolveById}
       placeholder="Selecionar categoria…"
       disabled={disabled}
-      emptyLabel="Sem resultados"  // quase nunca aparecerá por causa do fallback
+      emptyLabel="Sem resultados"
     />
   );
 }

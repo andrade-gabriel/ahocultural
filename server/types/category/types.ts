@@ -21,6 +21,8 @@ export interface CategoryRequest {
 export interface CategoryIndex {
   id: string;
   parent_id: string | null;
+  parent_name: string | null;
+  parent_slug: string | null;
   name: string;
   slug: string;
   description: string | null;
@@ -30,6 +32,8 @@ export interface CategoryIndex {
 export interface CategoryListRequest {
     id: string;
     parent_id: string | null;
+    parent_name: string | null;
+    parent_slug: string | null;
     name: string;
     slug: string;
     active: boolean;

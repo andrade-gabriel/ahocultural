@@ -1,11 +1,11 @@
 import {
-    createContext,
-    useContext,
-    useEffect,
-    useMemo,
-    useState,
-    useCallback,
-    useRef,
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  useCallback,
+  useRef,
 } from "react";
 import { Link } from "react-router";
 import type { PropsWithChildren } from "react";
@@ -325,6 +325,7 @@ function CategoriesTable() {
         <TableHeader>
           <TableRow>
             <TableHead>Nome</TableHead>
+            <TableHead className="w-[200px]">Categoria Pai</TableHead>
             <TableHead className="w-[200px]">Slug</TableHead>
             <TableHead className="w-[120px]"></TableHead>
           </TableRow>
@@ -336,6 +337,16 @@ function CategoriesTable() {
               <TableRow key={c.id}>
                 <TableCell className="font-medium underline">
                   <Link to={`/category/${c.id}`}>{c.name}</Link>
+                </TableCell>
+                <TableCell>
+                  <div className="leading-tight">
+                    <div className="text-sm  underline">
+                      <Link to={`/category/${c.parent_id}`}>{c.parent_name}</Link>
+                    </div>
+                    {/* {c.parent_slug ? (
+                      <div className="font-mono text-xs text-muted-foreground">{c.parent_slug}</div>
+                    ) : null} */}
+                  </div>
                 </TableCell>
                 <TableCell className="font-mono text-xs text-muted-foreground">{c.slug}</TableCell>
                 <TableCell>

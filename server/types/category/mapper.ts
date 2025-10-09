@@ -36,6 +36,8 @@ export function toCategoryListRequest(
     return {
         id: input.id,
         parent_id: input.parent_id,
+        parent_name: input?.parent_name,
+        parent_slug: input?.parent_slug,
         name: input.name,
         slug: input.slug,
         active: input.active
@@ -43,11 +45,14 @@ export function toCategoryListRequest(
 }
 
 export function toCategoryIndex(
-  input: CategoryEntity
+  input: CategoryEntity,
+  parent: CategoryEntity | undefined
 ): CategoryIndex {
   return {
     id: input.id.trim(),
     parent_id: input.parent_id,
+    parent_name: parent ? parent?.name : null,
+    parent_slug: parent ? parent?.slug : null,
     name: input.name.trim(),
     slug: input.slug,
     description: input.description,

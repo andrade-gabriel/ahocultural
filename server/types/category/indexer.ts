@@ -38,7 +38,7 @@ async function signedFetchEs(url: URL, method: string, bodyObj?: unknown) {
     });
 }
 
-export async function getAsync(config: any, skip: number, take: number, name: string | null): Promise<CategoryIndex[]> {
+export async function getAsync(config: any, skip: number, take: number, parent: boolean, name: string | null): Promise<CategoryIndex[]> {
     // Monta a URL para /_search do índice
     const base_path = `${config.elasticsearch.domain}/${config.elasticsearch.categoryIndex}`;
     const base_url = base_path.startsWith("http") ? base_path : `https://${base_path}`;
@@ -56,10 +56,11 @@ export async function getAsync(config: any, skip: number, take: number, name: st
             }
             : { match_all: {} };
 
+    const mustNot = parent ? [{ exists: { field: "parent_id" } }] : [];
     const query = {
         bool: {
             ...(baseFilter.match_all ? {} : { must: [baseFilter] }),
-            must_not: [{ exists: { field: "parent_id" } }],
+            must_not: mustNot,
         },
     };
 

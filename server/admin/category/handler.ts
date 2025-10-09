@@ -56,8 +56,9 @@ export async function listIdHandler(event: APIGatewayProxyEvent): Promise<Defaul
     const skip = qs.skip ? parseInt(qs.skip, 10) : 0;
     const take = qs.take ? parseInt(qs.take, 10) : 10;
     const name = qs.name ? qs.name : null;
+    const parent = qs.parent === 'true' ? true : qs.parent === 'false' ? false : false;
 
-    const indexedCompanies: CategoryIndex[] = await getAsync(config, skip, take, name);
+    const indexedCompanies: CategoryIndex[] = await getAsync(config, skip, take, parent, name);
     const companies: CategoryListRequest[] = indexedCompanies.map(indexedCategory => toCategoryListRequest(indexedCategory));
     return {
         success: true,

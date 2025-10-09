@@ -23,6 +23,7 @@ import {
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Loader2 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
+import { CategoryAutocomplete } from "@/components/autocomplete";
 
 // detectar erro de cancelamento (axios/fetch)
 function isAbortError(e: unknown) {
@@ -211,7 +212,12 @@ export function CategoryDetailLayout() {
                     <FormItem>
                       <FormLabel>Categoria pai (opcional)</FormLabel>
                       <FormControl>
-                        <Input placeholder="ID da categoria pai" value={field.value ?? ""} onChange={field.onChange} />
+                        <CategoryAutocomplete
+                          value={field.value ? String(field.value) : null}
+                          parent={true}
+                          onChange={(id) => field.onChange(id ?? "")}
+                          disabled={saving}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
