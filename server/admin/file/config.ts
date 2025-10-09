@@ -9,5 +9,8 @@ function requireEnv(key: string): string {
 export const config = {
   s3: {
     bucket: requireEnv("BUCKET_ASSETS"),
+  },
+  cdn: {
+    url: requireEnv("CDN_BASE_URL")
   }
 };

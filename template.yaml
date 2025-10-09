@@ -194,6 +194,18 @@ Resources:
         ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:
               SSEAlgorithm: AES256
+      CorsConfiguration:
+        CorsRules:
+          - AllowedOrigins:
+              - "http://localhost:5173"
+              - "http://127.0.0.1:5173"
+              - "http://localhost:3000"
+              - "http://127.0.0.1:3000"
+              - "https://qa.ahocultural.com"
+            AllowedMethods: [PUT, GET, HEAD]
+            AllowedHeaders: ["*"]
+            ExposedHeaders: [ETag, x-amz-request-id, x-amz-version-id]
+            MaxAge: 3000
   StaticBucket:
     Type: 'AWS::S3::Bucket'
     Properties:
@@ -259,6 +271,10 @@ Resources:
               - GET
               - HEAD
               - OPTIONS
+              - PUT
+              - PATCH
+              - POST
+              - DELETE
           SmoothStreaming: false
           DefaultTTL: !FindInMap [EnvironmentMap, !Ref Environment, DefaultTTL]
           MaxTTL: !FindInMap [EnvironmentMap, !Ref Environment, MaxTTL]
@@ -267,8 +283,8 @@ Resources:
           -
             TargetOriginId: 
               !Sub 
-                - s3-${BucketName}
-                - BucketName: !FindInMap [EnvironmentMap, !Ref Environment, BucketName]
+                - s3-${AssetsBucketName}
+                - AssetsBucketName: !FindInMap [EnvironmentMap, !Ref Environment, AssetsBucketName]
             ForwardedValues:
               Headers:
                 - bot
@@ -281,6 +297,10 @@ Resources:
                 - GET
                 - HEAD
                 - OPTIONS
+                - PUT
+                - PATCH
+                - POST
+                - DELETE
             SmoothStreaming: false
             DefaultTTL: !FindInMap [EnvironmentMap, !Ref Environment, DefaultTTL]
             MaxTTL: !FindInMap [EnvironmentMap, !Ref Environment, MaxTTL]
@@ -356,6 +376,45 @@ Resources:
               - !Sub 
                 - arn:aws:s3:::${BucketName}/*
                 - BucketName: !FindInMap [EnvironmentMap, !Ref Environment, BucketName]
+            Condition:
+              StringEquals:
+                aws:SourceArn: 
+                  !Sub
+                    - arn:aws:cloudfront::${AWS::AccountId}:distribution/${CloudFrontDistributionId}
+                    - CloudFrontDistributionId: !Ref CloudFront
+  AssetsBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    DependsOn:
+      - CloudFront
+    Properties:
+      Bucket: !Ref AssetsBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: DenyInsecureTransport
+            Effect: Deny
+            Principal: "*"
+            Action: "s3:*"
+            Resource:
+              - !Sub 
+                - arn:aws:s3:::${AssetsBucketName}
+                - AssetsBucketName: !FindInMap [EnvironmentMap, !Ref Environment, AssetsBucketName]
+              - !Sub 
+                - arn:aws:s3:::${AssetsBucketName}/*
+                - AssetsBucketName: !FindInMap [EnvironmentMap, !Ref Environment, AssetsBucketName]
+            Condition:
+              Bool:
+                aws:SecureTransport: "false"
+
+          - Sid: AllowCloudFrontOACRead
+            Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: s3:GetObject
+            Resource: 
+              - !Sub 
+                - arn:aws:s3:::${AssetsBucketName}/*
+                - AssetsBucketName: !FindInMap [EnvironmentMap, !Ref Environment, AssetsBucketName]
             Condition:
               StringEquals:
                 aws:SourceArn: 

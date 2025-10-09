@@ -33,7 +33,8 @@ export async function getArticleAsync(
                 id: string;
                 title: string;
                 slug: string;
-                imageUrl: string;
+                heroImage: string;
+                thumbnail: string;
                 body: string;
                 publicationDate: Date;
                 created_at: Date;
@@ -45,7 +46,8 @@ export async function getArticleAsync(
                 id: raw.id,
                 title: raw.title,
                 slug: raw.slug,
-                imageUrl: raw.imageUrl,
+                heroImage: raw.heroImage,
+                thumbnail: raw.thumbnail,
                 body: raw.body,
                 publicationDate: raw.publicationDate,
                 created_at: raw.created_at,

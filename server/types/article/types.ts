@@ -2,7 +2,8 @@ export interface ArticleEntity {
     id: string;
     title: string;
     slug: string;
-    imageUrl: string;
+    heroImage: string;
+    thumbnail: string;
     body: string;
     publicationDate: Date;
     active: boolean;
@@ -14,7 +15,8 @@ export interface ArticleRequest {
     id: string;
     title: string;
     slug: string;
-    imageUrl: string;
+    heroImage: string;
+    thumbnail: string;
     body: string;
     publicationDate: Date;
     active: boolean;
@@ -26,7 +28,8 @@ export interface ArticleIndex {
     id: string;
     title: string;
     slug: string;
-    imageUrl: string;
+    heroImage: string;
+    thumbnail: string;
     publicationDate: Date;
     active: boolean;
     created_at: Date;

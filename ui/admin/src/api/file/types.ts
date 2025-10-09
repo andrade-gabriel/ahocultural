@@ -1,0 +1,14 @@
+export interface PreSignedUrl {
+  id: string;
+  url: string;
+};
+
+export interface FileProperty {
+    name: string;
+    url: string;
+    size: number;
+    contentType: string;
+    etag: string | null;
+    lastModified: string | null;
+    cacheControl: string | null;
+}

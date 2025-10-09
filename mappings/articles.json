@@ -16,7 +16,10 @@
           "keyword": { "type": "keyword" }
         }
       },
-      "imageUrl": {
+      "heroImage": {
+        "type": "keyword"
+      },
+      "thumbnail": {
         "type": "keyword"
       },
       "situation": {

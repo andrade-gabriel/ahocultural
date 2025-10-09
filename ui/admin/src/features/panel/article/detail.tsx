@@ -29,6 +29,8 @@ import StarterKit from "@tiptap/starter-kit";
 import Link from "@tiptap/extension-link";
 import Image from "@tiptap/extension-image";
 import Placeholder from "@tiptap/extension-placeholder";
+import { FileUpload } from "@/components/file-upload";
+import { getPreviewUrl } from "@/api/file";
 
 /* ---------- helpers ---------- */
 // detectar erro de cancelamento (axios/fetch)
@@ -46,7 +48,8 @@ function isAbortError(e: unknown) {
 const Schema = z.object({
   title: z.string().min(1, "Título obrigatório"),
   slug: z.string().min(1, "Slug obrigatório"),
-  imageUrl: z.string().url("URL inválida").or(z.literal("")).transform((v) => (v === "" ? "" : v)),
+  heroImage: z.string().min(1, "Imagem principal obrigatória"),
+  thumbnail: z.string().min(1, "Thumbnail obrigatória"),
   body: z.string().min(1, "Corpo da matéria obrigatório"),
   publicationDate: z.string().min(1, "Data obrigatória"), // YYYY-MM-DD vindo do <input type="date" />
   active: z.boolean(),
@@ -88,7 +91,8 @@ export function ArticleDetailLayout() {
     defaultValues: {
       title: "",
       slug: "",
-      imageUrl: "",
+      heroImage: "",
+      thumbnail: "",
       body: "",
       publicationDate: "",
       active: true,
@@ -148,7 +152,8 @@ export function ArticleDetailLayout() {
         const defaults: FormValues = {
           title: data.title ?? "",
           slug: data.slug ?? "",
-          imageUrl: data.imageUrl ?? "",
+          heroImage: data.heroImage ?? "",
+          thumbnail: data.thumbnail ?? "",
           body: data.body ?? "",
           publicationDate: toDateInputValue(data.publicationDate),
           active: !!data.active,
@@ -183,7 +188,8 @@ export function ArticleDetailLayout() {
         id: idParam ?? "", // backend pode ignorar em POST
         title: values.title,
         slug: values.slug,
-        imageUrl: values.imageUrl || "",
+        heroImage: values.heroImage,
+        thumbnail: values.thumbnail,
         body: values.body, // HTML do TipTap
         publicationDate: new Date(values.publicationDate),
         active: values.active,
@@ -253,34 +259,67 @@ export function ArticleDetailLayout() {
                   )}
                 />
               </div>
-
               <div className="grid gap-4 md:grid-cols-2">
-                <FormField
-                  control={form.control}
-                  name="imageUrl"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Imagem (URL)</FormLabel>
-                      <FormControl>
-                        <Input placeholder="https://..." {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="publicationDate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Data de publicação</FormLabel>
-                      <FormControl>
-                        <Input type="date" value={field.value ?? ""} onChange={field.onChange} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <div className="min-w-0 overflow-hidden">
+                  <FormField
+                    control={form.control}
+                    name="heroImage"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Imagem Principal</FormLabel>
+                        <FormControl>
+                          <FileUpload
+                            accept="image/*"
+                            maxSizeMB={5}
+                            name={field.name}
+                            value={field.value}
+                            onChange={field.onChange}
+                            onBlur={field.onBlur}
+                            ref={field.ref}
+                            loadPreview={async (id) => {
+                              // usa sua action que devolve URL assinada de GET
+                              const { url, name, size, contentType } = await getPreviewUrl(id);
+                              return { url, name, size, contentType };
+                            }}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="min-w-0 overflow-hidden">
+                  <FormField
+                    control={form.control}
+                    name="thumbnail"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Thumbnail</FormLabel>
+                        <FormControl>
+                          <FileUpload
+                            accept="image/*"
+                            maxSizeMB={5}
+                            name={field.name}
+                            value={field.value}
+                            onChange={field.onChange}
+                            onBlur={field.onBlur}
+                            ref={field.ref}
+                            loadPreview={async (id) => {
+                              // usa sua action que devolve URL assinada de GET
+                              const { url, name, size, contentType } = await getPreviewUrl(id);
+                              return { url, name, size, contentType };
+                            }}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+              <div className="grid gap-4 md:grid-cols-2">
+
               </div>
 
               {/* WYSIWYG TipTap */}
@@ -349,7 +388,20 @@ export function ArticleDetailLayout() {
                 )}
               />
 
-              <div className="grid gap-4 md:grid-cols-3">
+              <div className="grid gap-4 md:grid-cols-2">
+                <FormField
+                  control={form.control}
+                  name="publicationDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Data de publicação</FormLabel>
+                      <FormControl>
+                        <Input type="date" value={field.value ?? ""} onChange={field.onChange} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
                 <FormField
                   control={form.control}
                   name="active"

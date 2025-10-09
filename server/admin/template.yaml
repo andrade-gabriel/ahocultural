@@ -10,6 +10,7 @@ Mappings:
         V1Resource: mbsw8v
         AuthorizerId: 1apnn6
         OpenSearchDomain: search-ahocultural-qa-2o6wra2alh6cjmp6ycl5nzgpvy.us-east-1.es.amazonaws.com
+        CdnUrl: https://qa.ahocultural.com
       prod:
         ApiGatewayId: '1111'
         V1Resource: '1111'
@@ -1148,6 +1149,12 @@ Resources:
       RestApiId: !FindInMap [EnvironmentMap, !Ref 'Environment', ApiGatewayId]
       ParentId: !Ref AdminResource
       PathPart: file
+  FileIdResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !FindInMap [EnvironmentMap, !Ref Environment, ApiGatewayId]
+      ParentId:  !Ref FileResource
+      PathPart: '{id}'
   FileLambda:
     Type: AWS::Serverless::Function
     Properties:
@@ -1157,6 +1164,7 @@ Resources:
       Environment:
         Variables:
           BUCKET_ASSETS: !Sub ahocultural-assets-${Environment}
+          CDN_BASE_URL: !FindInMap [EnvironmentMap, !Ref Environment, CdnUrl]
       Policies: 
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
         - Statement:
@@ -1182,6 +1190,70 @@ Resources:
       SourceArn: !Sub 
         - arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGatewayId}/*/*/v1/admin/file*
         - ApiGatewayId: !FindInMap [EnvironmentMap, !Ref 'Environment', ApiGatewayId]
+  FileGetByIdMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: CUSTOM
+      AuthorizerId: !FindInMap [EnvironmentMap, !Ref 'Environment', AuthorizerId]
+      HttpMethod: GET
+      ResourceId: !Ref FileIdResource
+      RestApiId: !FindInMap [EnvironmentMap, !Ref Environment, ApiGatewayId]
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${FileLambda.Arn}/invocations
+      MethodResponses:
+        - StatusCode: 200
+        - StatusCode: 404
+        - StatusCode: 400
+        - StatusCode: 401
+        - StatusCode: 500
+  FileOptionsMethod:
+    Type: 'AWS::ApiGateway::Method'
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: OPTIONS
+      ResourceId: !Ref FileResource
+      RestApiId: !FindInMap [EnvironmentMap, !Ref 'Environment', ApiGatewayId]
+      Integration:
+        Type: MOCK
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+        IntegrationResponses:
+          - StatusCode: 200
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+              method.response.header.Access-Control-Allow-Methods: "'*'"
+              method.response.header.Access-Control-Allow-Headers: "'*'"
+      MethodResponses:
+        - StatusCode: 200
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Origin: true
+            method.response.header.Access-Control-Allow-Methods: true
+            method.response.header.Access-Control-Allow-Headers: true
+  FileOptionsIdMethod:
+    Type: 'AWS::ApiGateway::Method'
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: OPTIONS
+      ResourceId: !Ref FileIdResource
+      RestApiId: !FindInMap [EnvironmentMap, !Ref 'Environment', ApiGatewayId]
+      Integration:
+        Type: MOCK
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+        IntegrationResponses:
+          - StatusCode: 200
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+              method.response.header.Access-Control-Allow-Methods: "'*'"
+              method.response.header.Access-Control-Allow-Headers: "'*'"
+      MethodResponses:
+        - StatusCode: 200
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Origin: true
+            method.response.header.Access-Control-Allow-Methods: true
+            method.response.header.Access-Control-Allow-Headers: true
   FilePreSignedUrlMethod:
     Type: AWS::ApiGateway::Method
     Properties:
@@ -1240,6 +1312,9 @@ Resources:
         - EventPatchMethod
         - EventOptionsMethod
         - EventOptionsIdMethod
+        - FileGetByIdMethod
+        - FileOptionsMethod
+        - FileOptionsIdMethod
         - FilePreSignedUrlMethod
       Properties:
         RestApiId: !FindInMap [EnvironmentMap, !Ref 'Environment', ApiGatewayId]

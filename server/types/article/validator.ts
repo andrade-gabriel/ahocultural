@@ -13,8 +13,12 @@ export function validateArticle(
     errors.push("O campo `title` deve ser informado.");
 
   // imageUrl
-  if (!article.imageUrl || article.imageUrl.trim().length < 2)
-    errors.push("O campo `imageUrl` deve ser informado.");
+  if (!article.heroImage || article.heroImage.trim().length < 2)
+    errors.push("O campo `heroImage` deve ser informado.");
+
+  // thumbnail
+  if (!article.thumbnail || article.thumbnail.trim().length < 2)
+    errors.push("O campo `thumbnail` deve ser informado.");
 
   // body
   if (!article.body || article.body.trim().length < 2)
