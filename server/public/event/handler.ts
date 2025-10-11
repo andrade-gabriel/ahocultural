@@ -4,7 +4,7 @@ import { DefaultResponse } from "@utils/response/types"
 import { EventEntity, EventIndex, EventListRequest } from '@event/types';
 import { toEventListRequest, toEventRequest } from '@event/mapper';
 import { getEventAsync } from '@event/store';
-import { getAsync, getBySlugAsync } from '@event/indexer';
+import { getAsync, getBySlugAsync, getRelatedEventsBySlugCatLocDateAsync } from '@event/indexer';
 
 export async function getByIdHandler(event: APIGatewayProxyEvent): Promise<DefaultResponse> {
     const slug: string | undefined = event.pathParameters?.id;
@@ -42,5 +42,21 @@ export async function listIdHandler(event: APIGatewayProxyEvent): Promise<Defaul
     return {
         success: true,
         data: events
+    };
+}
+
+export async function getRelatedByDateFromIdHandler(event: APIGatewayProxyEvent): Promise<DefaultResponse> {
+    const id: string | undefined = event.pathParameters?.id;
+    if (id) {
+        const indexedEvents: EventIndex[] = await getRelatedEventsBySlugCatLocDateAsync(config, id);
+        const events: EventListRequest[] = indexedEvents.map(indexedEvent => toEventListRequest(indexedEvent));
+        return {
+            success: true,
+            data: events
+        };
+    }
+    return {
+        success: false,
+        errors: ["O campo `id` deve ser preenchido"]
     };
 }
