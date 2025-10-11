@@ -38,6 +38,50 @@ async function signedFetchEs(url: URL, method: string, bodyObj?: unknown) {
     });
 }
 
+export async function getBySlugAsync(
+    config: any,
+    slug: string
+): Promise<EventIndex | null> {
+    if (!slug)
+        return null;
+
+    const normalized = slug.trim().toLowerCase();
+
+    const base_path = `${config.elasticsearch.domain}/${config.elasticsearch.eventIndex}`;
+    const base_url = base_path.startsWith("http") ? base_path : `https://${base_path}`;
+    const url = new URL(`${base_url}/_search`);
+
+    const resp = await signedFetchEs(url, "POST", {
+        size: 1,
+        track_total_hits: false,
+        query: {
+            bool: {
+                should: [
+                    { term: { "slug.keyword": normalized } }
+                ],
+                minimum_should_match: 1
+            }
+        },
+        sort: [{ "updated_at": { order: "desc" } }]
+    });
+
+    if (!resp.ok) {
+        const text = await resp.text().catch(() => "");
+        throw new Error(`Elasticsearch search by slug failed: ${resp.status} - ${text}`);
+    }
+
+    type EsSearchResponse<T> = {
+        hits?: {
+            hits?: Array<{ _source?: T }>;
+        };
+    };
+
+    const json = (await resp.json()) as EsSearchResponse<EventIndex>;
+    const hit = json?.hits?.hits?.[0]?._source;
+
+    return hit ?? null;
+}
+
 export async function getAsync(config: any, skip: number, take: number, name: string | null): Promise<EventIndex[]> {
     // Monta a URL para /_search do índice
     const base_path = `${config.elasticsearch.domain}/${config.elasticsearch.eventIndex}`;

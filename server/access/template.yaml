@@ -35,6 +35,34 @@ Resources:
       RestApiId: !FindInMap [EnvironmentMap, !Ref 'Environment', ApiGatewayId]
       ParentId: !FindInMap [EnvironmentMap, !Ref 'Environment', V1Resource]
       PathPart: access
+  AccessOptions:
+    Type: 'AWS::ApiGateway::Method'
+    Properties: 
+      AuthorizationType: NONE
+      HttpMethod: OPTIONS
+      RestApiId: !FindInMap [EnvironmentMap, !Ref 'Environment', ApiGatewayId]
+      ResourceId: !Ref AccessResource
+      MethodResponses:
+        - StatusCode: 200
+          ResponseModels:
+            application/json: 'Empty'
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: false
+            method.response.header.Access-Control-Allow-Methods: false
+            method.response.header.Access-Control-Allow-Origin: false
+      Integration:
+        IntegrationResponses:
+        - StatusCode: 200
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+            method.response.header.Access-Control-Allow-Methods: "'*'"
+            method.response.header.Access-Control-Allow-Origin: "'*'"
+          ResponseTemplates:
+            application/json: ''
+        PassthroughBehavior: WHEN_NO_MATCH
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+        Type: MOCK
 
   ## Authenticate
   AuthenticationResource:

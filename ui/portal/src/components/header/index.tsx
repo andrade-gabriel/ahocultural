@@ -105,7 +105,7 @@ export const Header = () => {
       </nav>
       <Separator />
       {/* --- Linha 3: abas secundárias (muted) --- */}
-      <div className="w-full border-t border-border/50">
+      <div className="w-full border-border/50">
         <div className="mx-auto w-full">
           <div className="flex w-full items-stretch justify-start">
             <button

@@ -1,0 +1,38 @@
+.PHONY: build package-qa deploy-qa qa package-prod deploy-prod prod
+
+S3_BUCKET_QA=ahocultural-sam-artifacts-qa
+S3_BUCKET_PROD=ahocultural-sam-artifacts-prod
+STACK_NAME=AhoCultural-Public
+REGION=us-east-1
+TSCONFIG:=../tsconfig.json
+
+ts:
+	npm install
+	npx esbuild ./event/app.ts \
+		--bundle --platform=node --target=node22 \
+		--tsconfig=$(TSCONFIG) \
+		--outfile=.dist/event/app.js
+
+	npx esbuild ./article/app.ts \
+		--bundle --platform=node --target=node22 \
+		--tsconfig=$(TSCONFIG) \
+		--outfile=.dist/article/app.js
+
+build: ts
+	sam build
+
+package-qa:
+	sam package --output-template-file deployment.yaml --s3-bucket $(S3_BUCKET_QA) --profile AHO
+
+deploy-qa:
+	sam deploy --template-file deployment.yaml --region $(REGION) --capabilities CAPABILITY_IAM --s3-bucket $(S3_BUCKET_QA) --stack-name $(STACK_NAME)-Qa --parameter-overrides Environment=qa --profile AHO
+
+qa: build package-qa deploy-qa
+
+package-prod:
+	sam package --output-template-file deployment.yaml --s3-bucket $(S3_BUCKET_PROD) --profile AHO
+
+deploy-prod:
+	sam deploy --template-file deployment.yaml --region $(REGION) --capabilities CAPABILITY_IAM --s3-bucket $(S3_BUCKET_QA) --stack-name $(STACK_NAME)-Prod --parameter-overrides Environment=prod --profile AHO
+
+prod: build package-prod deploy-prod
