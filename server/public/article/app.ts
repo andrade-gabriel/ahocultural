@@ -1,11 +1,12 @@
 import type { APIGatewayProxyHandler, APIGatewayProxyEvent } from 'aws-lambda';
-import { listIdHandler, getByIdHandler } from './handler'
+import { listIdHandler, getByIdHandler, getRelatedByDateFromIdHandler } from './handler'
 import { DefaultResponse } from '@utils/response/types';
 
 type HandlerFn = (event: APIGatewayProxyEvent) => Promise<DefaultResponse>;
 const handlerFactory = new Map<string, HandlerFn>([
     ["/v1/public/article", listIdHandler],
-    ["/v1/public/article/{id}", getByIdHandler]
+    ["/v1/public/article/{id}", getByIdHandler],
+    ["/v1/public/article/related/{id}", getRelatedByDateFromIdHandler]
 ]);
 
 export const lambdaHandler: APIGatewayProxyHandler = async (event: APIGatewayProxyEvent) => {

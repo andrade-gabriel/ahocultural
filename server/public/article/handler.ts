@@ -4,7 +4,7 @@ import { DefaultResponse } from "@utils/response/types"
 import { ArticleEntity, ArticleIndex, ArticleListRequest } from '@article/types';
 import { toArticleListRequest, toArticleRequest } from '@article/mapper';
 import { getArticleAsync } from '@article/store';
-import { getAsync, getBySlugAsync } from '@article/indexer';
+import { getAsync, getBySlugAsync, getRelatedByDateFromIdAsync } from '@article/indexer';
 
 export async function getByIdHandler(event: APIGatewayProxyEvent): Promise<DefaultResponse> {
     const slug: string | undefined = event.pathParameters?.id;
@@ -37,10 +37,26 @@ export async function listIdHandler(event: APIGatewayProxyEvent): Promise<Defaul
     const take = qs.take ? parseInt(qs.take, 10) : 10;
     const name = qs.name ? qs.name : null;
 
-    const indexedCompanies: ArticleIndex[] = await getAsync(config, skip, take, name);
-    const companies: ArticleListRequest[] = indexedCompanies.map(indexedArticle => toArticleListRequest(indexedArticle));
+    const indexedArticles: ArticleIndex[] = await getAsync(config, skip, take, name);
+    const articles: ArticleListRequest[] = indexedArticles.map(indexedArticle => toArticleListRequest(indexedArticle));
     return {
         success: true,
-        data: companies
+        data: articles
+    };
+}
+
+export async function getRelatedByDateFromIdHandler(event: APIGatewayProxyEvent): Promise<DefaultResponse> {
+    const id: string | undefined = event.pathParameters?.id;
+    if (id) {
+        const indexedArticles: ArticleIndex[] = await getRelatedByDateFromIdAsync(config, id);
+        const articles: ArticleListRequest[] = indexedArticles.map(indexedArticle => toArticleListRequest(indexedArticle));
+        return {
+            success: true,
+            data: articles
+        };
+    }
+    return {
+        success: false,
+        errors: ["O campo `id` deve ser preenchido"]
     };
 }

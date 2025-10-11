@@ -3,6 +3,7 @@ export interface EventEntity {
     title: string;
     slug: string;
     category: string;
+    location: string;
     company: string;
     heroImage: string;
     thumbnail: string;
@@ -23,6 +24,7 @@ export interface EventRequest {
     title: string;
     slug: string;
     category: string;
+    location: string;
     company: string;
     heroImage: string;
     thumbnail: string;
@@ -43,6 +45,7 @@ export interface EventIndex {
     title: string;
     slug: string;
     category: string;
+    location: string;
     company: string;
     heroImage: string;
     thumbnail: string;

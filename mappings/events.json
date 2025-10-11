@@ -22,6 +22,12 @@
           "keyword": { "type": "keyword" }
         }
       },
+      "location": {
+        "type": "text",
+        "fields": {
+          "keyword": { "type": "keyword" }
+        }
+      },
       "company": {
         "type": "text",
         "fields": {

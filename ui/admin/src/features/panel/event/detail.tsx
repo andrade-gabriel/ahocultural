@@ -30,7 +30,7 @@ import StarterKit from "@tiptap/starter-kit";
 import Link from "@tiptap/extension-link";
 import Image from "@tiptap/extension-image";
 import Placeholder from "@tiptap/extension-placeholder";
-import { CategoryAutocomplete, CompanyAutocomplete } from "@/components/autocomplete";
+import { CategoryAutocomplete, CompanyAutocomplete, LocationAutocomplete } from "@/components/autocomplete";
 import { FileUpload } from "@/components/file-upload";
 import { getPreviewUrl } from "@/api/file";
 
@@ -67,6 +67,7 @@ const Schema = z.object({
   title: z.string().min(1, "Título obrigatório"),
   slug: z.string().min(1, "Slug obrigatório"),
   category: z.string().min(1, "Categoria obrigatória"),
+  location: z.string().min(1, "Ponto de Referência é obrigatório"),
   company: z.string().min(1, "Empresa obrigatória"),
   heroImage: z.string().min(1, "Imagem principal obrigatória").nullable().refine(
     (v) => v !== null && v.trim().length > 0,
@@ -112,6 +113,7 @@ export function EventDetailLayout() {
       title: "",
       slug: "",
       category: "",
+      location: "",
       company: "",
       heroImage: "",
       thumbnail: "",
@@ -179,6 +181,7 @@ export function EventDetailLayout() {
           title: data.title ?? "",
           slug: data.slug ?? "",
           category: data.category ?? "",
+          location: data.location ?? "",
           heroImage: data.heroImage ?? "",
           thumbnail: data.thumbnail ?? "",
           externalTicketLink: data.externalTicketLink ?? "",
@@ -223,6 +226,7 @@ export function EventDetailLayout() {
         title: values.title,
         slug: values.slug,
         category: values.category,
+        location: values.location,
         company: values.company,
         heroImage: values.heroImage ?? "",
         thumbnail: values.thumbnail ?? "",
@@ -363,7 +367,7 @@ export function EventDetailLayout() {
               </div>
 
               {/* Categoria / Imagem */}
-              <div className="grid gap-4 md:grid-cols-2">
+              <div className="grid gap-4 md:grid-cols-3">
                 <FormField
                   control={form.control}
                   name="category"
@@ -390,6 +394,23 @@ export function EventDetailLayout() {
                       <FormLabel>Empresa</FormLabel>
                       <FormControl>
                         <CompanyAutocomplete
+                          value={field.value ? String(field.value) : null}
+                          onChange={(id) => field.onChange(id ?? "")}
+                          disabled={saving}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="location"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Ponto de Referência</FormLabel>
+                      <FormControl>
+                        <LocationAutocomplete
                           value={field.value ? String(field.value) : null}
                           onChange={(id) => field.onChange(id ?? "")}
                           disabled={saving}

@@ -82,6 +82,85 @@ export async function getBySlugAsync(
     return hit ?? null;
 }
 
+export async function getRelatedByDateFromIdAsync(
+  config: any,
+  slug: string,
+  size: number = 4
+): Promise<ArticleIndex[]> {
+  if (!slug) return [];
+
+  // 1) Artigo base
+  const base = await getBySlugAsync(config, slug);
+  if (!base?.publicationDate || !base?.id) return [];
+
+  const index = config?.elasticsearch?.articleIndex;
+  if (!index) throw new Error("Missing config.elasticsearch.articleIndex");
+
+  const base_path = `${config.elasticsearch.domain}/${index}`;
+  const base_url = base_path.startsWith("http") ? base_path : `https://${base_path}`;
+  const url = new URL(`${base_url}/_search`);
+
+  // 2) Proximidade por data (gauss) + excluir o próprio ID
+  const body = {
+    size,
+    track_total_hits: false,
+    query: {
+      function_score: {
+        query: {
+          bool: {
+            filter: [
+              { term: { active: true } },
+              { exists: { field: "publicationDate" } }
+            ],
+            // ATENÇÃO: use "id" (keyword), não "id.keyword"
+            must_not: [{ term: { "id": base.id } }]
+          }
+        },
+        functions: [
+          {
+            gauss: {
+              publicationDate: {
+                origin: base.publicationDate,
+                scale: "14d",
+                offset: "0d",
+                decay: 0.5
+              }
+            }
+          }
+        ],
+        score_mode: "multiply",
+        boost_mode: "sum"
+      }
+    },
+    sort: [
+      { _score: { order: "desc" } },
+      { publicationDate: { order: "desc", unmapped_type: "date" } },
+      { updated_at: { order: "desc", unmapped_type: "date" } }
+    ],
+    _source: [
+      "id","title","slug","heroImage","thumbnail",
+      "publicationDate","active","updated_at"
+    ]
+  };
+
+  const resp = await signedFetchEs(url, "POST", body);
+  if (!resp.ok) {
+    const text = await resp.text().catch(() => "");
+    throw new Error(`Elasticsearch related by date (from id) failed: ${resp.status} - ${text}`);
+  }
+
+  type EsSearchResponse<T> = { hits?: { hits?: Array<{ _source?: T }> } };
+  const json = (await resp.json()) as EsSearchResponse<ArticleIndex>;
+
+  // Defesa final: remove o próprio ID caso algo passe
+  const results =
+    (json?.hits?.hits?.map(h => h._source).filter((x): x is ArticleIndex => !!x) ?? [])
+      .filter(x => x.id !== base.id)
+      .slice(0, size);
+
+  return results;
+}
+
 export async function getAsync(config: any, skip: number, take: number, name: string | null): Promise<ArticleIndex[]> {
     // Monta a URL para /_search do índice
     const base_path = `${config.elasticsearch.domain}/${config.elasticsearch.articleIndex}`;

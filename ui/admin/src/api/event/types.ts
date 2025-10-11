@@ -9,6 +9,7 @@ export type Event = {
   title: string;
   slug: string;
   category: string;
+  location: string;
   company: string;
   heroImage: string;
   thumbnail: string;
@@ -27,6 +28,7 @@ export type EventDetail = {
   title: string;
   slug: string;
   category: string;
+  location: string;
   company: string;
   heroImage: string;
   thumbnail: string;
