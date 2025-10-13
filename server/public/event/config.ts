@@ -12,6 +12,7 @@ export const config = {
   },
   elasticsearch: {
     domain: requireEnv("OPENSEARCH_ENDPOINT").replace(/\/+$/, ""),
-    eventIndex: requireEnv("EVENT_INDEX")
+    eventIndex: requireEnv("EVENT_INDEX"),
+    categoryIndex: requireEnv("CATEGORY_INDEX"),
   }
 };

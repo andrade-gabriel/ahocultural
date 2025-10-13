@@ -48,7 +48,7 @@ export async function getByIdHandler(event: APIGatewayProxyEvent): Promise<Defau
 
     return {
         success: false,
-        errors: ["O campo `id` deve ser preenchido"]
+        errors: ["O campo `id` deve ser preenchido."]
     };
 }
 

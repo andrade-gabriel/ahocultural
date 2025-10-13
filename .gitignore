@@ -10,7 +10,7 @@ dist
 
 # Eventually env files
 .env
-.env.*
+# .env.*
 
 # npm and yarn debug logs
 npm-debug.log*

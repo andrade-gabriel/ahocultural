@@ -1,72 +1,98 @@
 {
-  "mappings": {
-    "properties": {
-      "id": {
-        "type": "keyword"
-      },
-      "title": {
-        "type": "text",
-        "fields": {
-          "keyword": { "type": "keyword" }
+    "mappings": {
+        "properties": {
+            "active": {
+                "type": "boolean"
+            },
+            "category": {
+                "type": "text",
+                "fields": {
+                    "keyword": {
+                        "type": "keyword"
+                    }
+                }
+            },
+            "categoryName": {
+                "type": "text",
+                "fields": {
+                    "keyword": {
+                        "type": "keyword"
+                    }
+                }
+            },
+            "categorySlug": {
+                "type": "text",
+                "fields": {
+                    "keyword": {
+                        "type": "keyword"
+                    }
+                }
+            },
+            "company": {
+                "type": "text",
+                "fields": {
+                    "keyword": {
+                        "type": "keyword"
+                    }
+                }
+            },
+            "created_at": {
+                "type": "date"
+            },
+            "endDate": {
+                "type": "date"
+            },
+            "externalTicketLink": {
+                "type": "keyword"
+            },
+            "facilities": {
+                "type": "keyword"
+            },
+            "heroImage": {
+                "type": "keyword"
+            },
+            "id": {
+                "type": "keyword"
+            },
+            "location": {
+                "type": "text",
+                "fields": {
+                    "keyword": {
+                        "type": "keyword"
+                    }
+                }
+            },
+            "pricing": {
+                "type": "double"
+            },
+            "slug": {
+                "type": "text",
+                "fields": {
+                    "keyword": {
+                        "type": "keyword"
+                    }
+                }
+            },
+            "sponsored": {
+                "type": "boolean"
+            },
+            "startDate": {
+                "type": "date"
+            },
+            "thumbnail": {
+                "type": "keyword"
+            },
+            "title": {
+                "type": "text",
+                "fields": {
+                    "keyword": {
+                        "type": "keyword"
+                    }
+                }
+            },
+            "updated_at": {
+                "type": "date"
+            }
         }
-      },
-      "slug": {
-        "type": "text",
-        "fields": {
-          "keyword": { "type": "keyword" }
-        }
-      },
-      "category": {
-        "type": "text",
-        "fields": {
-          "keyword": { "type": "keyword" }
-        }
-      },
-      "location": {
-        "type": "text",
-        "fields": {
-          "keyword": { "type": "keyword" }
-        }
-      },
-      "company": {
-        "type": "text",
-        "fields": {
-          "keyword": { "type": "keyword" }
-        }
-      },
-      "heroImage": {
-        "type": "keyword"
-      },
-      "thumbnail": {
-        "type": "keyword"
-      },
-      "externalTicketLink": {
-        "type": "keyword"
-      },
-      "startDate": {
-        "type": "date"
-      },
-      "endDate": {
-        "type": "date"
-      },
-      "pricing": {
-        "type": "double"
-      },
-      "facilities": {
-        "type": "keyword"
-      },
-      "sponsored": {
-        "type": "boolean"
-      },
-      "active": {
-        "type": "boolean"
-      },
-      "created_at": {
-        "type": "date"
-      },
-      "updated_at": {
-        "type": "date"
-      }
     }
-  }
 }

@@ -16,7 +16,7 @@ export const Header = () => {
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="w-full bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       {/* --- Linha 1: logo • cidades • busca --- */}
       <div className="w-full">
         <div className="mx-auto w-full px-6">

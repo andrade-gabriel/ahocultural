@@ -153,133 +153,60 @@ export async function postAsync(config: any, doc: EventIndex): Promise<boolean> 
 }
 
 export async function getRelatedEventsBySlugCatLocDateAsync(
-    config: any,
-    slug: string,
-    size: number = 4
+  config: any,
+  slug: string,
+  size: number = 4
 ): Promise<EventIndex[]> {
-    if (!slug) return [];
+  if (!slug) return [];
 
-    const index = config?.elasticsearch?.eventIndex;
-    if (!index) throw new Error("Missing config.elasticsearch.eventIndex");
+  const index = config?.elasticsearch?.eventIndex;
+  if (!index) throw new Error("Missing config.elasticsearch.eventIndex");
 
-    // 1) Carrega base
-    const base = await getBySlugAsync(config, slug);
-    if (!base?.id || !base?.category || !base?.location) return [];
+  // pega o evento "base" para extrair location e id
+  const base = await getBySlugAsync(config, slug);
+  if (!base?.id || !base?.location) return [];
 
-    const base_path = `${config.elasticsearch.domain}/${index}`;
-    const base_url = base_path.startsWith("http") ? base_path : `https://${base_path}`;
-    const url = new URL(`${base_url}/_search`);
+  const base_path = `${config.elasticsearch.domain}/${index}`;
+  const base_url = base_path.startsWith("http") ? base_path : `https://${base_path}`;
+  const url = new URL(`${base_url}/_search`);
 
-    // -------- Fase 1: futuros/rolando (filtra por data) --------
-    const nowMinus1h = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+  // ⚠️ Se você quiser só futuros, descomente o filtro de range.
+  // const nowIso = new Date().toISOString();
 
-    const body1 = {
-        size,
-        track_total_hits: false,
-        query: {
-            bool: {
-                filter: [
-                    { term: { "category.keyword": base.category } },
-                    { term: { "location.keyword": base.location } },
-                    { term: { active: true } },
-                    { range: { startDate: { gte: nowMinus1h } } }
-                ],
-                must_not: [{ term: { "id": base.id } }] // id é keyword puro
-            }
-        },
-        sort: [
-            { sponsored: { order: "desc", unmapped_type: "boolean" } },
-            { startDate: { order: "asc", unmapped_type: "date" } },
-            { updated_at: { order: "desc", unmapped_type: "date" } }
+  const body = {
+    size,
+    track_total_hits: false,
+    query: {
+      bool: {
+        filter: [
+          { term: { "location.keyword": base.location } },
+          { term: { active: true } },
+          // { range: { startDate: { gte: nowIso } } } // ← opcional: apenas futuros
         ],
-        _source: [
-            "id", "title", "slug", "category", "location", "company",
-            "heroImage", "thumbnail", "startDate", "endDate",
-            "pricing", "facilities", "sponsored", "active", "updated_at"
-        ]
-    };
+        must_not: [{ term: { id: base.id } }],
+      },
+    },
+    sort: [
+      { startDate: { order: "desc", unmapped_type: "date" } },
+      { updated_at: { order: "desc", unmapped_type: "date" } },
+    ],
+    _source: [
+      "id", "title", "slug", "category", "location", "company",
+      "heroImage", "thumbnail", "startDate", "endDate",
+      "pricing", "facilities", "sponsored", "active", "updated_at"
+    ],
+  };
 
-    const resp1 = await signedFetchEs(url, "POST", body1);
-    if (!resp1.ok) {
-        const text = await resp1.text().catch(() => "");
-        throw new Error(`OpenSearch related (phase 1) failed: ${resp1.status} - ${text}`);
-    }
-    const json1 = await resp1.json() as { hits?: { hits?: Array<{ _source?: EventIndex }> } };
-    const firstBatch =
-        json1?.hits?.hits?.map(h => h._source).filter((x): x is EventIndex => !!x) ?? [];
+  const resp = await signedFetchEs(url, "POST", body);
+  if (!resp.ok) {
+    const text = await resp.text().catch(() => "");
+    throw new Error(`OpenSearch related search failed: ${resp.status} - ${text}`);
+  }
 
-    if (firstBatch.length >= size) {
-        // Defesa extra contra o próprio id (por segurança)
-        return firstBatch.filter(x => x.id !== base.id).slice(0, size);
-    }
+  type EsSearchResponse<T> = { hits?: { hits?: Array<{ _source?: T }> } };
+  const json = (await resp.json()) as EsSearchResponse<EventIndex>;
 
-    // -------- Fase 2: fallback por proximidade de data do base (gauss) --------
-    // Caso não tenha startDate no base, pula fallback gauss e retorna o que houver
-    if (!base.startDate) {
-        return firstBatch.filter(x => x.id !== base.id).slice(0, size);
-    }
-
-    const missing = size - firstBatch.length;
-
-    const body2 = {
-        size: missing,
-        track_total_hits: false,
-        query: {
-            function_score: {
-                query: {
-                    bool: {
-                        filter: [
-                            { term: { "category.keyword": base.category } },
-                            { term: { "location.keyword": base.location } },
-                            { term: { active: true } },
-                            { exists: { field: "startDate" } }
-                        ],
-                        must_not: [
-                            { term: { "id": base.id } },
-                            ...firstBatch.map(ev => ({ term: { "id": ev.id } })) // evita repetidos
-                        ]
-                    }
-                },
-                functions: [
-                    {
-                        gauss: {
-                            startDate: {
-                                origin: base.startDate, // centraliza na data do evento base
-                                scale: "14d",           // janela de proximidade (ajuste conforme)
-                                offset: "0d",
-                                decay: 0.5
-                            }
-                        }
-                    }
-                ],
-                score_mode: "multiply",
-                boost_mode: "sum"
-            }
-        },
-        sort: [
-            { _score: { order: "desc" } },
-            { startDate: { order: "asc", unmapped_type: "date" } },
-            { updated_at: { order: "desc", unmapped_type: "date" } }
-        ],
-        _source: [
-            "id", "title", "slug", "category", "location", "company",
-            "heroImage", "thumbnail", "startDate", "endDate",
-            "pricing", "facilities", "sponsored", "active", "updated_at"
-        ]
-    };
-
-    const resp2 = await signedFetchEs(url, "POST", body2);
-    if (!resp2.ok) {
-        const text = await resp2.text().catch(() => "");
-        throw new Error(`OpenSearch related (phase 2) failed: ${resp2.status} - ${text}`);
-    }
-    const json2 = await resp2.json() as { hits?: { hits?: Array<{ _source?: EventIndex }> } };
-    const secondBatch =
-        json2?.hits?.hits?.map(h => h._source).filter((x): x is EventIndex => !!x) ?? [];
-
-    const merged = [...firstBatch, ...secondBatch]
-        .filter(x => x.id !== base.id)
-        .slice(0, size);
-
-    return merged;
+  return (
+    json?.hits?.hits?.map(h => h._source).filter((x): x is EventIndex => !!x) ?? []
+  );
 }

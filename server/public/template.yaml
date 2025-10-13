@@ -285,6 +285,7 @@ Resources:
           BUCKET_DATABASE: !Sub ahocultural-database-${Environment}
           OPENSEARCH_ENDPOINT: !FindInMap [EnvironmentMap, !Ref Environment, OpenSearchDomain]
           EVENT_INDEX: events
+          CATEGORY_INDEX: categories
       Policies: 
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
         - Statement:

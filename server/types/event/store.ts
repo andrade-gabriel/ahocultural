@@ -34,7 +34,6 @@ export async function getEventAsync(
                 title: string;
                 slug: string;
                 category: string;
-                location: string;
                 company: string;
                 heroImage: string;
                 thumbnail: string;
@@ -56,7 +55,6 @@ export async function getEventAsync(
                 slug: raw.slug,
                 company: raw.company,
                 category: raw.category,
-                location: raw.location,
                 heroImage: raw.heroImage,
                 thumbnail: raw.thumbnail,
                 body: raw.body,
