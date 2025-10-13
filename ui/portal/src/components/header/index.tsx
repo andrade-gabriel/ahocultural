@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate, useParams } from "react-router";
 import { Search } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 
 export const Header = () => {
+  const { location } = useParams<{
+    location?: string;
+  }>();
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
 
@@ -69,6 +72,7 @@ export const Header = () => {
                 variant="ghost"
                 className="w-full h-full px-0 text-base font-extrabold uppercase tracking-wide rounded-none
                      hover:bg-black hover:text-white transition-colors duration-200"
+                onClick={() => navigate(`/${location}/eventos`)}
               >
                 Eventos
               </Button>
@@ -112,6 +116,7 @@ export const Header = () => {
               className="flex-1 h-10 px-4 text-sm font-semibold uppercase tracking-widest
                    text-foreground transition-colors duration-200 rounded-none
                    hover:bg-black hover:text-white"
+              onClick={() => navigate(`/${location}/eventos/hoje`)}
             >
               Pra Hoje
             </button>
@@ -119,6 +124,7 @@ export const Header = () => {
               className="flex-1 h-10 px-4 text-sm font-semibold uppercase tracking-widest
                    text-foreground transition-colors duration-200 rounded-none
                    hover:bg-black hover:text-white"
+              onClick={() => navigate(`/${location}/eventos/esta-semana`)}
             >
               Esta Semana
             </button>
@@ -126,6 +132,7 @@ export const Header = () => {
               className="flex-1 h-10 px-4 text-sm font-semibold uppercase tracking-widest
                    text-foreground transition-colors duration-200 rounded-none
                    hover:bg-black hover:text-white"
+              onClick={() => navigate(`/${location}/eventos/fim-de-semana`)}
             >
               Este FDS
             </button>

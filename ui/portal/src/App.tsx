@@ -14,10 +14,18 @@ function App() {
     <>
       <Routes>
         <Route element={<PanelLayout />}>
-          <Route path="event">
-            <Route index element={<EventLayout />} />
-            <Route path="new" element={<EventDetailLayout />} />
-            <Route path=":id" element={<EventDetailLayout />} />
+          <Route path=":location">
+            <Route path="eventos">
+              <Route index element={<EventLayout />} />
+              <Route path="hoje" element={<EventLayout />} />
+              <Route path="esta-semana" element={<EventLayout />} />
+              <Route path="fim-de-semana" element={<EventLayout />} />
+              <Route path="aho-aconselha" element={<EventLayout />} />
+              <Route path=":category">
+                <Route index element={<EventLayout />} />
+                <Route path=":id" element={<EventDetailLayout />} />
+              </Route>
+            </Route>
           </Route>
         </Route>
         {/* DEFAULT ROUTE */}

@@ -51,12 +51,12 @@ export async function listEvent(
   params: ListEventsParams = {},
   opts?: { signal?: AbortSignal }
 ): Promise<Event[]> {
-  const { skip = 0, take = 10, search } = params;
+  const { skip = 0, take = 10, fromDate = null, categoryId = null, search } = params;
 
   const { data } = await httpPublic.get<DefaultResponse<Event[]>>(
     "/public/event",
     {
-      params: { skip, take, name: search },
+      params: { skip, take, name: search, fromDate, categoryId },
       signal: opts?.signal,
     }
   );

@@ -82,28 +82,69 @@ export async function getBySlugAsync(
     return hit ?? null;
 }
 
-export async function getAsync(config: any, skip: number, take: number, name: string | null): Promise<EventIndex[]> {
-    // Monta a URL para /_search do índice
+/**
+ * Busca eventos com paginação e filtros opcionais:
+ * - name: busca por substring em title (case-insensitive) via wildcard em title.keyword
+ * - fromDate: filtra eventos com startDate >= fromDate (ISO ou Date)
+ * - categoryId: filtra por id armazenado em "category" (term em "category.keyword")
+ */
+export async function getAsync(
+    config: any,
+    skip: number,
+    take: number,
+    name: string | null,
+    fromDate?: string | Date | null,
+    categoryId?: string | null
+): Promise<EventIndex[]> {
     const base_path = `${config.elasticsearch.domain}/${config.elasticsearch.eventIndex}`;
     const base_url = base_path.startsWith("http") ? base_path : `https://${base_path}`;
     const url = new URL(`${base_url}/_search`);
 
-    const query = name
-        ? {
+    // --- filtros dinâmicos ---
+    const must: any[] = [];
+    const filter: any[] = [];
+
+    // Nome (wildcard com escaping de * e ?)
+    if (name && name.trim() !== "") {
+        const value = `*${name.toLowerCase().replace(/([*?])/g, "\\$1")}*`;
+        must.push({
             wildcard: {
                 "title.keyword": {
-                    value: `*${name.toLowerCase().replace(/([*?])/g, '\\$1')}*`,
-                    case_insensitive: true
-                }
-            }
+                    value,
+                    case_insensitive: true,
+                },
+            },
+        });
+    }
+    if (categoryId && categoryId.trim() !== "") {
+        filter.push({ term: { "category.keyword": categoryId } });
+    }
+    if (fromDate) {
+        const gte =
+            fromDate instanceof Date ? fromDate.toISOString() : new Date(fromDate).toISOString();
+        if (!Number.isNaN(new Date(gte).getTime())) {
+            filter.push({ range: { startDate: { gte } } });
         }
-        : { match_all: {} };
+    }
 
-    // Corpo da busca com paginação simples
+    filter.push({ term: { active: true } });
+
+    const query =
+        must.length || filter.length
+            ? { bool: { ...(must.length ? { must } : {}), ...(filter.length ? { filter } : {}) } }
+            : { match_all: {} };
+
     const body = {
         from: skip,
         size: take,
-        query
+        track_total_hits: false,
+        query,
+        sort: [
+            // patrocinados primeiro (se usar), depois pela data mais próxima
+            { sponsored: { order: "desc", unmapped_type: "boolean" } },
+            { startDate: { order: "asc", unmapped_type: "date" } },
+            { updated_at: { order: "desc", unmapped_type: "date" } },
+        ]
     };
 
     const resp = await signedFetchEs(url, "POST", body);
@@ -114,15 +155,12 @@ export async function getAsync(config: any, skip: number, take: number, name: st
     }
 
     type EsSearchResponse<T> = {
-        hits?: {
-            hits?: Array<{ _source?: T }>;
-        };
+        hits?: { hits?: Array<{ _source?: T }> };
     };
 
     const json = (await resp.json()) as EsSearchResponse<EventIndex>;
-
     const results =
-        json?.hits?.hits?.map(h => h._source).filter((x): x is EventIndex => !!x) ?? [];
+        json?.hits?.hits?.map((h) => h._source).filter((x): x is EventIndex => !!x) ?? [];
 
     return results;
 }
@@ -153,55 +191,55 @@ export async function postAsync(config: any, doc: EventIndex): Promise<boolean> 
 }
 
 export async function getRelatedEventsBySlugCatLocDateAsync(
-  config: any,
-  slug: string,
-  size: number = 4
+    config: any,
+    slug: string,
+    size: number = 4
 ): Promise<EventIndex[]> {
-  if (!slug) return [];
+    if (!slug) return [];
 
-  const index = config?.elasticsearch?.eventIndex;
-  if (!index) throw new Error("Missing config.elasticsearch.eventIndex");
+    const index = config?.elasticsearch?.eventIndex;
+    if (!index) throw new Error("Missing config.elasticsearch.eventIndex");
 
-  // pega o evento "base" para extrair location e id
-  const base = await getBySlugAsync(config, slug);
-  if (!base?.id || !base?.location) return [];
+    // pega o evento "base" para extrair location e id
+    const base = await getBySlugAsync(config, slug);
+    if (!base?.id || !base?.location) return [];
 
-  const base_path = `${config.elasticsearch.domain}/${index}`;
-  const base_url = base_path.startsWith("http") ? base_path : `https://${base_path}`;
-  const url = new URL(`${base_url}/_search`);
+    const base_path = `${config.elasticsearch.domain}/${index}`;
+    const base_url = base_path.startsWith("http") ? base_path : `https://${base_path}`;
+    const url = new URL(`${base_url}/_search`);
 
-  // ⚠️ Se você quiser só futuros, descomente o filtro de range.
-  // const nowIso = new Date().toISOString();
+    // ⚠️ Se você quiser só futuros, descomente o filtro de range.
+    // const nowIso = new Date().toISOString();
 
-  const body = {
-    size,
-    track_total_hits: false,
-    query: {
-      bool: {
-        filter: [
-          { term: { "location.keyword": base.location } },
-          { term: { active: true } },
-          // { range: { startDate: { gte: nowIso } } } // ← opcional: apenas futuros
-        ],
-        must_not: [{ term: { id: base.id } }],
-      },
-    },
-    sort: [
-      { startDate: { order: "desc", unmapped_type: "date" } },
-      { updated_at: { order: "desc", unmapped_type: "date" } },
-    ]
-  };
+    const body = {
+        size,
+        track_total_hits: false,
+        query: {
+            bool: {
+                filter: [
+                    { term: { "location.keyword": base.location } },
+                    { term: { active: true } },
+                    // { range: { startDate: { gte: nowIso } } } // ← opcional: apenas futuros
+                ],
+                must_not: [{ term: { id: base.id } }],
+            },
+        },
+        sort: [
+            { startDate: { order: "desc", unmapped_type: "date" } },
+            { updated_at: { order: "desc", unmapped_type: "date" } },
+        ]
+    };
 
-  const resp = await signedFetchEs(url, "POST", body);
-  if (!resp.ok) {
-    const text = await resp.text().catch(() => "");
-    throw new Error(`OpenSearch related search failed: ${resp.status} - ${text}`);
-  }
+    const resp = await signedFetchEs(url, "POST", body);
+    if (!resp.ok) {
+        const text = await resp.text().catch(() => "");
+        throw new Error(`OpenSearch related search failed: ${resp.status} - ${text}`);
+    }
 
-  type EsSearchResponse<T> = { hits?: { hits?: Array<{ _source?: T }> } };
-  const json = (await resp.json()) as EsSearchResponse<EventIndex>;
+    type EsSearchResponse<T> = { hits?: { hits?: Array<{ _source?: T }> } };
+    const json = (await resp.json()) as EsSearchResponse<EventIndex>;
 
-  return (
-    json?.hits?.hits?.map(h => h._source).filter((x): x is EventIndex => !!x) ?? []
-  );
+    return (
+        json?.hits?.hits?.map(h => h._source).filter((x): x is EventIndex => !!x) ?? []
+    );
 }

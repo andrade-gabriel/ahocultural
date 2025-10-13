@@ -10,7 +10,7 @@ import {
   getRelatedEventsBySlug,
   type EventDetail,
 } from "@/api/event";
-import { MapPin, Accessibility, Bike, ParkingCircle, HelpCircle } from "lucide-react";
+import { MapPin, Accessibility, Bike, ParkingCircle, HelpCircle, ChevronRight } from "lucide-react";
 
 const baseAppURL =
   import.meta.env.VITE_APP_BASE_URL?.replace(/\/+$/, "") || "";
@@ -60,17 +60,11 @@ function formatCompanyAddress(ev?: EventDetail | null): string {
   const streetNum = [a.street, a.number].filter(Boolean).join(", ");
   const cityUf = [a.city, a.state].filter(Boolean).join(" - ");
 
-  const parts = [
-    streetNum,
-    a.complement,
-    a.district,
-    cityUf,
-  ].filter(Boolean);
-
+  const parts = [streetNum, a.complement, a.district, cityUf].filter(Boolean);
   return parts.join(" – ");
 }
 
-/** Link universal pra abrir em mapas (funciona iOS/Android/Web) */
+/** Link universal pra abrir em mapas */
 function buildMapsLink(address: string) {
   const encoded = encodeURIComponent(address.trim());
   return `https://www.google.com/maps/search/?api=1&query=${encoded}`;
@@ -80,24 +74,20 @@ function buildMapsLink(address: string) {
 function formatRelatedDate(start?: DateInput, tz = "America/Sao_Paulo") {
   const s = toDate(start);
   if (!s) return "";
-
   const date = new Intl.DateTimeFormat("pt-BR", {
     timeZone: tz,
     day: "2-digit",
     month: "2-digit",
     year: "2-digit",
   }).format(s);
-
   const time = new Intl.DateTimeFormat("pt-BR", {
     timeZone: tz,
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
   }).format(s);
-
   return `A partir de ${date} às ${time}`;
 }
-
 
 /* ------------------------------ subcomponentes ------------------------------ */
 
@@ -132,7 +122,6 @@ export const RelatedItem = ({
   thumbnail?: string;
 }) => (
   <div className="flex items-start gap-4 border-l pl-4">
-    {/* Imagem (thumbnail) */}
     {thumbnail && (
       <div className="flex-shrink-0 w-20 h-20 overflow-hidden rounded-md border border-border/50">
         <img
@@ -144,10 +133,8 @@ export const RelatedItem = ({
       </div>
     )}
 
-    {/* Texto */}
     <div className="flex flex-col justify-center">
       <div className="text-xs uppercase text-muted-foreground">{date}</div>
-
       {href ? (
         <Link
           to={href}
@@ -160,7 +147,6 @@ export const RelatedItem = ({
           {title}
         </span>
       )}
-
       <div className="mt-1 text-xs uppercase text-muted-foreground">
         {category}
       </div>
@@ -183,14 +169,11 @@ function BadgesSkeleton() {
 function InfoCellsSkeleton() {
   return (
     <div className="grid grid-cols-1 md:grid-cols-5 md:[&>*:not(:first-child)]:border-l mb-10">
-      {/* ONDE (span 2) */}
       <div className="py-4 pr-6 md:pl-6 space-y-2 md:col-span-2">
         <Skeleton className="h-3 w-16" />
         <Skeleton className="h-5 w-[85%]" />
         <Skeleton className="h-5 w-1/2" />
       </div>
-
-      {/* QUANDO */}
       <div className="py-4 pr-6 md:pl-6">
         <Skeleton className="h-3 w-16 mb-2" />
         <div className="flex items-center text-sm">
@@ -199,14 +182,10 @@ function InfoCellsSkeleton() {
           <Skeleton className="h-4 w-28" />
         </div>
       </div>
-
-      {/* VALOR */}
       <div className="py-4 pr-6 md:pl-6 space-y-2">
         <Skeleton className="h-3 w-16" />
         <Skeleton className="h-5 w-24" />
       </div>
-
-      {/* CONTATO */}
       <div className="py-4 pr-6 md:pl-6 space-y-2">
         <Skeleton className="h-3 w-20" />
         <Skeleton className="h-4 w-36" />
@@ -239,7 +218,7 @@ function RelatedItemSkeleton() {
 /* ---------------------------------- page ---------------------------------- */
 
 export const EventDetailLayout = () => {
-  const { id } = useParams();
+  const { id, location } = useParams<{ id: string; location?: string }>();
 
   const [data, setData] = useState<EventDetail | null>(null);
   const [heroUrl, setHeroUrl] = useState<string>("");
@@ -248,30 +227,20 @@ export const EventDetailLayout = () => {
     id: string;
     slug: string;
     title: string;
-
-    // datas ISO do índice
-    startDate: string;           // "2025-10-20T15:00:00.000Z"
+    startDate: string;
     endDate?: string;
-
-    // mídia
     heroImage?: string;
     thumbnail?: string;
-
-    // flags/numéricos
     pricing?: number;
     sponsored?: boolean;
     active?: boolean;
-
-    // relacionais (ids)
-    category: string;            // ex: "89d10153-c9af-455a-a9d1-f09f31ab7587"
+    category: string;
     categoryName: string;
     categorySlug: string;
-    location: string;            // ex: "3e115931-cbd0-4ed3-b612-2fdf2e3862af"
-    company: string;             // ex: "07f4ce30-390a-42e4-b6dd-9784ec901685"
-
-    // extras
-    facilities?: string[];       // ["Acessibilidade", "Estacionamento", ...]
-    updated_at?: string;         // ISO
+    location: string;
+    company: string;
+    facilities?: string[];
+    updated_at?: string;
   };
 
   const [related, setRelated] = useState<RelatedWire[]>([]);
@@ -332,23 +301,18 @@ export const EventDetailLayout = () => {
           id: String(src.id),
           slug: String(src.slug),
           title: String(src.title),
-
           startDate: String(src.startDate),
           endDate: src.endDate ? String(src.endDate) : undefined,
-
           heroImage: src.heroImage ?? undefined,
           thumbnail: src.thumbnail ?? undefined,
-
           pricing: typeof src.pricing === "number" ? src.pricing : undefined,
           sponsored: Boolean(src.sponsored),
           active: Boolean(src.active),
-
           category: String(src.category),
           categoryName: String(src.categoryName),
           categorySlug: String(src.categorySlug),
           location: String(src.location),
           company: String(src.company),
-
           facilities: Array.isArray(src.facilities) ? src.facilities.map(String) : undefined,
           updated_at: src.updated_at ? String(src.updated_at) : undefined,
         }));
@@ -369,6 +333,52 @@ export const EventDetailLayout = () => {
   const addressText = formatCompanyAddress(data);
   const addressHref = addressText.trim() ? buildMapsLink(addressText) : undefined;
 
+  // --------- BREADCRUMB ---------
+  // Usa a primeira categoria do evento (se existir); fallback “Eventos”
+  const primaryCategory = data?.categories?.[0];
+  const listBasePath = `/${location ?? ""}/eventos`;
+  const catPath = primaryCategory?.slug ? `${listBasePath}/${primaryCategory.slug}` : listBasePath;
+
+  const Breadcrumb = () => (
+    <nav aria-label="breadcrumb" className="mb-6">
+      {loadingMain ? (
+        <div className="flex items-center gap-2">
+          <Skeleton className="h-4 w-20" />
+          <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
+          <Skeleton className="h-4 w-60" />
+        </div>
+      ) : (
+        <ol className="flex items-center gap-2 text-sm text-muted-foreground">
+          <li>
+            <Link
+              to={listBasePath}
+              className="hover:underline underline-offset-4"
+            >
+              Eventos
+            </Link>
+          </li>
+          <li aria-hidden>
+            <ChevronRight className="h-4 w-4" />
+          </li>
+          <li>
+            <Link
+              to={catPath}
+              className="hover:underline underline-offset-4"
+            >
+              {primaryCategory?.name ?? "Todos"}
+            </Link>
+          </li>
+          <li aria-hidden>
+            <ChevronRight className="h-4 w-4" />
+          </li>
+          <li className="text-foreground truncate max-w-[60ch]">
+            {data?.title || "—"}
+          </li>
+        </ol>
+      )}
+    </nav>
+  );
+
   return (
     <div className="w-full">
       <div className="mx-auto w-full max-w-[1400px] px-6 py-10 min-h-[70vh]">
@@ -378,6 +388,9 @@ export const EventDetailLayout = () => {
             <AlertDescription>{errMain}</AlertDescription>
           </Alert>
         )}
+
+        {/* Breadcrumb */}
+        <Breadcrumb />
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
           {/* --------- Coluna principal --------- */}
@@ -413,14 +426,9 @@ export const EventDetailLayout = () => {
                         {c.name}
                       </Badge>
                     ))}
-                  {/* {data.company?.name && (
-                    <Badge variant="outline" className="rounded-sm px-3 py-1 text-xs">
-                      {data.company.name}
-                    </Badge>
-                  )} */}
                 </div>
 
-                {/* Info cells: ONDE com col-span 2 */}
+                {/* Info cells */}
                 <div className="mt-10 mb-6 grid grid-cols-1 md:grid-cols-5 md:[&>*:not(:first-child)]:border-l">
                   <InfoCell title="ONDE" className="pr-6 md:col-span-2">
                     {addressHref ? (
@@ -458,10 +466,10 @@ export const EventDetailLayout = () => {
                     <div className="text-sm">
                       {Number.isFinite(data.pricing)
                         ? new Intl.NumberFormat("pt-BR", {
-                          style: "currency",
-                          currency: "BRL",
-                          minimumFractionDigits: 2,
-                        }).format(Number(data.pricing))
+                            style: "currency",
+                            currency: "BRL",
+                            minimumFractionDigits: 2,
+                          }).format(Number(data.pricing))
                         : "—"}
                     </div>
                   </InfoCell>
@@ -506,7 +514,6 @@ export const EventDetailLayout = () => {
                   </div>
                 )}
 
-
                 {/* Hero */}
                 {heroUrl && (
                   <img
@@ -517,7 +524,7 @@ export const EventDetailLayout = () => {
                   />
                 )}
 
-                {/* Corpo (com espaçamento ajustado entre <p>) */}
+                {/* Corpo */}
                 {data.body && (
                   <div
                     className="
@@ -560,19 +567,20 @@ export const EventDetailLayout = () => {
                 <AlertDescription>{errRel}</AlertDescription>
               </Alert>
             ) : related.length === 0 ? (
-              <div className="text-sm text-muted-foreground">
-              </div>
+              <div className="text-sm text-muted-foreground"></div>
             ) : (
               <div className="space-y-8">
                 {related.map((r, i) => {
+                  const thumb = r.thumbnail ? `${baseAppURL}/assets/${r.thumbnail}` : undefined;
+                  const locPrefix = `/${location ?? ""}/eventos`;
                   return (
                     <div key={r.slug || i}>
                       <RelatedItem
                         date={formatRelatedDate(r.startDate)}
                         title={r.title}
                         category={(r.categoryName || "").toUpperCase()}
-                        href={`/event/${r.slug}`}
-                        thumbnail={`${baseAppURL}/assets/${r.thumbnail}`}
+                        href={`${locPrefix}/${r.slug}`}
+                        thumbnail={thumb}
                       />
                       {i < related.length - 1 && <Separator className="mt-8" />}
                     </div>

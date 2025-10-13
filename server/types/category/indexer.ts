@@ -110,7 +110,67 @@ export async function getCategoryBySlugAsync(
     return hit ?? null;
 }
 
-export async function getAsync(config: any, skip: number, take: number, parent: boolean, name: string | null): Promise<CategoryIndex[]> {
+// Busca categorias pelo parent_id com paginação (robusto p/ parent_id ou parent_id.keyword)
+export async function getChildrenAsync(
+  config: any,
+  parentId: string,
+  skip: number = 0,
+  take: number = 20
+): Promise<CategoryIndex[]> {
+  if (!parentId || !parentId.trim()) {
+    throw new Error("`parentId` é obrigatório.");
+  }
+
+  const base_path = `${config.elasticsearch.domain}/${config.elasticsearch.categoryIndex}`;
+  const base_url = base_path.startsWith("http") ? base_path : `https://${base_path}`;
+  const url = new URL(`${base_url}/_search`);
+
+  const query = {
+    bool: {
+      // usamos filter (não afeta score) e tentamos ambos os campos
+      filter: [
+        {
+          bool: {
+            should: [
+              { term: { "parent_id": parentId } },
+              { term: { "parent_id.keyword": parentId } },
+            ],
+            minimum_should_match: 1,
+          },
+        },
+      ],
+    },
+  };
+
+  const body = {
+    from: skip,
+    size: take,
+    track_total_hits: false,
+    query,
+    sort: [
+      { "name.keyword": { order: "asc", unmapped_type: "keyword" } },
+      { "updated_at": { order: "desc", unmapped_type: "date" } },
+    ],
+  };
+
+  const resp = await signedFetchEs(url, "POST", body);
+
+  if (!resp.ok) {
+    const text = await resp.text().catch(() => "");
+    throw new Error(`Elasticsearch search by parent failed: ${resp.status} - ${text}`);
+  }
+
+  type EsSearchResponse<T> = { hits?: { hits?: Array<{ _source?: T }> } };
+  const json = (await resp.json()) as EsSearchResponse<CategoryIndex>;
+
+  const results =
+    json?.hits?.hits?.map((h) => h._source).filter((x): x is CategoryIndex => !!x) ?? [];
+
+  return results;
+}
+
+
+export async function getAsync(config: any, skip: number, take: number, onlyParents: boolean, name: string | null): Promise<CategoryIndex[]> {
     // Monta a URL para /_search do índice
     const base_path = `${config.elasticsearch.domain}/${config.elasticsearch.categoryIndex}`;
     const base_url = base_path.startsWith("http") ? base_path : `https://${base_path}`;
@@ -128,7 +188,7 @@ export async function getAsync(config: any, skip: number, take: number, parent: 
             }
             : { match_all: {} };
 
-    const mustNot = parent ? [{ exists: { field: "parent_id" } }] : [];
+    const mustNot = onlyParents ? [{ exists: { field: "parent_id" } }] : [];
     const query = {
         bool: {
             ...(baseFilter.match_all ? {} : { must: [baseFilter] }),

@@ -59,15 +59,17 @@ export async function getByIdHandler(event: APIGatewayProxyEvent): Promise<Defau
 export async function listIdHandler(event: APIGatewayProxyEvent): Promise<DefaultResponse> {
     const qs = event.queryStringParameters || {};
 
+    const fromDate = qs.fromDate ? qs.fromDate : null;
+    const categoryId = qs.categoryId ? qs.categoryId : null;
     const skip = qs.skip ? parseInt(qs.skip, 10) : 0;
     const take = qs.take ? parseInt(qs.take, 10) : 10;
     const name = qs.name ? qs.name : null;
 
-    const indexedEvents: EventIndex[] = await getAsync(config, skip, take, name);
-    const events: EventListRequest[] = indexedEvents.map(indexedEvent => toEventListRequest(indexedEvent));
+    const indexedEvents: EventIndex[] = await getAsync(config, skip, take, name, fromDate, categoryId);
+    // const events: EventListRequest[] = indexedEvents.map(indexedEvent => toEventListRequest(indexedEvent));
     return {
         success: true,
-        data: events
+        data: indexedEvents
     };
 }
 
