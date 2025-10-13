@@ -9,6 +9,8 @@ export type Event = {
   title: string;
   slug: string;
   category: string;
+  categoryName: string;
+  categorySlug: string;
   location: string;
   company: string;
   heroImage: string;

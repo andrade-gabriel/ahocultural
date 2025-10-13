@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useParams } from "react-router";
+import { Link, useParams } from "react-router";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -53,7 +53,7 @@ function fmtDDMMYY_HHMM(input: DateInput, tz = "America/Sao_Paulo") {
 }
 
 /** Constrói o endereço amigável a partir de company.address */
-function formatCompanyAddress(ev?: EventDetail): string {
+function formatCompanyAddress(ev?: EventDetail | null): string {
   const a = ev?.company?.address;
   if (!a) return ev?.company?.name || "—";
 
@@ -76,29 +76,28 @@ function buildMapsLink(address: string) {
   return `https://www.google.com/maps/search/?api=1&query=${encoded}`;
 }
 
-/** Data editorial (CAIXA ALTA) para “Veja também” */
-function formatRelatedDate(start?: DateInput, end?: DateInput, tz = "America/Sao_Paulo") {
+/** Data compacta para “Veja também” */
+function formatRelatedDate(start?: DateInput, tz = "America/Sao_Paulo") {
   const s = toDate(start);
-  const e = toDate(end);
   if (!s) return "";
 
-  const up = (str: string) => str.toUpperCase();
-  const day = (d: Date) => new Intl.DateTimeFormat("pt-BR", { timeZone: tz, day: "2-digit" }).format(d);
-  const monthLong = (d: Date) => up(new Intl.DateTimeFormat("pt-BR", { timeZone: tz, month: "long" }).format(d));
-  const year = (d: Date) => new Intl.DateTimeFormat("pt-BR", { timeZone: tz, year: "numeric" }).format(d);
+  const date = new Intl.DateTimeFormat("pt-BR", {
+    timeZone: tz,
+    day: "2-digit",
+    month: "2-digit",
+    year: "2-digit",
+  }).format(s);
 
-  if (!e || s.getTime() === e.getTime()) {
-    return `${day(s)} ${monthLong(s)} ${year(s)}`;
-  }
-  const sameMonthYear =
-    s.getUTCFullYear() === e.getUTCFullYear() &&
-    s.getUTCMonth() === e.getUTCMonth();
+  const time = new Intl.DateTimeFormat("pt-BR", {
+    timeZone: tz,
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(s);
 
-  if (sameMonthYear) {
-    return `DE ${day(s)} A ${day(e)} ${monthLong(e)} ${year(e)}`;
-  }
-  return `DE ${day(s)} ${monthLong(s)} ${year(s)} A ${day(e)} ${monthLong(e)} ${year(e)}`;
+  return `A partir de ${date} às ${time}`;
 }
+
 
 /* ------------------------------ subcomponentes ------------------------------ */
 
@@ -119,35 +118,53 @@ const InfoCell = ({
   </div>
 );
 
-const RelatedItem = ({
+export const RelatedItem = ({
   date,
-  venue,
   title,
   category,
   href,
+  thumbnail,
 }: {
   date: string;
-  venue: string;
   title: string;
   category: string;
   href?: string;
+  thumbnail?: string;
 }) => (
-  <div className="border-l pl-4">
-    <div className="text-xs uppercase text-muted-foreground">{date}</div>
-    <div className="mt-1 text-sm font-semibold">{venue}</div>
-    {href ? (
-      <a
-        href={href}
-        className="mt-1 block text-lg font-medium leading-snug hover:underline underline-offset-4"
-      >
-        {title}
-      </a>
-    ) : (
-      <span className="mt-1 block text-lg font-medium leading-snug">
-        {title}
-      </span>
+  <div className="flex items-start gap-4 border-l pl-4">
+    {/* Imagem (thumbnail) */}
+    {thumbnail && (
+      <div className="flex-shrink-0 w-20 h-20 overflow-hidden rounded-md border border-border/50">
+        <img
+          src={thumbnail}
+          alt={title}
+          className="w-full h-full object-cover transition-transform duration-200 hover:scale-105"
+          loading="lazy"
+        />
+      </div>
     )}
-    <div className="mt-1 text-xs uppercase text-muted-foreground">{category}</div>
+
+    {/* Texto */}
+    <div className="flex flex-col justify-center">
+      <div className="text-xs uppercase text-muted-foreground">{date}</div>
+
+      {href ? (
+        <Link
+          to={href}
+          className="mt-1 block text-lg font-medium leading-snug hover:underline underline-offset-4"
+        >
+          {title}
+        </Link>
+      ) : (
+        <span className="mt-1 block text-lg font-medium leading-snug">
+          {title}
+        </span>
+      )}
+
+      <div className="mt-1 text-xs uppercase text-muted-foreground">
+        {category}
+      </div>
+    </div>
   </div>
 );
 
@@ -228,13 +245,33 @@ export const EventDetailLayout = () => {
   const [heroUrl, setHeroUrl] = useState<string>("");
 
   type RelatedWire = {
+    id: string;
     slug: string;
     title: string;
-    categories?: Array<{ name?: string }>;
-    company?: { name?: string; address?: { city?: string; state?: string } };
-    location?: string; // legado/compat
-    startDate?: string | Date;
-    endDate?: string | Date;
+
+    // datas ISO do índice
+    startDate: string;           // "2025-10-20T15:00:00.000Z"
+    endDate?: string;
+
+    // mídia
+    heroImage?: string;
+    thumbnail?: string;
+
+    // flags/numéricos
+    pricing?: number;
+    sponsored?: boolean;
+    active?: boolean;
+
+    // relacionais (ids)
+    category: string;            // ex: "89d10153-c9af-455a-a9d1-f09f31ab7587"
+    categoryName: string;
+    categorySlug: string;
+    location: string;            // ex: "3e115931-cbd0-4ed3-b612-2fdf2e3862af"
+    company: string;             // ex: "07f4ce30-390a-42e4-b6dd-9784ec901685"
+
+    // extras
+    facilities?: string[];       // ["Acessibilidade", "Estacionamento", ...]
+    updated_at?: string;         // ISO
   };
 
   const [related, setRelated] = useState<RelatedWire[]>([]);
@@ -291,14 +328,29 @@ export const EventDetailLayout = () => {
       try {
         const list = await getRelatedEventsBySlug(id, { signal: ac.signal });
 
-        const items: RelatedWire[] = (Array.isArray(list) ? list : []).map((e: any) => ({
-          slug: String(e.slug ?? ""),
-          title: String(e.title ?? ""),
-          categories: Array.isArray(e.categories) ? e.categories : undefined,
-          company: e.company,
-          location: e.location, // legado
-          startDate: e.startDate ?? null,
-          endDate: e.endDate ?? null,
+        const items: RelatedWire[] = (Array.isArray(list) ? list : []).map((src: any) => ({
+          id: String(src.id),
+          slug: String(src.slug),
+          title: String(src.title),
+
+          startDate: String(src.startDate),
+          endDate: src.endDate ? String(src.endDate) : undefined,
+
+          heroImage: src.heroImage ?? undefined,
+          thumbnail: src.thumbnail ?? undefined,
+
+          pricing: typeof src.pricing === "number" ? src.pricing : undefined,
+          sponsored: Boolean(src.sponsored),
+          active: Boolean(src.active),
+
+          category: String(src.category),
+          categoryName: String(src.categoryName),
+          categorySlug: String(src.categorySlug),
+          location: String(src.location),
+          company: String(src.company),
+
+          facilities: Array.isArray(src.facilities) ? src.facilities.map(String) : undefined,
+          updated_at: src.updated_at ? String(src.updated_at) : undefined,
         }));
 
         setRelated(items);
@@ -329,7 +381,7 @@ export const EventDetailLayout = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
           {/* --------- Coluna principal --------- */}
-          <div className="lg:col-span-8">
+          <div className="lg:col-span-9">
             {loadingMain ? (
               <>
                 <Skeleton className="h-10 w-[70%] mb-6" />
@@ -488,7 +540,7 @@ export const EventDetailLayout = () => {
           </div>
 
           {/* --------- Sidebar: VEJA TAMBÉM --------- */}
-          <aside className="lg:col-span-4 lg:col-start-9 self-start">
+          <aside className="lg:col-span-3 lg:col-start-10 self-start">
             <h3 className="text-3xl font-semibold tracking-wide mb-6">
               VEJA TAMBÉM
             </h3>
@@ -509,28 +561,18 @@ export const EventDetailLayout = () => {
               </Alert>
             ) : related.length === 0 ? (
               <div className="text-sm text-muted-foreground">
-                Nenhum evento relacionado.
               </div>
             ) : (
               <div className="space-y-8">
                 {related.map((r, i) => {
-                  const categoryName = (r.categories && r.categories[0]?.name) || "";
-                  const venue =
-                    r.company?.name ||
-                    [r.company?.address?.city, r.company?.address?.state]
-                      .filter(Boolean)
-                      .join(" - ") ||
-                    r.location ||
-                    "—";
-
                   return (
                     <div key={r.slug || i}>
                       <RelatedItem
-                        date={formatRelatedDate(r.startDate, r.endDate)}
-                        venue={venue}
+                        date={formatRelatedDate(r.startDate)}
                         title={r.title}
-                        category={(categoryName || "").toUpperCase()}
-                        href={`${baseAppURL}/event/${r.slug}`}
+                        category={(r.categoryName || "").toUpperCase()}
+                        href={`/event/${r.slug}`}
+                        thumbnail={`${baseAppURL}/assets/${r.thumbnail}`}
                       />
                       {i < related.length - 1 && <Separator className="mt-8" />}
                     </div>

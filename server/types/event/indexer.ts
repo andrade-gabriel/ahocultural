@@ -189,12 +189,7 @@ export async function getRelatedEventsBySlugCatLocDateAsync(
     sort: [
       { startDate: { order: "desc", unmapped_type: "date" } },
       { updated_at: { order: "desc", unmapped_type: "date" } },
-    ],
-    _source: [
-      "id", "title", "slug", "category", "location", "company",
-      "heroImage", "thumbnail", "startDate", "endDate",
-      "pricing", "facilities", "sponsored", "active", "updated_at"
-    ],
+    ]
   };
 
   const resp = await signedFetchEs(url, "POST", body);
