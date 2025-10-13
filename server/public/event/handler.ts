@@ -1,8 +1,8 @@
 import { config } from './config'
 import type { APIGatewayProxyEvent } from 'aws-lambda';
 import { DefaultResponse } from "@utils/response/types"
-import { EventEntity, EventIndex, EventListRequest } from '@event/types';
-import { toEventListRequest, toEventPublicIndex } from '@event/mapper';
+import { EventEntity, EventIndex } from '@event/types';
+import { toEventPublicIndex } from '@event/mapper';
 import { getEventAsync } from '@event/store';
 import { getAsync, getBySlugAsync, getRelatedEventsBySlugCatLocDateAsync } from '@event/indexer';
 import { CompanyEntity } from '@company/types';

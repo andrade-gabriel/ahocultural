@@ -12,5 +12,13 @@ export default defineConfig({
   },
   build: {
     outDir: '.dist',
+    rollupOptions: {
+      output: {
+        // Altera a pasta onde ficam os arquivos estáticos
+        assetFileNames: 'static/[name]-[hash][extname]',
+        chunkFileNames: 'static/[name]-[hash].js',
+        entryFileNames: 'static/[name]-[hash].js',
+      },
+    },
   },
 })

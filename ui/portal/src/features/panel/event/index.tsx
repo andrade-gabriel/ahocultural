@@ -69,6 +69,9 @@ export const EventLayout = () => {
     location?: string;
     category?: string;
   }>();
+  const { search } = useLocation();
+  const query = new URLSearchParams(search);
+  const searchTerm = query.get("q");
 
   // base para navegação
   const basePath = `/${(location ?? "").replace(/^\/+|\/+$/g, "")}/eventos`;
@@ -249,7 +252,7 @@ export const EventLayout = () => {
         const fromDate = startOfDayISO(selectedDate);
 
         const data = await listEvent(
-          { skip: 0, take: 24, fromDate, categoryId },
+          { skip: 0, take: 24, fromDate, categoryId, search: searchTerm ?? '' },
           { signal: ac.signal }
         );
 
@@ -262,7 +265,7 @@ export const EventLayout = () => {
     })();
 
     return () => ac.abort();
-  }, [booting, selectedDate, activeCat, activeChildCat]);
+  }, [booting, selectedDate, activeCat, activeChildCat, searchTerm, pathname]);
 
   /* --------------------------------- navegação por slug --------------------------------- */
   // Clicar no pai: navega para /eventos/:slug (ou volta para período/base se desmarcar)
@@ -327,17 +330,6 @@ export const EventLayout = () => {
       navigate(`${basePath}/${child.slug}`, { replace: false });
     }
   };
-
-  /* -------------------------------- UI helpers ------------------------------- */
-  const selectedDateLabel = useMemo(() => {
-    const d = toDate(selectedDate);
-    if (!d) return "";
-    return new Intl.DateTimeFormat("pt-BR", {
-      day: "2-digit",
-      month: "long",
-      year: "numeric",
-    }).format(d);
-  }, [selectedDate]);
 
   /* ------------------------------- RENDER ----------------------------------- */
 

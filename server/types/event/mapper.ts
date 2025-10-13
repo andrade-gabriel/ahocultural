@@ -76,6 +76,7 @@ export function toEventIndex(
         category: input.category,
         categoryName: category.name,
         categorySlug: category.slug,
+        parentCategory: category.parent_id,
         company: input.company,
         location: company.location,
         heroImage: input.heroImage,

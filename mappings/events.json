@@ -28,6 +28,14 @@
                     }
                 }
             },
+            "parentCategory": {
+                "type": "text",
+                "fields": {
+                    "keyword": {
+                        "type": "keyword"
+                    }
+                }
+            },
             "company": {
                 "type": "text",
                 "fields": {

@@ -10,7 +10,7 @@ import {
   getRelatedEventsBySlug,
   type EventDetail,
 } from "@/api/event";
-import { MapPin, Accessibility, Bike, ParkingCircle, HelpCircle, ChevronRight } from "lucide-react";
+import { Accessibility, Bike, ParkingCircle, HelpCircle, ChevronRight } from "lucide-react";
 
 const baseAppURL =
   import.meta.env.VITE_APP_BASE_URL?.replace(/\/+$/, "") || "";

@@ -5,7 +5,7 @@ exports.handler = async (event, context, callback) => {
 
     try{
         let prefix = '';
-        if(typeof request.uri === 'string' && request.uri.indexOf('admin'))
+        if(typeof request.uri === 'string' && request.uri.indexOf('admin') != -1)
             prefix = '/admin'
 
         // SEO Only
@@ -23,8 +23,10 @@ exports.handler = async (event, context, callback) => {
         }
         // No file extension (SPA routing)
         else if (typeof request.uri === 'string' && request.uri.indexOf('.') === -1 || request.uri.endsWith('.html')) {
+            const uri = `${prefix}/index.html`;
+            console.log(uri);
             // Client-side (default origin)
-            request.uri = `${prefix}/index.html`;
+            request.uri = uri;
         }
     }
     catch(e)

@@ -15,7 +15,8 @@ export const Header = () => {
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (query.trim()) navigate(`/search?q=${encodeURIComponent(query.trim())}`);
+    if (query.trim())
+      navigate(`/${location}/eventos?q=${encodeURIComponent(query.trim())}`);
   };
 
   return (
