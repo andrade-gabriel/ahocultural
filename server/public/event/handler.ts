@@ -60,12 +60,16 @@ export async function listIdHandler(event: APIGatewayProxyEvent): Promise<Defaul
     const qs = event.queryStringParameters || {};
 
     const fromDate = qs.fromDate ? qs.fromDate : null;
-    const categoryId = qs.categoryId ? qs.categoryId : null;
     const skip = qs.skip ? parseInt(qs.skip, 10) : 0;
     const take = qs.take ? parseInt(qs.take, 10) : 10;
     const name = qs.name ? qs.name : null;
+    
+    const subCategory = qs.subCategory ? qs.subCategory : null;
+    const category = subCategory ? subCategory : (qs.category ? qs.category : null);
+    const location = qs.location ? qs.location : null;
+    const district = qs.district ? qs.district : null;
 
-    const indexedEvents: EventIndex[] = await getAsync(config, skip, take, name, fromDate, categoryId);
+    const indexedEvents: EventIndex[] = await getAsync(config, skip, take, name, fromDate, category);
     // const events: EventListRequest[] = indexedEvents.map(indexedEvent => toEventListRequest(indexedEvent));
     return {
         success: true,

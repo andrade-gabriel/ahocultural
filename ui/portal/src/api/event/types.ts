@@ -1,6 +1,9 @@
 export type ListEventsParams = {
   fromDate?: string | null;
   categoryId?: string | null;
+  subCategoryId?: string | null;
+  location?: string | null;
+  district?: string | null;
   skip?: number; // default 0
   take?: number; // default 10
   search?: string;

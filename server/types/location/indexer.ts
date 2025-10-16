@@ -38,28 +38,43 @@ async function signedFetchEs(url: URL, method: string, bodyObj?: unknown) {
     });
 }
 
-export async function getAsync(config: any, skip: number, take: number, name: string | null): Promise<LocationIndex[]> {
+export async function getAsync(config: any, skip: number, take: number, name: string | null, activeOnly?: boolean): Promise<LocationIndex[]> {
     // Monta a URL para /_search do índice
     const base_path = `${config.elasticsearch.domain}/${config.elasticsearch.locationIndex}`;
     const base_url = base_path.startsWith("http") ? base_path : `https://${base_path}`;
     const url = new URL(`${base_url}/_search`);
+    // helpers
+    const escapeWild = (s: string) => s.toLowerCase().replace(/([*?])/g, "\\$1");
+    const hasName = !!(name && name.trim());
 
-    const query = name
-        ? {
+    // partes da bool query
+    const must: any[] = [];
+    const filter: any[] = [];
+
+    if (hasName) {
+        must.push({
             wildcard: {
                 "city.keyword": {
-                    value: `*${name.toLowerCase().replace(/([*?])/g, '\\$1')}*`,
-                    case_insensitive: true
-                }
-            }
-        }
-        : { match_all: {} };
+                    value: `*${escapeWild(name!.trim())}*`,
+                    case_insensitive: true,
+                },
+            },
+        });
+    }
 
-    // Corpo da busca com paginação simples
+    if (activeOnly === true) {
+        filter.push({ term: { active: true } });
+    }
+
+    const query =
+        must.length || filter.length
+            ? { bool: { ...(must.length && { must }), ...(filter.length && { filter }) } }
+            : { match_all: {} };
+
     const body = {
-        from: skip,
-        size: take,
-        query
+        from: Math.max(0, Number(skip) || 0),
+        size: Math.max(1, Number(take) || 10),
+        query,
     };
 
     const resp = await signedFetchEs(url, "POST", body);
