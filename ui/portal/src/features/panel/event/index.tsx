@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useTranslation } from "react-i18next";
 
 import {
   listCategories,
@@ -62,6 +63,7 @@ const baseAppURL =
 
 /* -------------------------------- componente ------------------------------- */
 export const EventLayout = () => {
+  const { t } = useTranslation("event");
   const navigate = useNavigate();
   const { pathname, search } = useLocation();
 
@@ -411,7 +413,7 @@ export const EventLayout = () => {
     <div className="w-full">
       <div className="mx-auto w-full max-w-[1400px] px-6 py-10">
         <h1 className="text-5xl font-semibold tracking-wide text-center mb-10">
-          CALENDÁRIO DE EVENTOS
+          {t("eventTitle")}
         </h1>
 
         {/* ------- Filtros ------- */}

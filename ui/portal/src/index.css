@@ -3,7 +3,18 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* ======== FONTES ======== */
+@font-face {
+  font-family: 'Bebas Neue';
+  src: url('/fonts/BebasNeue-Regular.ttf') format("truetype");
+  font-weight: 100 900;
+  font-style: normal;
+}
+
 @theme inline {
+  /* token de fonte → habilita .font-bebas */
+  --font-bebas: "Bebas Neue", sans-serif;
+  
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);

@@ -45,7 +45,6 @@ export interface EventIndex {
     category: string;
     categoryName: string;
     categorySlug: string;
-    parentCategory: string | null;
     company: string;
     location: string;
     heroImage: string;

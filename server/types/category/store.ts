@@ -32,9 +32,21 @@ export async function getCategoryAsync(
             const raw = JSON.parse(text) as {
                 id: string;
                 parent_id: string;
-                name: string;
-                slug: string;
-                description: string;
+                name: {
+                    pt: string;
+                    en: string;
+                    es: string;
+                }
+                slug: {
+                    pt: string;
+                    en: string;
+                    es: string;
+                };
+                description: {
+                    pt?: string;
+                    en?: string;
+                    es?: string;
+                };
                 created_at: Date;
                 updated_at: Date;
                 active: boolean;
@@ -42,10 +54,21 @@ export async function getCategoryAsync(
 
             const category: CategoryEntity = {
                 id: raw.id,
-                parent_id: raw.parent_id,
-                name: raw.name,
-                slug: raw.slug,
-                description: raw.description,
+                name: {
+                    pt: raw.name.pt.trim(),
+                    en: raw.name.en.trim(),
+                    es: raw.name.es.trim(),
+                },
+                slug: {
+                    pt: raw.slug.pt.trim(),
+                    en: raw.slug.en.trim(),
+                    es: raw.slug.es.trim(),
+                },
+                description: {
+                    pt: raw.description.pt?.trim(),
+                    en: raw.description.en?.trim(),
+                    es: raw.description.es?.trim(),
+                },
                 created_at: raw.created_at,
                 updated_at: raw.updated_at,
                 active: raw.active

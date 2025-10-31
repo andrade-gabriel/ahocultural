@@ -1,0 +1,32 @@
+{
+    "en": {
+        "headerTodayLink": "For today!",
+        "headerWeekendLink": "This Wknd",
+        "headerWeekLink": "This Week",
+        "headerFeaturedLink": "Highlights",
+        "headerStudioLink": "Ahô Studio",
+        "headerInstitutionalLink": "About Us",
+        "headerAdvertiseLink": "Advertise",
+        "headerContactLink": "Contact"
+    },
+    "pt": {
+        "headerTodayLink": "Pra hoje!",
+        "headerWeekendLink": "Este Fds",
+        "headerWeekLink": "Esta Semana",
+        "headerFeaturedLink": "Destaques",
+        "headerStudioLink": "Estúdio Ahô",
+        "headerInstitutionalLink": "Quem Somos",
+        "headerAdvertiseLink": "Seu Espaço na Ahô",
+        "headerContactLink": "Contato"
+    },
+    "es": {
+        "headerTodayLink": "¡Para hoy!",
+        "headerWeekendLink": "Este finde",
+        "headerWeekLink": "Esta semana",
+        "headerFeaturedLink": "Destacados",
+        "headerStudioLink": "Estudio Ahô",
+        "headerInstitutionalLink": "Quiénes somos",
+        "headerAdvertiseLink": "Anuncia con Ahô",
+        "headerContactLink": "Contacto"
+    }
+}

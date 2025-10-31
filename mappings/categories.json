@@ -4,32 +4,62 @@
       "id": {
         "type": "keyword"
       },
-      "slug": {
-        "type": "text",
-        "fields": {
-          "keyword": { "type": "keyword" }
-        }
-      },
-      "parent_id": {
-        "type": "keyword"
-      },
-      "parent_name": {
-        "type": "keyword"
-      },
-      "parent_slug": {
-        "type": "keyword"
-      },
-      "name": {
-        "type": "text",
-        "fields": {
-          "keyword": { "type": "keyword" }
-        }
-      },
-      "description": {
-        "type": "text"
-      },
       "active": {
         "type": "boolean"
+      },
+
+      "name": {
+        "properties": {
+          "pt": {
+            "type": "text",
+            "fields": {
+              "keyword": { "type": "keyword" }
+            }
+          },
+          "en": {
+            "type": "text",
+            "fields": {
+              "keyword": { "type": "keyword" }
+            }
+          },
+          "es": {
+            "type": "text",
+            "fields": {
+              "keyword": { "type": "keyword" }
+            }
+          }
+        }
+      },
+
+      "slug": {
+        "properties": {
+          "pt": {
+            "type": "text",
+            "fields": {
+              "keyword": { "type": "keyword" }
+            }
+          },
+          "en": {
+            "type": "text",
+            "fields": {
+              "keyword": { "type": "keyword" }
+            }
+          },
+          "es": {
+            "type": "text",
+            "fields": {
+              "keyword": { "type": "keyword" }
+            }
+          }
+        }
+      },
+
+      "description": {
+        "properties": {
+          "pt": { "type": "text" },
+          "en": { "type": "text" },
+          "es": { "type": "text" }
+        }
       }
     }
   }

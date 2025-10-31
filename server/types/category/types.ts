@@ -1,9 +1,10 @@
+import { I18nNullableValue, I18nValue } from "types/language/types";
+
 export interface CategoryEntity {
     id: string;
-    parent_id: string | null;
-    name: string;
-    slug: string;
-    description: string | null;
+    name: I18nValue;
+    slug: I18nValue;
+    description: I18nNullableValue;
     active: boolean;
     created_at: Date;
     updated_at: Date;
@@ -11,31 +12,24 @@ export interface CategoryEntity {
 
 export interface CategoryRequest {
     id: string;
-    parent_id: string | null;
-    name: string;
-    slug: string;
-    description: string | null;
+    name: I18nValue;
+    slug: I18nValue;
+    description: I18nNullableValue;
     active: boolean;
 }
 
 export interface CategoryIndex {
-  id: string;
-  parent_id: string | null;
-  parent_name: string | null;
-  parent_slug: string | null;
-  name: string;
-  slug: string;
-  description: string | null;
-  active: boolean;
+    id: string;
+    name: I18nValue;
+    slug: I18nValue;
+    description: I18nNullableValue;
+    active: boolean;
 }
 
 export interface CategoryListRequest {
     id: string;
-    parent_id: string | null;
-    parent_name: string | null;
-    parent_slug: string | null;
-    name: string;
-    slug: string;
+    name: I18nValue;
+    slug: I18nValue;
     active: boolean;
 }
 

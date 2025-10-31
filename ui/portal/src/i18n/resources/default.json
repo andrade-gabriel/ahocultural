@@ -1,0 +1,14 @@
+{
+  "en": {
+    "defaultSearchPlaceholder": "Search...",
+    "defaultFooterText": "All rights reserved."
+  },
+  "pt": {
+    "defaultSearchPlaceholder": "Buscar...",
+    "defaultFooterText": "Todos os direitos reservados."
+  },
+  "es": {
+    "defaultSearchPlaceholder": "Buscar...",
+    "defaultFooterText": "Reservados todos los derechos."
+  }
+}

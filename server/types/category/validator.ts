@@ -5,12 +5,18 @@ export function validateCategory(
 ): string[] {
   const errors: string[] = [];
 
-  if (!category.slug || category.slug.trim().length < 3) 
-    errors.push("O campo `slug` deve ser um slug válido (mínimo 3 caracteres).");
+  for (const [lang, slug] of Object.entries(category.slug ?? {})) {
+    if (!slug || slug.trim().length < 3) {
+      errors.push(`O campo \`slug.${lang}\` deve ser um slug válido (mínimo 3 caracteres).`);
+    }
+  }
 
   // name
-  if (!category.name || category.name.trim().length < 2)
-    errors.push("O campo `name` deve ser informado.");
+  for (const [lang, name] of Object.entries(category.name ?? {})) {
+    if (!name || name.trim().length < 2) {
+      errors.push(`O campo \`name.${lang}\` deve ser informado (mínimo 2 caracteres).`);
+    }
+  }
 
   return errors;
 }

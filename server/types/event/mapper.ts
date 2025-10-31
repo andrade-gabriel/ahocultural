@@ -74,9 +74,8 @@ export function toEventIndex(
         title: input.title,
         slug: input.slug,
         category: input.category,
-        categoryName: category.name,
-        categorySlug: category.slug,
-        parentCategory: category.parent_id,
+        categoryName: category.name.pt,
+        categorySlug: category.slug.pt,
         company: input.company,
         location: company.location,
         heroImage: input.heroImage,
@@ -107,8 +106,8 @@ export function toEventPublicIndex(
         categories: [
             {
                 id: category.id,
-                name: category.name,
-                slug: category.slug
+                name: category.name.pt,
+                slug: category.slug.pt
             }
         ],
         company: {
@@ -137,12 +136,5 @@ export function toEventPublicIndex(
         updated_at: event.updated_at,
         active: event.active
     };
-    if(category.parent_id && category.parent_name && category.parent_slug){
-        eventPublicIndex.categories.push({
-            id: category.parent_id,
-            name: category.parent_name,
-            slug: category.parent_slug
-        })
-    }
     return eventPublicIndex;
 }

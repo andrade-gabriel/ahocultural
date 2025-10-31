@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 
 import { listCategories, listCategoryChildren } from "@/api/category";
 import { listLocations } from "@/api/location";
+import { useTranslation } from "react-i18next";
 
 type Category = { id: string; name: string; slug?: string };
 type Subcategory = { id: string; name: string; slug?: string };
@@ -335,6 +336,7 @@ function Combobox({
   disabled?: boolean;
   loading?: boolean;
 }) {
+  const { t } = useTranslation("default")
   const [open, setOpen] = useState(false);
   const selected = items.find((i) => i.value === value);
 
@@ -356,7 +358,7 @@ function Combobox({
       </PopoverTrigger>
       <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
         <Command>
-          <CommandInput placeholder="Buscar..." />
+          <CommandInput placeholder={t("defaultSearchPlaceholder")} />
           <CommandList>
             <CommandEmpty>Nada encontrado.</CommandEmpty>
             <CommandGroup>

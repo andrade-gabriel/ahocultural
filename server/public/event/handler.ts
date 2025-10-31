@@ -66,8 +66,8 @@ export async function listIdHandler(event: APIGatewayProxyEvent): Promise<Defaul
     
     const subCategory = qs.subCategory ? qs.subCategory : null;
     const category = subCategory ? subCategory : (qs.category ? qs.category : null);
-    const location = qs.location ? qs.location : null;
-    const district = qs.district ? qs.district : null;
+    // const location = qs.location ? qs.location : null;
+    // const district = qs.district ? qs.district : null;
 
     const indexedEvents: EventIndex[] = await getAsync(config, skip, take, name, fromDate, category);
     // const events: EventListRequest[] = indexedEvents.map(indexedEvent => toEventListRequest(indexedEvent));

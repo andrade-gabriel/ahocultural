@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router";
 import { Menu as MenuIcon, Search, ChevronRight, ChevronDown } from "lucide-react";
 
@@ -6,10 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 /* ---------------------------
-   1) CONFIG DO MENU
+   1) MENU PRINCIPAL
 ---------------------------- */
 type SubItem = {
   label: string;
@@ -19,60 +21,176 @@ type NavItem = {
   label: string;
   href: (location?: string) => string;
   showInMain?: boolean;
-  children?: SubItem[];
 };
 
 export const NAV_ITEMS: NavItem[] = [
-  {
-    label: "Eventos",
-    showInMain: true,
-    href: (loc) => `/${loc ?? ""}/eventos`,
-    children: [
-      { label: "Pra Hoje", href: (loc) => `/${loc ?? ""}/eventos/hoje` },
-      { label: "Esta Semana", href: (loc) => `/${loc ?? ""}/eventos/esta-semana` },
-      { label: "Este FDS", href: (loc) => `/${loc ?? ""}/eventos/fim-de-semana` },
-    ],
-  },
-  { label: "Revista", showInMain: true, href: () => `/revista` },
-  { label: "Destaques", showInMain: true, href: () => `/destaques` },
-  { label: "Ahô Aconselha", showInMain: true, href: () => `/aconselha` },
+  { label: "headerTodayLink", showInMain: true, href: (loc) => `/${loc ?? ""}/pra-hoje` },
+  { label: "headerWeekendLink", showInMain: true, href: (loc) => `/${loc ?? ""}/este-fds` },
+  { label: "headerWeekLink", showInMain: true, href: (loc) => `/${loc ?? ""}/esta-semana` },
+  { label: "headerFeaturedLink", showInMain: true, href: (loc) => `/${loc ?? ""}/destaques` },
+  { label: "headerStudioLink", showInMain: true, href: (loc) => `/${loc ?? ""}/estudio-aho` },
 ];
 
-/* helpers */
-const isEventsPath = (pathname: string) => /\/eventos(\/|$)/.test(pathname);
+/* ---------------------------
+   2) SUBMENU FIXO
+---------------------------- */
+const STUDIO_SUBMENU: SubItem[] = [
+  { label: "headerInstitutionalLink", href: (loc) => `/${loc ?? ""}/estudio-aho/quem-somos` },
+  { label: "headerAdvertiseLink", href: (loc) => `/${loc ?? ""}/estudio-aho/anuncie` },
+  { label: "headerContactLink", href: (loc) => `/${loc ?? ""}/estudio-aho/contato` },
+];
+
 const eqPath = (a: string, b: string) => {
   const norm = (s: string) => (s.endsWith("/") ? s.slice(0, -1) : s);
   return norm(a) === norm(b);
 };
 
 /* ---------------------------
-   2) COMPONENTE
+   2.1) IDIOMAS
+---------------------------- */
+type LangCode = "pt" | "en" | "es";
+type Language = { code: LangCode; label: string; flag: string };
+
+const LANGUAGES: Language[] = [
+  { code: "pt", label: "Português", flag: "pt-br" },
+  { code: "en", label: "English", flag: "en-us" },
+  { code: "es", label: "Español", flag: "es" },
+];
+
+// Caso prefira SVGs:
+// const flagSrc = (code: LangCode) => `/flags/${code}.svg`;
+
+function useLanguage() {
+  const { i18n } = useTranslation();
+  const initial =
+    (typeof window !== "undefined" && (localStorage.getItem("lang") as LangCode)) ||
+    ((i18n.language?.slice(0, 2) as LangCode) ?? "pt");
+
+  const [current, setCurrent] = useState<LangCode>(initial);
+
+  useEffect(() => {
+    const apply = async (lng: LangCode) => {
+      await i18n.changeLanguage(lng);
+      if (typeof document !== "undefined") {
+        document.documentElement.setAttribute("lang", lng);
+      }
+    };
+    apply(current);
+  }, [current, i18n]);
+
+  const change = (lng: LangCode) => {
+    setCurrent(lng);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("lang", lng);
+    }
+  };
+
+  return { current, change };
+}
+
+function LanguageSelector({
+  current,
+  onChange,
+  variant = "desktop",
+}: {
+  current: LangCode;
+  onChange: (lng: LangCode) => void;
+  variant?: "desktop" | "mobile";
+}) {
+  const currentLang = LANGUAGES.find((l) => l.code === current) ?? LANGUAGES[0];
+
+  if (variant === "mobile") {
+    // Botões simples no menu mobile, com bandeira
+    return (
+      <div className="mt-4 space-y-1">
+        <div className="px-3 text-xs uppercase tracking-wide text-muted-foreground/80">Idioma</div>
+        <div className="flex items-center gap-2 px-3">
+          {LANGUAGES.map((l) => (
+            <Button
+              key={l.code}
+              variant={l.code === current ? "default" : "outline"}
+              size="sm"
+              className="rounded-full gap-2"
+              onClick={() => onChange(l.code)}
+              aria-label={`Mudar idioma para ${l.label}`}
+            >
+              <img
+                src={`/languages/${l.flag}.svg`}
+                alt={l.label}
+                className="h-4 w-4 rounded-full object-cover inline-block"
+              />
+              <span className="text-base leading-none"></span>
+              {l.label}
+            </Button>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // Dropdown (desktop) com a bandeira do idioma atual no trigger
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="outline"
+          size="sm"
+          className="rounded-full gap-2"
+          aria-label={`Idioma atual ${currentLang.label}`}
+        >
+          {/* <span className="text-base leading-none">{currentLang.flag}</span> */}
+          <img
+            src={`/languages/${currentLang.flag}.svg`}
+            alt={currentLang.label}
+            className="h-4 w-4 rounded-full object-cover inline-block"
+          />
+          <span className="hidden sm:inline">{currentLang.label}</span>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-40">
+        {LANGUAGES.map((l) => (
+          <DropdownMenuItem key={l.code} onClick={() => onChange(l.code)} className="gap-2">
+            {/* <span className="text-base leading-none">{l.flag}</span> */}
+            <img
+              src={`/languages/${l.flag}.svg`}
+              alt={currentLang.label}
+              className="h-4 w-4 rounded-full object-cover inline-block"
+            />
+            <span className={cn("flex-1", l.code === current && "font-semibold")}>{l.label}</span>
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+/* ---------------------------
+   3) COMPONENTE
 ---------------------------- */
 export const Header = () => {
+  const { t } = useTranslation(["default", "header"]);
   const { location } = useParams<{ location?: string }>();
   const navigate = useNavigate();
   const { pathname } = useLocation();
 
   const [query, setQuery] = useState("");
   const [openMobile, setOpenMobile] = useState(false);
-  const [openChildren, setOpenChildren] = useState<Record<string, boolean>>({});
+  const [openStudioMobile, setOpenStudioMobile] = useState(false);
+
+  const { current: lang, change: setLang } = useLanguage();
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const q = query.trim();
     if (!q) return;
-    navigate(`/${location}/eventos?q=${encodeURIComponent(q)}`);
+    navigate(`/${location ?? ""}/eventos?q=${encodeURIComponent(q)}`);
   };
 
   const mainItems = useMemo(() => NAV_ITEMS.filter((i) => i.showInMain), []);
-  const contextualChildren = useMemo<SubItem[]>(() => {
-    const ev = NAV_ITEMS.find((i) => i.label.toLowerCase() === "eventos");
-    return ev?.children ?? [];
-  }, []);
 
   return (
     <header className="w-full bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      {/* Linha 1: Logo • Busca • Hamburguer (à direita) */}
+      {/* Linha 1: Logo + Busca + Idioma + Mobile menu */}
       <div className="mx-auto w-full px-4 sm:px-6">
         <div className="flex h-16 items-center gap-3">
           {/* Logo */}
@@ -80,7 +198,6 @@ export const Header = () => {
             variant="ghost"
             onClick={() => navigate("/")}
             className="p-0 h-10 w-[140px] justify-start hover:bg-transparent focus-visible:outline-none"
-            aria-label="Ir para a Home"
           >
             <img src="/logo.svg" alt="AHÔ Cultural" className="block w-auto select-none" />
           </Button>
@@ -92,13 +209,18 @@ export const Header = () => {
               <Input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Buscar..."
+                placeholder={t("default:defaultSearchPlaceholder")}
                 className="h-9 w-full rounded-full border-none bg-muted/30 pl-10 pr-4 text-sm shadow-none focus-visible:ring-1 focus-visible:ring-foreground/30"
               />
             </div>
           </form>
 
-          {/* Hamburguer no canto direito */}
+          {/* Seletor de Idioma (desktop) */}
+          <div className="hidden lg:flex">
+            <LanguageSelector current={lang} onChange={setLang} />
+          </div>
+
+          {/* Menu Mobile */}
           <div className="flex lg:hidden">
             <Sheet open={openMobile} onOpenChange={setOpenMobile}>
               <SheetTrigger asChild>
@@ -109,48 +231,64 @@ export const Header = () => {
 
               <SheetContent side="right" className="w-80">
                 <SheetHeader>
-                  <SheetTitle className="flex items-center gap-2">
+                  <SheetTitle className="flex items-center justify-between">
                     <img src="/logo.svg" alt="AHÔ Cultural" className="h-6" />
                   </SheetTitle>
                 </SheetHeader>
 
+                {/* Seletor de Idioma (mobile) */}
+                <LanguageSelector
+                  variant="mobile"
+                  current={lang}
+                  onChange={(code) => {
+                    setLang(code);
+                    // Se quiser fechar o menu após trocar:
+                    // setOpenMobile(false);
+                  }}
+                />
+
                 <nav className="mt-6 space-y-2">
                   {mainItems.map((item) => {
-                    const key = item.label;
-                    const hasChildren = !!item.children?.length;
-                    const expanded = !!openChildren[key];
+                    const isStudio = item.label === "headerStudioLink";
+                    const href = item.href(location);
 
                     return (
-                      <div key={key}>
+                      <div key={item.label}>
                         <button
                           className="w-full flex items-center justify-between rounded-md px-3 py-2 text-left hover:bg-muted focus-visible:outline-none"
                           onClick={() => {
-                            if (hasChildren) {
-                              setOpenChildren((s) => ({ ...s, [key]: !s[key] }));
-                            } else {
-                              navigate(item.href(location));
+                            if (isStudio) setOpenStudioMobile((s) => !s);
+                            else {
+                              navigate(href);
                               setOpenMobile(false);
                             }
                           }}
                         >
-                          <span className="font-medium">{item.label}</span>
-                          {hasChildren ? (
-                            expanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />
-                          ) : null}
+                          <span className="font-bebas font-bold uppercase tracking-[-0.02em] text-black text-lg leading-none">
+                            {t(`header:${item.label}`)}
+                          </span>
+                          {isStudio &&
+                            (openStudioMobile ? (
+                              <ChevronDown className="h-4 w-4" />
+                            ) : (
+                              <ChevronRight className="h-4 w-4" />
+                            ))}
                         </button>
 
-                        {hasChildren && expanded && (
+                        {isStudio && openStudioMobile && (
                           <div className="ml-4 mt-1 space-y-1">
-                            {item.children!.map((sub) => (
+                            {STUDIO_SUBMENU.map((sub) => (
                               <button
                                 key={sub.label}
-                                className="w-full rounded-md px-3 py-2 text-left text-sm text-muted-foreground hover:bg-muted focus-visible:outline-none"
+                                className="w-full rounded-md px-3 py-2 text-left focus-visible:outline-none"
                                 onClick={() => {
                                   navigate(sub.href(location));
                                   setOpenMobile(false);
                                 }}
                               >
-                                {sub.label}
+                                <span className="font-bebas font-bold uppercase tracking-[-0.02em] text-lg text-black/60 hover:text-black transition-colors">
+                                  {t(`header:${sub.label}`)}
+                                </span>
                               </button>
                             ))}
                           </div>
@@ -170,27 +308,21 @@ export const Header = () => {
       {/* Linha 2: Menu principal (desktop) */}
       <nav className="hidden lg:block w-full">
         <div className="mx-auto w-full">
-          <ul className="flex h-12 items-stretch justify-between">
+          <ul className="flex h-10 items-stretch justify-between">
             {mainItems.map((item) => {
               const href = item.href(location);
-              const active =
-                eqPath(pathname, href) ||
-                (item.label.toLowerCase() === "eventos" && isEventsPath(pathname));
+              const active = eqPath(pathname, href);
               return (
                 <li key={item.label} className="flex-1">
                   <button
                     className={cn(
-                      "w-full h-full px-0 text-base font-extrabold uppercase tracking-wide rounded-none transition-colors",
-                      "hover:bg-foreground hover:text-background",
+                      "w-full h-full px-0 font-bebas font-bold uppercase tracking-[-0.02em] text-black text-lg leading-none transition-colors",
                       active && "underline underline-offset-8 decoration-2",
-                      "focus:bg-transparent focus:text-inherit focus-visible:outline-none"
+                      "hover:text-black focus:bg-transparent focus-visible:outline-none"
                     )}
-                    onClick={(e) => {
-                      navigate(href);
-                      (e.currentTarget as HTMLButtonElement).blur();
-                    }}
+                    onClick={() => navigate(href)}
                   >
-                    {item.label}
+                    {t(`header:${item.label}`)}
                   </button>
                 </li>
               );
@@ -201,39 +333,34 @@ export const Header = () => {
 
       <Separator className="hidden lg:block" />
 
-      {/* Linha 3: Abas contextuais (desktop) */}
-      {isEventsPath(pathname) && contextualChildren.length > 0 && (
-        <>
-          <div className="hidden lg:block w-full border-border/50">
-            <div className="mx-auto w-full">
-              <div className="flex w-full items-stretch justify-start">
-                {contextualChildren.map((sub) => {
-                  const href = sub.href(location);
-                  const active = eqPath(pathname, href);
-                  return (
-                    <button
-                      key={sub.label}
-                      className={cn(
-                        "flex-1 h-10 px-4 text-sm font-semibold uppercase tracking-widest transition-colors rounded-none",
-                        "hover:bg-foreground hover:text-background",
-                        active && "underline underline-offset-8 decoration-2",
-                        "focus:bg-transparent focus:text-inherit focus-visible:outline-none"
-                      )}
-                      onClick={(e) => {
-                        navigate(href);
-                        (e.currentTarget as HTMLButtonElement).blur();
-                      }}
-                    >
-                      {sub.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+      {/* Linha 3: Submenu institucional (desktop) */}
+      <div className="hidden lg:block w-full border-border/50">
+        <div className="mx-auto w-full">
+          <div className="flex w-full items-stretch justify-start">
+            {STUDIO_SUBMENU.map((sub) => {
+              const href = sub.href(location);
+              const active = eqPath(pathname, href);
+              return (
+                <button
+                  key={sub.label}
+                  className={cn(
+                    "flex-1 h-10 px-4 font-bebas font-bold uppercase tracking-[-0.02em] text-lg leading-none transition-colors",
+                    active
+                      ? "text-black underline underline-offset-8 decoration-2"
+                      : "text-black/50 hover:text-black",
+                    "focus:bg-transparent focus-visible:outline-none"
+                  )}
+                  onClick={() => navigate(href)}
+                >
+                  {t(`header:${sub.label}`)}
+                </button>
+              );
+            })}
           </div>
-          <Separator className="hidden lg:block" />
-        </>
-      )}
+        </div>
+      </div>
+
+      <Separator className="hidden lg:block" />
     </header>
   );
 };

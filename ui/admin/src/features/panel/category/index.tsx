@@ -273,7 +273,7 @@ function CategoriesTable() {
 
   function askToggleConfirm(category: Category) {
     setTargetId(category.id);
-    setTargetName(category.name);
+    setTargetName(category.name.pt);
     setNextActive(!category.active);
     setConfirmOpen(true);
   }
@@ -325,7 +325,6 @@ function CategoriesTable() {
         <TableHeader>
           <TableRow>
             <TableHead>Nome</TableHead>
-            <TableHead className="w-[200px]">Categoria Pai</TableHead>
             <TableHead className="w-[200px]">Slug</TableHead>
             <TableHead className="w-[120px]"></TableHead>
           </TableRow>
@@ -336,19 +335,9 @@ function CategoriesTable() {
             return (
               <TableRow key={c.id}>
                 <TableCell className="font-medium underline">
-                  <Link to={`/category/${c.id}`}>{c.name}</Link>
+                  <Link to={`/category/${c.id}`}>{c.name.pt}</Link>
                 </TableCell>
-                <TableCell>
-                  <div className="leading-tight">
-                    <div className="text-sm  underline">
-                      <Link to={`/category/${c.parent_id}`}>{c.parent_name}</Link>
-                    </div>
-                    {/* {c.parent_slug ? (
-                      <div className="font-mono text-xs text-muted-foreground">{c.parent_slug}</div>
-                    ) : null} */}
-                  </div>
-                </TableCell>
-                <TableCell className="font-mono text-xs text-muted-foreground">{c.slug}</TableCell>
+                <TableCell className="font-mono text-xs text-muted-foreground">{c.slug.pt}</TableCell>
                 <TableCell>
                   <Switch
                     checked={c.active}

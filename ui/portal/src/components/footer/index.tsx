@@ -1,6 +1,8 @@
 import { Instagram } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export const Footer = () => {
+  const { t } = useTranslation("default")
   return (
     <footer className="w-full border-t border-border/50 bg-background py-8">
       <div className="mx-auto flex w-full max-w-[1400px] flex-col items-center justify-center gap-4 px-6 text-center">
@@ -17,7 +19,7 @@ export const Footer = () => {
 
         {/* --- Copyright --- */}
         <p className="text-xs text-muted-foreground tracking-wide uppercase">
-          © {new Date().getFullYear()} Ahô Cultural. Todos os direitos reservados.
+          © {new Date().getFullYear()} Ahô Cultural. {t("defaultFooterText")}
         </p>
       </div>
     </footer>

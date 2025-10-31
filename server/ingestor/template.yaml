@@ -58,8 +58,7 @@ Resources:
             Condition:
               IpAddress:
                 aws:SourceIp:
-                  - '201.95.72.102/32'
-                  - '189.34.145.240/32'
+                  - '187.56.11.48/32'
           - Sid: WriteFromLambdaRole
             Effect: Allow
             Principal:

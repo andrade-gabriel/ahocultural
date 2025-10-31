@@ -70,9 +70,9 @@ export async function postHandler(event: APIGatewayProxyEvent): Promise<DefaultR
     const req = event.body ? JSON.parse(event.body) : {
         id: "",
         parent_id: null,
-        name: "",
-        slug: "",
-        description: "",
+        name: {pt:"",en:"",es:""},
+        slug: {pt:"",en:"",es:""},
+        description: {pt:"",en:"",es:""},
         active: true
     };
     let errors: string[] = validateCategory(req);
@@ -101,9 +101,9 @@ export async function putHandler(event: APIGatewayProxyEvent): Promise<DefaultRe
     const req = event.body ? JSON.parse(event.body) : {
         id: "",
         parent_id: null,
-        name: "",
-        slug: "",
-        description: "",
+        name: {pt:"",en:"",es:""},
+        slug: {pt:"",en:"",es:""},
+        description: {pt:"",en:"",es:""},
         active: true
     };
     // Force Id in put handler
