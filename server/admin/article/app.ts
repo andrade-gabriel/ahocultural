@@ -13,19 +13,23 @@ const handlerFactory = new Map<string, HandlerFn>([
 export const lambdaHandler: APIGatewayProxyHandler = async (event: APIGatewayProxyEvent) => {
     const method = event.httpMethod.toLowerCase();
     console.log(method)
-    const handler = handlerFactory.get(method);
-    if (handler) {
-        const res = await handler(event);
-        return {
-            statusCode: res.success ? 200 : 400,
-            headers: {
-                'content-type': 'application/json',
-                'access-control-allow-origin': '*',
-                'access-control-allow-headers': '*',
-                'access-control-allow-methods': '*'
-            },
-            body: JSON.stringify(res),
-        };
+    try {
+        const handler = handlerFactory.get(method);
+        if (handler) {
+            const res = await handler(event);
+            return {
+                statusCode: res.success ? 200 : 400,
+                headers: {
+                    'content-type': 'application/json',
+                    'access-control-allow-origin': '*',
+                    'access-control-allow-headers': '*',
+                    'access-control-allow-methods': '*'
+                },
+                body: JSON.stringify(res),
+            };
+        }
+    } catch (err) {
+        console.log('Exception', err)
     }
     console.log('500.1')
     return {

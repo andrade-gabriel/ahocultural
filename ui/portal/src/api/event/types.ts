@@ -1,3 +1,5 @@
+import type { I18nNullableValue, I18nValue } from "../i18n/types";
+
 export type ListEventsParams = {
   fromDate?: string | null;
   categoryId?: string | null;
@@ -11,8 +13,8 @@ export type ListEventsParams = {
 
 export type Event = {
   id: string;
-  title: string;
-  slug: string;
+  title: I18nValue;
+  slug: I18nValue;
   category: string;
   categoryName: string;
   categorySlug: string;
@@ -20,7 +22,7 @@ export type Event = {
   company: string;
   heroImage: string;
   thumbnail: string;
-  body: string;
+  body: I18nValue;
   startDate: Date;
   endDate: Date;
   pricing: number;
@@ -32,13 +34,13 @@ export type Event = {
 
 export interface EventDetail {
   id: string;
-  title: string;
-  slug: string;
+  title: I18nValue;
+  slug: I18nValue;
 
   categories: {
     id: string;
-    name: string;
-    slug: string;
+    name: I18nValue;
+    slug: I18nValue;
   }[];
 
   company: {
@@ -83,5 +85,5 @@ export interface EventDetail {
   updated_at: string;
 
   // Opcional: corpo HTML (pode vir vazio)
-  body?: string;
+  body?: I18nNullableValue;
 }

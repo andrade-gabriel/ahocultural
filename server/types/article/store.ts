@@ -31,57 +31,81 @@ export async function getArticleAsync(
         if (text) {
             const raw = JSON.parse(text) as {
                 id: string;
-                title: string;
-                slug: string;
+                title: {
+                    pt: string;
+                    en: string;
+                    es: string;
+                };
+                slug: {
+                    pt: string;
+                    en: string;
+                    es: string;
+                };
                 heroImage: string;
                 thumbnail: string;
-                body: string;
+                body: {
+                    pt: string;
+                    en: string;
+                    es: string;
+                };
                 publicationDate: Date;
                 created_at: Date;
                 updated_at: Date;
                 active: boolean;
             };
 
-            const location: ArticleEntity = {
+            const article: ArticleEntity = {
                 id: raw.id,
-                title: raw.title,
-                slug: raw.slug,
+                title: {
+                    pt: raw.title.pt,
+                    en: raw.title.en,
+                    es: raw.title.es
+                },
+                slug: {
+                    pt: raw.slug.pt,
+                    en: raw.slug.en,
+                    es: raw.slug.es
+                },
                 heroImage: raw.heroImage,
                 thumbnail: raw.thumbnail,
-                body: raw.body,
+                body: {
+                    pt: raw.body.pt,
+                    en: raw.body.en,
+                    es: raw.body.es
+                },
                 publicationDate: raw.publicationDate,
                 created_at: raw.created_at,
                 updated_at: raw.updated_at,
                 active: raw.active
             };
-            return location;
+            return article;
         }
     }
     catch (e) {
-        console.log(`Error getting location: ${e}`);
+        console.log(`Error getting article: ${e}`);
     }
     return undefined;
 }
 
 export async function upsertArticleAsync(
-    location: ArticleEntity,
+    article: ArticleEntity,
     s3Bucket: string
 ): Promise<Boolean> {
     let successfullyCreated: Boolean;
     try {
-        const key = buildKey(location.id);
+        const key = buildKey(article.id);
         await amazons3Client.send(
             new PutObjectCommand({
                 Bucket: s3Bucket,
                 Key: key,
-                Body: JSON.stringify(location),
+                Body: JSON.stringify(article),
                 ContentType: "application/json",
             })
         );
         successfullyCreated = true;
     }
     catch (e) {
-        console.log(`Error creating location: ${e}`);
+        console.log(`Error creating article: ${e}`);
         successfullyCreated = false;
     }
     return successfullyCreated;

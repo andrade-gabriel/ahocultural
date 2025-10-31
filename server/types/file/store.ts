@@ -39,47 +39,49 @@ export async function renameAndFinalizeAsset(params: {
     assetType: SeoImageType;
 }) {
     const { bucket, id, slug, assetType } = params;
+    if (id.indexOf('assets/') === -1) {
+        try {
+            const sourceKey = `${DEFAULT_PREFIX}/${id}`;
+            const head = await amazons3Client.send(
+                new HeadObjectCommand({ Bucket: bucket, Key: sourceKey })
+            );
 
-    try {
-        const sourceKey = `${DEFAULT_PREFIX}/${id}`;
-        const head = await amazons3Client.send(
-            new HeadObjectCommand({ Bucket: bucket, Key: sourceKey })
-        );
+            if (!head.ContentType) {
+                throw new Error("Não foi possível determinar o content-type do arquivo.");
+            }
 
-        if (!head.ContentType) {
-            throw new Error("Não foi possível determinar o content-type do arquivo.");
+            const finalKey = buildKey(slug, assetType, head.ContentType);
+            await amazons3Client.send(
+                new CopyObjectCommand({
+                    Bucket: bucket,
+                    CopySource: `${bucket}/${sourceKey}`,
+                    Key: `${DEFAULT_PREFIX}/${finalKey}`,
+                    MetadataDirective: "REPLACE",
+                    ContentType: head.ContentType,
+                    TaggingDirective: "REPLACE",
+                    Tagging: "temp=false",
+                })
+            );
+            return finalKey;
+        } catch (err: any) {
+            console.error("name:", err.name);
+            console.error("$metadata:", err.$metadata);
+
+            if (err.$response?.body) {
+                const text = await streamToString(err.$response.body);
+                console.error("S3 error body XML:", text); // aqui normalmente vem <Code>AccessDenied</Code> ou <Code>SignatureDoesNotMatch</Code>
+            }
+            throw err;
         }
-
-        const finalKey = buildKey(slug, assetType, head.ContentType);
-        await amazons3Client.send(
-            new CopyObjectCommand({
-                Bucket: bucket,
-                CopySource: `${bucket}/${sourceKey}`,
-                Key: `${DEFAULT_PREFIX}/${finalKey}`,
-                MetadataDirective: "REPLACE",
-                ContentType: head.ContentType,
-                TaggingDirective: "REPLACE",
-                Tagging: "temp=false",
-            })
-        );
-        return finalKey;
-    } catch (err: any) {
-        console.error("name:", err.name);
-        console.error("$metadata:", err.$metadata);
-
-        if (err.$response?.body) {
-            const text = await streamToString(err.$response.body);
-            console.error("S3 error body XML:", text); // aqui normalmente vem <Code>AccessDenied</Code> ou <Code>SignatureDoesNotMatch</Code>
-        }
-        throw err;
     }
+    return id;
 }
 
 function streamToString(stream: any): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const chunks: Buffer[] = [];
-    stream.on("data", (chunk: Buffer) => chunks.push(chunk));
-    stream.on("error", reject);
-    stream.on("end", () => resolve(Buffer.concat(chunks).toString("utf-8")));
-  });
+    return new Promise((resolve, reject) => {
+        const chunks: Buffer[] = [];
+        stream.on("data", (chunk: Buffer) => chunks.push(chunk));
+        stream.on("error", reject);
+        stream.on("end", () => resolve(Buffer.concat(chunks).toString("utf-8")));
+    });
 }

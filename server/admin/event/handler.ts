@@ -70,9 +70,22 @@ export async function listIdHandler(event: APIGatewayProxyEvent): Promise<Defaul
 export async function postHandler(event: APIGatewayProxyEvent): Promise<DefaultResponse> {
     const req = event.body ? JSON.parse(event.body) : {
         id: '',
-        title: '',
+        title: {
+            pt: '',
+            en: '',
+            es: ''
+        },
+        slug: {
+            pt: '',
+            en: '',
+            es: ''
+        },
         imageUrl: '',
-        body: '',
+        body: {
+            pt: '',
+            en: '',
+            es: ''
+        },
         publicationDate: new Date(),
         active: false
     };
@@ -114,9 +127,22 @@ export async function postHandler(event: APIGatewayProxyEvent): Promise<DefaultR
 export async function putHandler(event: APIGatewayProxyEvent): Promise<DefaultResponse> {
     const req = event.body ? JSON.parse(event.body) : {
         id: '',
-        title: '',
+        title: {
+            pt: '',
+            en: '',
+            es: ''
+        },
+        slug: {
+            pt: '',
+            en: '',
+            es: ''
+        },
         imageUrl: '',
-        body: '',
+        body: {
+            pt: '',
+            en: '',
+            es: ''
+        },
         publicationDate: new Date(),
         active: false
     };
@@ -129,13 +155,13 @@ export async function putHandler(event: APIGatewayProxyEvent): Promise<DefaultRe
                     bucket: config.s3.assetsBucket
                     , assetType: SeoImageType.Hero
                     , id: req.heroImage
-                    , slug: req.slug })
+                    , slug: req.slug.pt })
         
         req.thumbnail = await renameAndFinalizeAsset({
             bucket: config.s3.assetsBucket
             , assetType: SeoImageType.Thumbnail
             , id: req.thumbnail
-            , slug: req.slug })
+            , slug: req.slug.pt })
 
         const existingEventEntity: EventEntity | undefined = await getEventAsync(req?.id, config.s3.bucket);
         if(existingEventEntity){

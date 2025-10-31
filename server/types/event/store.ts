@@ -31,13 +31,25 @@ export async function getEventAsync(
         if (text) {
             const raw = JSON.parse(text) as {
                 id: string;
-                title: string;
-                slug: string;
+                title: {
+                    pt: string;
+                    en: string;
+                    es: string;
+                };
+                slug: {
+                    pt: string;
+                    en: string;
+                    es: string;
+                };
                 category: string;
                 company: string;
                 heroImage: string;
                 thumbnail: string;
-                body: string;
+                body: {
+                    pt: string;
+                    en: string;
+                    es: string;
+                };
                 startDate: Date;
                 endDate: Date;
                 pricing: number;
@@ -51,13 +63,25 @@ export async function getEventAsync(
 
             const location: EventEntity = {
                 id: raw.id,
-                title: raw.title,
-                slug: raw.slug,
+                title: {
+                    pt: raw.title.pt,
+                    en: raw.title.en,
+                    es: raw.title.es,
+                },
+                slug: {
+                    pt: raw.slug.pt,
+                    en: raw.slug.en,
+                    es: raw.slug.es,
+                },
                 company: raw.company,
                 category: raw.category,
                 heroImage: raw.heroImage,
                 thumbnail: raw.thumbnail,
-                body: raw.body,
+                body: {
+                    pt: raw.body.pt,
+                    en: raw.body.en,
+                    es: raw.body.es,
+                },
                 startDate: raw.startDate,
                 endDate: raw.endDate,
                 pricing: raw.pricing,

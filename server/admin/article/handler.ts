@@ -2,7 +2,7 @@ import { config } from './config'
 import type { APIGatewayProxyEvent } from 'aws-lambda';
 import { tryParseJson } from '@utils/request/parser';
 import { DefaultResponse } from "@utils/response/types"
-import { ArticleEntity, ArticleIndex, ArticleListRequest, ArticleToggleRequest } from '@article/types';
+import { ArticleEntity, ArticleIndex, ArticleListRequest, ArticleRequest, ArticleToggleRequest } from '@article/types';
 import { validateArticle } from '@article/validator';
 import { toArticleEntity, toArticleListRequest, toArticleRequest } from '@article/mapper';
 import { getArticleAsync, upsertArticleAsync } from '@article/store';
@@ -70,10 +70,23 @@ export async function listIdHandler(event: APIGatewayProxyEvent): Promise<Defaul
 export async function postHandler(event: APIGatewayProxyEvent): Promise<DefaultResponse> {
     const req = event.body ? JSON.parse(event.body) : {
         id: '',
-        title: '',
+        title: {
+            pt: '',
+            en: '',
+            es: ''
+        },
+        slug: {
+            pt: '',
+            en: '',
+            es: ''
+        },
         heroImage: '',
         thumbnail: '',
-        body: '',
+        body: {
+            pt: '',
+            en: '',
+            es: ''
+        },
         publicationDate: new Date(),
         active: false
     };
@@ -113,12 +126,25 @@ export async function postHandler(event: APIGatewayProxyEvent): Promise<DefaultR
 }
 
 export async function putHandler(event: APIGatewayProxyEvent): Promise<DefaultResponse> {
-    const req = event.body ? JSON.parse(event.body) : {
+    const req : ArticleRequest = event.body ? JSON.parse(event.body) : {
         id: '',
-        title: '',
+        title: {
+            pt: '',
+            en: '',
+            es: ''
+        },
+        slug: {
+            pt: '',
+            en: '',
+            es: ''
+        },
         heroImage: '',
         thumbnail: '',
-        body: '',
+        body: {
+            pt: '',
+            en: '',
+            es: ''
+        },
         publicationDate: new Date(),
         active: false
     };
@@ -126,18 +152,19 @@ export async function putHandler(event: APIGatewayProxyEvent): Promise<DefaultRe
     req.id = event.pathParameters?.id ?? '';
     let errors: string[] = validateArticle(req);
     if (req && req.id && errors.length == 0) {
-
         req.heroImage = await renameAndFinalizeAsset({
             bucket: config.s3.assetsBucket
             , assetType: SeoImageType.Hero
             , id: req.heroImage
-            , slug: req.slug })
+            , slug: req.slug.pt })
 
         req.thumbnail = await renameAndFinalizeAsset({
             bucket: config.s3.assetsBucket
             , assetType: SeoImageType.Thumbnail
             , id: req.thumbnail
-            , slug: req.slug })
+            , slug: req.slug.pt })
+
+        console.log('hey')
 
         const existingArticleEntity: ArticleEntity | undefined = await getArticleAsync(req.id, config.s3.bucket);
         if(existingArticleEntity){

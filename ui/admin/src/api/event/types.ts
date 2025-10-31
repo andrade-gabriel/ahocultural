@@ -1,3 +1,5 @@
+import type { I18nValue } from "../i18n/types";
+
 export type ListEventsParams = {
   skip?: number; // default 0
   take?: number; // default 10
@@ -6,14 +8,14 @@ export type ListEventsParams = {
 
 export type Event = {
   id: string;
-  title: string;
-  slug: string;
+  title: I18nValue;
+  slug: I18nValue;
   category: string;
   location: string;
   company: string;
   heroImage: string;
   thumbnail: string;
-  body: string;
+  body: I18nValue;
   startDate: Date;
   endDate: Date;
   pricing: number;
@@ -25,14 +27,14 @@ export type Event = {
 
 export type EventDetail = {
   id: string;
-  title: string;
-  slug: string;
+  title: I18nValue;
+  slug: I18nValue;
   category: string;
   location: string;
   company: string;
   heroImage: string;
   thumbnail: string;
-  body: string;
+  body: I18nValue;
   startDate: Date;
   endDate: Date;
   pricing: number;

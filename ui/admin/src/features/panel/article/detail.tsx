@@ -44,26 +44,42 @@ function isAbortError(e: unknown) {
   );
 }
 
-/* ---------- schema ---------- */
+/* ---------- idiomas ---------- */
+type LangCode = "pt" | "en" | "es";
+const LANGS: Array<{ code: LangCode; label: string; flag: string }> = [
+  { code: "pt", label: "PT-BR", flag: "pt-br" },
+  { code: "en", label: "EN",    flag: "en-us" },
+  { code: "es", label: "ES",    flag: "es" },
+];
+
+/* ---------- schema (multilíngue) ---------- */
+const I18nRequired = z.object({
+  pt: z.string().min(1, "Obrigatório"),
+  en: z.string().min(1, "Obrigatório"),
+  es: z.string().min(1, "Obrigatório"),
+});
+
 const Schema = z.object({
-  title: z.string().min(1, "Título obrigatório"),
-  slug: z.string().min(1, "Slug obrigatório"),
-  heroImage: z.string().min(1, "Imagem principal obrigatória").nullable().refine(
-    (v) => v !== null && v.trim().length > 0,
-    "Imagem principal obrigatória"
-  ),
-  thumbnail: z.string().min(1, "Thumbnail obrigatória").nullable().refine(
-    (v) => v !== null && v.trim().length > 0,
-    "Thumbnail obrigatória"
-  ),
-  body: z.string().min(1, "Corpo da matéria obrigatório"),
-  publicationDate: z.string().min(1, "Data obrigatória"), // YYYY-MM-DD vindo do <input type="date" />
+  title: I18nRequired,
+  slug: I18nRequired,
+  body: I18nRequired,
+  heroImage: z.string().min(1, "Imagem principal obrigatória"),
+  thumbnail: z.string().min(1, "Thumbnail obrigatória"),
+  publicationDate: z.string().min(1, "Data obrigatória"), // YYYY-MM-DD vindo do input date
   active: z.boolean(),
 });
 
 type FormValues = z.infer<typeof Schema>;
 
-/* ---------- helpers ---------- */
+/* ---------- typed field paths p/ evitar unions ---------- */
+type TitlePath = `title.${LangCode}`;
+type SlugPath  = `slug.${LangCode}`;
+type BodyPath  = `body.${LangCode}`;
+const titlePath = (lang: LangCode): TitlePath => `title.${lang}` as const;
+const slugPath  = (lang: LangCode): SlugPath  => `slug.${lang}` as const;
+const bodyPath  = (lang: LangCode): BodyPath  => `body.${lang}` as const;
+
+/* ---------- util de data ---------- */
 function toDateInputValue(d: Date | string | undefined): string {
   if (!d) return "";
   const date = typeof d === "string" ? new Date(d) : d;
@@ -75,38 +91,34 @@ function toDateInputValue(d: Date | string | undefined): string {
 }
 
 /* ---------- page ---------- */
-
 export function ArticleDetailLayout() {
   const { id: idParam } = useParams(); // /article/:id (em /article/new ficará undefined)
   const navigate = useNavigate();
-
   const isEdit = Boolean(idParam);
 
   const [loading, setLoading] = useState<boolean>(isEdit);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string>();
+  const [lang, setLang] = useState<LangCode>("pt");
 
   const acRef = useRef<AbortController | null>(null);
   const requestIdRef = useRef(0); // garante "última request vence"
 
-  type FormInput = z.input<typeof Schema>;
-  type FormOutput = z.output<typeof Schema>;
-
-  const form = useForm<FormInput, any, FormOutput>({
+  const form = useForm<FormValues>({
     resolver: zodResolver(Schema),
     defaultValues: {
-      title: "",
-      slug: "",
+      title: { pt: "", en: "", es: "" },
+      slug: { pt: "", en: "", es: "" },
+      body: { pt: "", en: "", es: "" },
       heroImage: "",
       thumbnail: "",
-      body: "",
       publicationDate: "",
       active: true,
     },
     mode: "onTouched",
   });
 
-  /** ---------- TipTap editor ---------- */
+  /** ---------- TipTap editor (controlado pelo body[lang]) ---------- */
   const editor = useEditor({
     extensions: [
       StarterKit,
@@ -116,25 +128,39 @@ export function ArticleDetailLayout() {
         placeholder: "Escreva o conteúdo da matéria aqui...",
       }),
     ],
-    content: form.getValues("body") || "",
+    content: form.getValues(bodyPath(lang)) || "",
     onUpdate: ({ editor }) => {
       const html = editor.getHTML();
-      form.setValue("body", html, { shouldDirty: true, shouldValidate: true });
+      const path = bodyPath(lang);
+      form.setValue(path, html, { shouldDirty: true, shouldValidate: true });
     },
   });
 
-  // Sincroniza o editor quando a tela entra em modo edição e carrega defaults
+  // ao trocar de idioma, repluga o conteúdo do editor
   useEffect(() => {
+    if (!editor) return;
+    const current = form.getValues(bodyPath(lang)) || "";
+    if (editor.getHTML() !== current) {
+      editor.commands.setContent(current);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lang, editor]);
+
+  // se o form resetar body[lang], atualiza o editor
+  useEffect(() => {
+    if (!editor) return;
     const subscription = form.watch((v, { name }) => {
-      if (name === "body" && editor && v?.body != null) {
-        // se o valor foi alterado por reset, reflete no editor
-        if (editor.getHTML() !== v.body) {
-          editor.commands.setContent(v.body || "");
+      if (!name) return;
+      // somente quando o campo atual do idioma ativo mudar
+      if (name === bodyPath(lang)) {
+        const val = (v?.body as any)?.[lang] ?? "";
+        if (editor.getHTML() !== val) {
+          editor.commands.setContent(val || "");
         }
       }
     });
     return () => subscription.unsubscribe();
-  }, [editor, form]);
+  }, [editor, form, lang]);
 
   // GET por id (modo edição). Em modo "novo" não carrega nem mostra loader.
   useEffect(() => {
@@ -152,22 +178,34 @@ export function ArticleDetailLayout() {
     (async () => {
       try {
         const data = await getArticleById(idParam, { signal: ac.signal });
-
         if (reqId !== requestIdRef.current) return; // resposta antiga, ignora
 
         const defaults: FormValues = {
-          title: data.title ?? "",
-          slug: data.slug ?? "",
+          title: {
+            pt: data.title?.pt ?? "",
+            en: data.title?.en ?? "",
+            es: data.title?.es ?? "",
+          },
+          slug: {
+            pt: data.slug?.pt ?? "",
+            en: data.slug?.en ?? "",
+            es: data.slug?.es ?? "",
+          },
+          body: {
+            pt: data.body?.pt ?? "",
+            en: data.body?.en ?? "",
+            es: data.body?.es ?? "",
+          },
           heroImage: data.heroImage ?? "",
           thumbnail: data.thumbnail ?? "",
-          body: data.body ?? "",
           publicationDate: toDateInputValue(data.publicationDate),
           active: !!data.active,
         };
 
         form.reset(defaults);
-        // também atualiza o editor
-        if (editor) editor.commands.setContent(defaults.body || "");
+        // sincroniza o editor com o conteúdo do idioma ativo
+        const current = defaults.body[lang] || "";
+        if (editor) editor.commands.setContent(current);
       } catch (e) {
         if (reqId !== requestIdRef.current) return;
         if (!isAbortError(e)) {
@@ -183,20 +221,32 @@ export function ArticleDetailLayout() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [idParam, isEdit]);
 
-  const title = useMemo(() => (isEdit ? "Editar matéria" : "Nova matéria"), [isEdit]);
+  const titleText = useMemo(() => (isEdit ? "Editar matéria" : "Nova matéria"), [isEdit]);
 
-  const onSubmit: SubmitHandler<FormOutput> = async (values) => {
+  const onSubmit: SubmitHandler<FormValues> = async (values) => {
     try {
       setSaving(true);
       setError(undefined);
 
       const payload: ArticleDetail = {
         id: idParam ?? "", // backend pode ignorar em POST
-        title: values.title,
-        slug: values.slug,
-        heroImage: values.heroImage ?? "",
-        thumbnail: values.thumbnail ?? "",
-        body: values.body, // HTML do TipTap
+        title: {
+          pt: values.title.pt.trim(),
+          en: values.title.en.trim(),
+          es: values.title.es.trim(),
+        },
+        slug: {
+          pt: values.slug.pt.trim(),
+          en: values.slug.en.trim(),
+          es: values.slug.es.trim(),
+        },
+        body: {
+          pt: values.body.pt, // body é HTML, manter como está (já vem do editor)
+          en: values.body.en,
+          es: values.body.es,
+        },
+        heroImage: values.heroImage,
+        thumbnail: values.thumbnail,
         publicationDate: new Date(values.publicationDate),
         active: values.active,
       };
@@ -216,8 +266,8 @@ export function ArticleDetailLayout() {
   return (
     <Card className="shadow-sm">
       <CardHeader>
-        <CardTitle>{title}</CardTitle>
-        <CardDescription>Gerencie os dados da matéria</CardDescription>
+        <CardTitle>{titleText}</CardTitle>
+        <CardDescription>Gerencie os dados multilíngua da matéria</CardDescription>
       </CardHeader>
 
       <CardContent>
@@ -237,34 +287,153 @@ export function ArticleDetailLayout() {
         ) : (
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-6" aria-busy={saving}>
-              <div className="grid gap-4 md:grid-cols-2">
-                <FormField
-                  control={form.control}
-                  name="title"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Título</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Título da matéria" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="slug"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Slug</FormLabel>
-                      <FormControl>
-                        <Input placeholder="titulo-da-materia" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+              {/* Idiomas + campos principais */}
+              <div className="grid gap-6 md:grid-cols-5">
+                {/* MENU LATERAL */}
+                <aside className="md:col-span-1">
+                  <div className="rounded-lg border p-2">
+                    <div className="px-2 py-1 text-xs font-medium uppercase text-muted-foreground">
+                      Idiomas
+                    </div>
+                    <div className="mt-2 flex flex-col gap-2">
+                      {LANGS.map((l) => {
+                        const active = l.code === lang;
+                        return (
+                          <Button
+                            key={l.code}
+                            type="button"
+                            variant={active ? "default" : "outline"}
+                            className="justify-start gap-3"
+                            onClick={() => setLang(l.code)}
+                            aria-pressed={active}
+                          >
+                            <img
+                              src={`/admin/languages/${l.flag}.svg`}
+                              alt={l.label}
+                              className="h-4 w-4 rounded-full object-cover"
+                            />
+                            <span className="font-medium">{l.label}</span>
+                          </Button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </aside>
+
+                {/* CAMPOS DO IDIOMA ATIVO */}
+                <section key={lang} className="md:col-span-4 grid gap-4">
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <FormField
+                      control={form.control}
+                      name={titlePath(lang)}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Título ({lang.toUpperCase()})</FormLabel>
+                          <FormControl>
+                            <Input
+                              name={field.name}
+                              ref={field.ref}
+                              value={field.value ?? ""}
+                              onChange={(e) => field.onChange(e.target.value)}
+                              onBlur={field.onBlur}
+                              placeholder="Título da matéria"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name={slugPath(lang)}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Slug ({lang.toUpperCase()})</FormLabel>
+                          <FormControl>
+                            <Input
+                              name={field.name}
+                              ref={field.ref}
+                              value={field.value ?? ""}
+                              onChange={(e) => field.onChange(e.target.value)}
+                              onBlur={field.onBlur}
+                              placeholder="titulo-da-materia"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  {/* WYSIWYG TipTap - controlado por body[lang] */}
+                  <FormField
+                    control={form.control}
+                    name={bodyPath(lang)}
+                    render={() => (
+                      <FormItem>
+                        <FormLabel>Conteúdo ({lang.toUpperCase()})</FormLabel>
+                        <FormControl>
+                          <div className="border rounded-md">
+                            {/* Toolbar minimalista */}
+                            <div className="flex flex-wrap gap-1 border-b p-2 text-sm">
+                              <button
+                                type="button"
+                                onClick={() => editor?.chain().focus().toggleBold().run()}
+                                className="px-2 py-1 rounded hover:bg-muted"
+                              >
+                                <strong>B</strong>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => editor?.chain().focus().toggleItalic().run()}
+                                className="px-2 py-1 rounded hover:bg-muted italic"
+                              >
+                                I
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => editor?.chain().focus().toggleStrike().run()}
+                                className="px-2 py-1 rounded hover:bg-muted line-through"
+                              >
+                                S
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => editor?.chain().focus().toggleBulletList().run()}
+                                className="px-2 py-1 rounded hover:bg-muted"
+                              >
+                                • Lista
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => editor?.chain().focus().toggleOrderedList().run()}
+                                className="px-2 py-1 rounded hover:bg-muted"
+                              >
+                                1. Lista
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const href = window.prompt("URL do link") || "";
+                                  if (href) editor?.chain().focus().setLink({ href }).run();
+                                }}
+                                className="px-2 py-1 rounded hover:bg-muted"
+                              >
+                                Link
+                              </button>
+                            </div>
+
+                            <EditorContent editor={editor} className="prose max-w-none p-3 min-h-[180px]" />
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </section>
               </div>
+
+              {/* Imagens */}
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="min-w-0 overflow-hidden">
                   <FormField
@@ -283,7 +452,6 @@ export function ArticleDetailLayout() {
                             onBlur={field.onBlur}
                             ref={field.ref}
                             loadPreview={async (id) => {
-                              // usa sua action que devolve URL assinada de GET
                               const { url, name, size, contentType } = await getPreviewUrl(id);
                               return { url, name, size, contentType };
                             }}
@@ -312,7 +480,6 @@ export function ArticleDetailLayout() {
                             onBlur={field.onBlur}
                             ref={field.ref}
                             loadPreview={async (id) => {
-                              // usa sua action que devolve URL assinada de GET
                               const { url, name, size, contentType } = await getPreviewUrl(id);
                               return { url, name, size, contentType };
                             }}
@@ -324,76 +491,8 @@ export function ArticleDetailLayout() {
                   />
                 </div>
               </div>
-              <div className="grid gap-4 md:grid-cols-2">
 
-              </div>
-
-              {/* WYSIWYG TipTap */}
-              <FormField
-                control={form.control}
-                name="body"
-                render={() => (
-                  <FormItem>
-                    <FormLabel>Conteúdo</FormLabel>
-                    <FormControl>
-                      <div className="border rounded-md">
-                        {/* Toolbar minimalista */}
-                        <div className="flex flex-wrap gap-1 border-b p-2 text-sm">
-                          <button
-                            type="button"
-                            onClick={() => editor?.chain().focus().toggleBold().run()}
-                            className="px-2 py-1 rounded hover:bg-muted"
-                          >
-                            <strong>B</strong>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => editor?.chain().focus().toggleItalic().run()}
-                            className="px-2 py-1 rounded hover:bg-muted italic"
-                          >
-                            I
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => editor?.chain().focus().toggleStrike().run()}
-                            className="px-2 py-1 rounded hover:bg-muted line-through"
-                          >
-                            S
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => editor?.chain().focus().toggleBulletList().run()}
-                            className="px-2 py-1 rounded hover:bg-muted"
-                          >
-                            • Lista
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => editor?.chain().focus().toggleOrderedList().run()}
-                            className="px-2 py-1 rounded hover:bg-muted"
-                          >
-                            1. Lista
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const href = window.prompt("URL do link") || "";
-                              if (href) editor?.chain().focus().setLink({ href }).run();
-                            }}
-                            className="px-2 py-1 rounded hover:bg-muted"
-                          >
-                            Link
-                          </button>
-                        </div>
-
-                        <EditorContent editor={editor} className="prose max-w-none p-3 min-h-[180px]" />
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
+              {/* Publicação & Ativa */}
               <div className="grid gap-4 md:grid-cols-2">
                 <FormField
                   control={form.control}
@@ -422,6 +521,7 @@ export function ArticleDetailLayout() {
                 />
               </div>
 
+              {/* Ações */}
               <div className="flex items-center justify-end gap-2">
                 <Button type="button" variant="outline" onClick={() => navigate(-1)} disabled={saving}>
                   Cancelar
@@ -441,7 +541,6 @@ export function ArticleDetailLayout() {
           </Form>
         )}
       </CardContent>
-
       <CardFooter />
     </Card>
   );

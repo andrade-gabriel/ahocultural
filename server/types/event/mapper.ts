@@ -10,13 +10,25 @@ export function toEventEntity(
     const now = new Date();
     return {
         id: input.id.toLowerCase().trim(),
-        title: input.title,
-        slug: input.slug,
+        title: {
+            pt: input.title.pt.trim(),
+            en: input.title.en.trim(),
+            es: input.title.es.trim(),
+        },
+        slug: {
+            pt: input.slug.pt.trim(),
+            en: input.slug.en.trim(),
+            es: input.slug.es.trim(),
+        },
         category: input.category,
         company: input.company,
         heroImage: input.heroImage,
         thumbnail: input.thumbnail,
-        body: input.body,
+        body: {
+            pt: input.body.pt.trim(),
+            en: input.body.en.trim(),
+            es: input.body.es.trim(),
+        },
         startDate: input.startDate,
         endDate: input.endDate,
         facilities: input.facilities,
@@ -34,13 +46,25 @@ export function toEventRequest(
 ): EventRequest {
     return {
         id: input.id,
-        title: input.title,
-        slug: input.slug,
+        title: {
+            pt: input.title.pt.trim(),
+            en: input.title.en.trim(),
+            es: input.title.es.trim(),
+        },
+        slug: {
+            pt: input.slug.pt.trim(),
+            en: input.slug.en.trim(),
+            es: input.slug.es.trim(),
+        },
         category: input.category,
         company: input.company,
         heroImage: input.heroImage,
         thumbnail: input.thumbnail,
-        body: input.body,
+        body: {
+            pt: input.body.pt.trim(),
+            en: input.body.en.trim(),
+            es: input.body.es.trim(),
+        },
         startDate: input.startDate,
         endDate: input.endDate,
         facilities: input.facilities,
@@ -58,8 +82,16 @@ export function toEventListRequest(
 ): EventListRequest {
     return {
         id: input.id,
-        title: input.title,
-        slug: input.slug,
+        title: {
+            pt: input.title.pt.trim(),
+            en: input.title.en.trim(),
+            es: input.title.es.trim(),
+        },
+        slug: {
+            pt: input.slug.pt.trim(),
+            en: input.slug.en.trim(),
+            es: input.slug.es.trim(),
+        },
         active: input.active
     }
 }
@@ -71,8 +103,16 @@ export function toEventIndex(
 ): EventIndex {
     return {
         id: input.id.trim(),
-        title: input.title,
-        slug: input.slug,
+        title: {
+            pt: input.title.pt.trim(),
+            en: input.title.en.trim(),
+            es: input.title.es.trim(),
+        },
+        slug: {
+            pt: input.slug.pt.trim(),
+            en: input.slug.en.trim(),
+            es: input.slug.es.trim(),
+        },
         category: input.category,
         categoryName: category.name.pt,
         categorySlug: category.slug.pt,
@@ -101,13 +141,29 @@ export function toEventPublicIndex(
 ): EventPublicIndex {
     let eventPublicIndex : EventPublicIndex = {
         id: event.id.trim(),
-        title: event.title,
-        slug: event.slug,
+        title: {
+            pt: event.title.pt.trim(),
+            en: event.title.en.trim(),
+            es: event.title.es.trim(),
+        },
+        slug: {
+            pt: event.slug.pt.trim(),
+            en: event.slug.en.trim(),
+            es: event.slug.es.trim(),
+        },
         categories: [
             {
                 id: category.id,
-                name: category.name.pt,
-                slug: category.slug.pt
+                name: {
+                    pt: category.name.pt,
+                    es: category.name.es,
+                    en: category.name.en
+                },
+                slug: {
+                    pt: category.slug.pt,
+                    es: category.slug.es,
+                    en: category.slug.en
+                }
             }
         ],
         company: {
@@ -125,7 +181,11 @@ export function toEventPublicIndex(
         },
         heroImage: event.heroImage,
         thumbnail: event.thumbnail,
-        body: event.body,
+        body: {
+            pt: event.body.pt.trim(),
+            en: event.body.en.trim(),
+            es: event.body.es.trim()
+        },
         startDate: event.startDate,
         endDate: event.endDate,
         facilities: event.facilities,

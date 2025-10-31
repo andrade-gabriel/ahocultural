@@ -6,9 +6,6 @@ export type ListCategoriesParams = {
 
 export type Category = {
   id: string;
-  parent_id: string;
-  parent_name: string;
-  parent_slug: string;
   name: string;
   slug: string;
   active: boolean;

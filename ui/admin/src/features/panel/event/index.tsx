@@ -284,7 +284,7 @@ function EventsTable() {
 
   function askToggleConfirm(event: Event) {
     setTargetId(event.id);
-    setTargetLabel(event.title);
+    setTargetLabel(event.title.pt);
     setNextActive(!event.active);
     setConfirmOpen(true);
   }
@@ -350,8 +350,8 @@ function EventsTable() {
             return (
               <TableRow key={e.id}>
                 <TableCell className="font-medium underline">
-                  <Link to={`/event/${e.id}`}>{e.title}</Link>
-                  <div className="text-xs text-muted-foreground">{e.slug}</div>
+                  <Link to={`/event/${e.id}`}>{e.title.pt}</Link>
+                  <div className="text-xs text-muted-foreground">{e.slug.pt}</div>
                 </TableCell>
                 <TableCell className="text-sm text-muted-foreground">{e.category ?? "-"}</TableCell>
                 <TableCell className="text-sm text-muted-foreground">{formatRange(e.startDate, e.endDate)}</TableCell>

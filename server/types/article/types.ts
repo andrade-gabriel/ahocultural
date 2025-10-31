@@ -1,10 +1,12 @@
+import { I18nValue } from "types/language/types";
+
 export interface ArticleEntity {
     id: string;
-    title: string;
-    slug: string;
+    title: I18nValue;
+    slug: I18nValue;
     heroImage: string;
     thumbnail: string;
-    body: string;
+    body: I18nValue;
     publicationDate: Date;
     active: boolean;
     created_at: Date;
@@ -13,11 +15,11 @@ export interface ArticleEntity {
 
 export interface ArticleRequest {
     id: string;
-    title: string;
-    slug: string;
+    title: I18nValue;
+    slug: I18nValue;
     heroImage: string;
     thumbnail: string;
-    body: string;
+    body: I18nValue;
     publicationDate: Date;
     active: boolean;
     created_at: Date;
@@ -26,8 +28,8 @@ export interface ArticleRequest {
 
 export interface ArticleIndex {
     id: string;
-    title: string;
-    slug: string;
+    title: I18nValue;
+    slug: I18nValue;
     heroImage: string;
     thumbnail: string;
     publicationDate: Date;
@@ -38,8 +40,8 @@ export interface ArticleIndex {
 
 export interface ArticleListRequest {
     id: string;
-    title: string;
-    slug: string;
+    title: I18nValue;
+    slug: I18nValue;
     publicationDate: Date;
     active: boolean;
 }

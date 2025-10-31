@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useTranslation } from "react-i18next";
+import { pickI18n } from "@/lib/i18n-utils";
+import { useLang } from "@/hooks/useLang";
 
 import {
   listCategories,
@@ -13,6 +15,23 @@ import {
   type Category,
 } from "@/api/category";
 import { listEvent, type Event } from "@/api/event";
+
+/** ---------- i18n tipagem “solta” (sem '@/lib/i18n-types') ---------- */
+type LangCode = Parameters<typeof pickI18n>[1];
+type I18nValue = Record<string, string>;
+
+/** ---------- Utils i18n (tolerantes) ---------- */
+const norm = (s?: string | null) => (s ?? "").trim().toLowerCase();
+
+// Wrapper para “calar” TS (aceita string | dict parcial)
+const pick = (v: unknown, lang: LangCode) => pickI18n(v as any, lang as any);
+
+function labelFrom(val: string | I18nValue, lang: LangCode) {
+  return typeof val === "string" ? val : pick(val, lang);
+}
+function slugFrom(val: string | I18nValue, lang: LangCode) {
+  return typeof val === "string" ? norm(val) : norm(pick(val, lang));
+}
 
 /* ----------------------------- helpers de data ----------------------------- */
 function toDate(v?: string | Date | null) {
@@ -27,7 +46,7 @@ function toYmd(d: Date) {
 }
 function startOfWeek(date = new Date(), weekStartsOn = 1 /* seg */) {
   const d = new Date(date);
-  const day = d.getDay(); // 0..6 (dom=0)
+  const day = d.getDay();
   const diff = (day - weekStartsOn + 7) % 7;
   d.setDate(d.getDate() - diff);
   d.setHours(0, 0, 0, 0);
@@ -36,7 +55,7 @@ function startOfWeek(date = new Date(), weekStartsOn = 1 /* seg */) {
 function fridayOfWeek(date = new Date()) {
   const monday = startOfWeek(date, 1);
   const fri = new Date(monday);
-  fri.setDate(monday.getDate() + 4); // seg + 4 = sexta
+  fri.setDate(monday.getDate() + 4);
   return fri;
 }
 function startOfDayISO(dateStr: string) {
@@ -44,26 +63,14 @@ function startOfDayISO(dateStr: string) {
   const local = new Date(y, (m ?? 1) - 1, d ?? 1, 0, 0, 0, 0);
   return local.toISOString();
 }
-function fmtWeekday(d: Date, tz = "America/Sao_Paulo") {
-  return new Intl.DateTimeFormat("pt-BR", { timeZone: tz, weekday: "long" })
-    .format(d)
-    .toUpperCase();
-}
-function fmtDay(d: Date, tz = "America/Sao_Paulo") {
-  return new Intl.DateTimeFormat("pt-BR", { timeZone: tz, day: "2-digit" }).format(d);
-}
-function fmtMonth(d: Date, tz = "America/Sao_Paulo") {
-  return new Intl.DateTimeFormat("pt-BR", { timeZone: tz, month: "long" })
-    .format(d)
-    .toUpperCase();
-}
 
 const baseAppURL =
   import.meta.env.VITE_APP_BASE_URL?.replace(/\/+$/, "") || "";
 
 /* -------------------------------- componente ------------------------------- */
 export const EventLayout = () => {
-  const { t } = useTranslation("event");
+  const { t, i18n } = useTranslation("event");
+  const lang = useLang() as LangCode; // LangCode inferido do pickI18n
   const navigate = useNavigate();
   const { pathname, search } = useLocation();
 
@@ -82,6 +89,28 @@ export const EventLayout = () => {
   const qs = new URLSearchParams(search);
   const searchTerm = qs.get("q") ?? undefined;
   const fromQuery = qs.get("from") ?? undefined;
+
+  // Locale por idioma ativo
+  const locale = useMemo(() => {
+    const base = (i18n.language || "pt").split("-")[0].toLowerCase();
+    if (base === "en") return "en-US";
+    if (base === "es") return "es-ES";
+    return "pt-BR";
+  }, [i18n.language]);
+
+  // Formatters memoizados por locale
+  const fmtWeekday = useMemo(
+    () => new Intl.DateTimeFormat(locale, { weekday: "long" }),
+    [locale]
+  );
+  const fmtDay = useMemo(
+    () => new Intl.DateTimeFormat(locale, { day: "2-digit" }),
+    [locale]
+  );
+  const fmtMonth = useMemo(
+    () => new Intl.DateTimeFormat(locale, { month: "long" }),
+    [locale]
+  );
 
   // Detecta período pela URL
   const period: "hoje" | "esta-semana" | "este-fds" | "aho-aconselha" | null = useMemo(() => {
@@ -108,7 +137,6 @@ export const EventLayout = () => {
     if (period === "hoje") setSelectedDate(toYmd(new Date()));
     else if (period === "esta-semana") setSelectedDate(toYmd(startOfWeek(new Date(), 1)));
     else if (period === "este-fds") setSelectedDate(toYmd(fridayOfWeek(new Date())));
-    // aho-aconselha => mantém data atual
   }, [period, fromQuery]);
 
   // Categoria (pai) e Subcategoria (filha) ativas
@@ -135,7 +163,7 @@ export const EventLayout = () => {
   const [resolvingSlug, setResolvingSlug] = useState<boolean>(!!(categorySlugParam || subcategorySlugParam));
   const booting = catsLoading || resolvingSlug;
 
-  /* -------------------------- Carrega categorias “pai” -------------------------- */
+  /* -------------------------- Carrega categorias -------------------------- */
   useEffect(() => {
     setCatsLoading(true);
     setCatsErr(undefined);
@@ -146,10 +174,15 @@ export const EventLayout = () => {
     (async () => {
       try {
         const list = await listCategories({ skip: 0, take: 1000 }, { signal: ac.signal });
-        setCats(list.filter((c) => c.active && !c.parent_id));
+        // simples: evita tocar em `parent_id`/`parentId` (que não constam em Category)
+        setCats(list);
       } catch (e) {
         if (!ac.signal.aborted) {
-          setCatsErr(e instanceof Error ? e.message : "Falha ao carregar categorias.");
+          setCatsErr(
+            e instanceof Error
+              ? e.message
+              : t("categoriesLoadError", { defaultValue: "Falha ao carregar categorias." })
+          );
         }
       } finally {
         if (!ac.signal.aborted) setCatsLoading(false);
@@ -157,14 +190,13 @@ export const EventLayout = () => {
     })();
 
     return () => ac.abort();
-  }, []);
+  }, [t]);
 
   /* --------- Resolve :category e :subcategory sem resets agressivos --------- */
   useEffect(() => {
-    const catSlug = (categorySlugParam || "").trim().toLowerCase();
-    const childSlug = (subcategorySlugParam || "").trim().toLowerCase();
+    const catSlug = norm(categorySlugParam);
+    const childSlug = norm(subcategorySlugParam);
 
-    // se não tem slug nenhum -> não mexe no que já está selecionado
     if (!catSlug && !childSlug) {
       setResolvingSlug(false);
       return;
@@ -176,31 +208,40 @@ export const EventLayout = () => {
 
     setResolvingSlug(true);
 
-    // aplica estado somente se mudou
     const safeSet = (nextCat: string | null, nextChild: string | null) => {
       setActiveCat((prevCat) => (prevCat === nextCat ? prevCat : nextCat));
       setActiveChildCat((prevChild) => (prevChild === nextChild ? prevChild : nextChild));
     };
 
-    // 1) tenta casar o PAI
+    // 1) tenta casar o PAI (slug pode ser string ou i18n)
     const parentMatch = catSlug
-      ? cats.find((c) => c.slug?.toLowerCase() === catSlug)
+      ? cats.find((c) => {
+          const raw = (c as any).slug as string | I18nValue | undefined;
+          const resolved = raw ? slugFrom(raw, lang) : undefined;
+          return resolved === catSlug;
+        })
       : undefined;
 
     if (parentMatch) {
-      // garante/usa bucket do pai e tenta casar filha
       const cached = childrenByParent[parentMatch.id];
       const loadChildrenAndFinish = async () => {
         let kids = cached?.items;
         if (!kids) {
           const res = await listCategoryChildren(parentMatch.id, { skip: 0, take: 1000 });
-          kids = (res || []).filter((c) => c.active);
+          kids = (res || []);
           setChildrenByParent((prev) => ({
             ...prev,
             [parentMatch.id]: { items: kids!, loading: false },
           }));
         }
-        const hit = childSlug ? kids.find((c) => c.slug?.toLowerCase() === childSlug) : null;
+        const hit = childSlug
+          ? kids.find((c) => {
+              const raw = (c as any).slug as string | I18nValue | undefined;
+              const resolved = raw ? slugFrom(raw, lang) : undefined;
+              return resolved === childSlug;
+            })
+          : null;
+
         safeSet(parentMatch.id, hit ? hit.id : null);
         setResolvingSlug(false);
       };
@@ -223,12 +264,10 @@ export const EventLayout = () => {
             const cached = childrenByParent[p.id]?.items;
             if (cached) return { parent: p, children: cached };
             const res = await listCategoryChildren(p.id, { skip: 0, take: 1000 });
-            const kids = (res || []).filter((c) => c.active);
-            return { parent: p, children: kids };
+            return { parent: p, children: (res || []) };
           })
         );
 
-        // salva cache
         setChildrenByParent((prev) => {
           const next = { ...prev };
           for (const { parent, children } of results) {
@@ -240,7 +279,11 @@ export const EventLayout = () => {
         if (childSlug) {
           const hit = results
             .flatMap(r => r.children.map(c => ({ parent: r.parent, child: c })))
-            .find(x => x.child.slug?.toLowerCase() === childSlug);
+            .find(x => {
+              const raw = (x.child as any).slug as string | I18nValue | undefined;
+              const resolved = raw ? slugFrom(raw, lang) : undefined;
+              return resolved === childSlug;
+            });
 
           if (hit) {
             safeSet(hit.parent.id, hit.child.id);
@@ -254,9 +297,9 @@ export const EventLayout = () => {
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [categorySlugParam, subcategorySlugParam, catsLoading, cats]);
+  }, [categorySlugParam, subcategorySlugParam, catsLoading, cats, lang]);
 
-  /* -------------------- Buscar eventos (listEvent) quando pronto ------------------- */
+  /* -------------------- Buscar eventos (listEvent) ------------------- */
   useEffect(() => {
     if (booting) return;
 
@@ -270,30 +313,33 @@ export const EventLayout = () => {
       try {
         const params = {
           fromDate: startOfDayISO(selectedDate),
-          categoryId: activeCat,              // id (pai) opcional
-          subCategoryId: activeChildCat,      // id (filha) opcional
-          location: locationParam ?? null,    // slug da cidade
-          district: districtParam ?? null,    // slug do bairro
+          categoryId: activeCat,
+          subCategoryId: activeChildCat,
+          location: locationParam ?? null,
+          district: districtParam ?? null,
           skip: 0,
           take: 24,
-          search: searchTerm ?? undefined,    // ?q=
+          search: searchTerm ?? undefined,
         };
 
         const data = await listEvent(params, { signal: ac.signal });
         if (!ac.signal.aborted) setItems(data);
       } catch (e) {
-        if (!ac.signal.aborted) setErr(e instanceof Error ? e.message : "Falha ao carregar eventos.");
+        if (!ac.signal.aborted) setErr(
+          e instanceof Error
+            ? e.message
+            : t("eventsLoadError", { defaultValue: "Falha ao carregar eventos." })
+        );
       } finally {
         if (!ac.signal.aborted) setLoading(false);
       }
     })();
 
     return () => ac.abort();
-  }, [booting, selectedDate, activeCat, activeChildCat, searchTerm, pathname, locationParam, districtParam]);
+  }, [booting, selectedDate, activeCat, activeChildCat, searchTerm, pathname, locationParam, districtParam, t]);
 
   /* -------------------------------- navegação -------------------------------- */
 
-  // mantém district (se houver) e também preserva ?q e ?from
   const withDistrictAndQuery = (suffix: string) => {
     const qs2 = new URLSearchParams(search);
     const qStr = qs2.toString();
@@ -303,7 +349,6 @@ export const EventLayout = () => {
     return qStr ? `${base}?${qStr}` : base;
   };
 
-  // Pai: toggle; ao desmarcar volta para /eventos
   const onSelectParent = (id: string) => {
     const same = activeCat === id;
 
@@ -318,14 +363,13 @@ export const EventLayout = () => {
     setActiveChildCat(null);
     setActiveCat(id);
 
-    // garante bucket carregado
     if (!childrenByParent[id]) {
       setChildrenByParent((prev) => ({ ...prev, [id]: { items: [], loading: true } }));
       listCategoryChildren(id, { skip: 0, take: 1000 })
         .then((res) => {
           setChildrenByParent((prev) => ({
             ...prev,
-            [id]: { items: (res || []).filter((c) => c.active), loading: false },
+            [id]: { items: (res || []), loading: false },
           }));
         })
         .catch(() => {
@@ -336,19 +380,23 @@ export const EventLayout = () => {
         });
     }
 
-    if (cat?.slug) {
-      navigate(withDistrictAndQuery(`/eventos/${cat.slug}`), { replace: false });
+    // slug da categoria pode ser i18n
+    const rawSlug = (cat as any)?.slug as string | I18nValue | undefined;
+    const catSlug = rawSlug ? slugFrom(rawSlug, lang) : undefined;
+    if (catSlug) {
+      navigate(withDistrictAndQuery(`/eventos/${catSlug}`), { replace: false });
     }
   };
 
-  // Filha: toggle; ao desmarcar volta para PAI (ou /eventos)
   const onSelectSingleChild = (id: string) => {
     const same = activeChildCat === id;
 
     if (same) {
       setActiveChildCat(null);
       const parent = cats.find((c) => c.id === activeCat);
-      if (parent?.slug) navigate(withDistrictAndQuery(`/eventos/${parent.slug}`), { replace: false });
+      const rawParentSlug = (parent as any)?.slug as string | I18nValue | undefined;
+      const parentSlug = rawParentSlug ? slugFrom(rawParentSlug, lang) : undefined;
+      if (parentSlug) navigate(withDistrictAndQuery(`/eventos/${parentSlug}`), { replace: false });
       else navigate(withDistrictAndQuery(`/eventos`), { replace: false });
       return;
     }
@@ -356,7 +404,9 @@ export const EventLayout = () => {
     setActiveChildCat(id);
     const bucket = activeCat ? childrenByParent[activeCat] : undefined;
     const child = bucket?.items.find((c) => c.id === id);
-    if (child?.slug) navigate(withDistrictAndQuery(`/eventos/${child.slug}`), { replace: false });
+    const rawChildSlug = (child as any)?.slug as string | I18nValue | undefined;
+    const childSlug = rawChildSlug ? slugFrom(rawChildSlug, lang) : undefined;
+    if (childSlug) navigate(withDistrictAndQuery(`/eventos/${childSlug}`), { replace: false });
   };
 
   /* --------------------------------- RENDER ---------------------------------- */
@@ -421,7 +471,7 @@ export const EventLayout = () => {
           <div className="flex flex-wrap items-center gap-3">
             {/* Data */}
             <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">Data:</span>
+              <span className="text-sm text-muted-foreground">{t("dateLabel", { defaultValue: "Data:" })}</span>
               <div className="relative">
                 <Input
                   type="date"
@@ -437,11 +487,12 @@ export const EventLayout = () => {
             <div className="flex flex-wrap gap-2">
               {catsErr ? (
                 <Alert className="py-2">
-                  <AlertTitle className="text-sm">Categorias</AlertTitle>
+                  <AlertTitle className="text-sm">{t("categories", { defaultValue: "Categorias" })}</AlertTitle>
                   <AlertDescription className="text-xs">{catsErr}</AlertDescription>
                 </Alert>
               ) : (
                 cats.map((c) => {
+                  const label = labelFrom((c as any).name as string | I18nValue, lang);
                   const active = activeCat === c.id;
                   return (
                     <Button
@@ -450,7 +501,7 @@ export const EventLayout = () => {
                       className="h-9 rounded-full"
                       onClick={() => onSelectParent(c.id)}
                     >
-                      {c.name}
+                      {label}
                     </Button>
                   );
                 })
@@ -461,6 +512,10 @@ export const EventLayout = () => {
           {/* Linha 2: Subcategorias do pai selecionado (apenas 1 ativa) */}
           {activeCat && (() => {
             const parent = cats.find((c) => c.id === activeCat);
+            const parentLabel =
+              parent ? labelFrom((parent as any).name as string | I18nValue, lang)
+                     : t("subcategories", { defaultValue: "Subcategorias" });
+
             const bucket = childrenByParent[activeCat];
             const loadingKids = !bucket || bucket.loading;
             const kids = bucket?.items ?? [];
@@ -468,7 +523,7 @@ export const EventLayout = () => {
             return (
               <div className="border-l pl-4">
                 <div className="text-xs uppercase text-muted-foreground mb-2">
-                  {parent?.name ?? "Subcategorias"}
+                  {parentLabel}
                 </div>
 
                 {loadingKids ? (
@@ -478,10 +533,11 @@ export const EventLayout = () => {
                     <Skeleton className="h-8 w-24 rounded-full" />
                   </div>
                 ) : kids.length === 0 ? (
-                  <div className="text-xs text-muted-foreground">Sem subcategorias.</div>
+                  <div className="text-xs text-muted-foreground">{t("noSubcategories", { defaultValue: "Sem subcategorias." })}</div>
                 ) : (
                   <div className="flex flex-wrap gap-2">
                     {kids.map((child) => {
+                      const label = labelFrom((child as any).name as string | I18nValue, lang);
                       const active = activeChildCat === child.id;
                       return (
                         <Button
@@ -491,7 +547,7 @@ export const EventLayout = () => {
                           disabled={loadingKids}
                           onClick={() => onSelectSingleChild(child.id)}
                         >
-                          {child.name}
+                          {label}
                         </Button>
                       );
                     })}
@@ -505,7 +561,7 @@ export const EventLayout = () => {
         {/* ------- Grid de eventos ------- */}
         {err && (
           <Alert variant="destructive" className="mb-6">
-            <AlertTitle>Erro</AlertTitle>
+            <AlertTitle>{t("error", { defaultValue: "Erro" })}</AlertTitle>
             <AlertDescription>{err}</AlertDescription>
           </Alert>
         )}
@@ -533,26 +589,31 @@ export const EventLayout = () => {
           <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {items.map((ev) => {
               const d = toDate(ev.startDate);
+
+              // i18n seguro
+              const evTitle = pick(ev.title as any, lang);
+              const evSlug  = slugFrom((ev as any).slug as string | I18nValue, lang);
+              const catSlug = slugFrom((ev as any).categorySlug as string | I18nValue, lang) || (ev as any).categorySlug;
+
               const thumb = ev.thumbnail ? `${baseAppURL}/assets/${ev.thumbnail}` : undefined;
               const highlight = ev.sponsored ? "bg-gradient-to-br from-yellow-50 to-white" : "";
 
-              // Link do card preservando district (se houver)
               const cardHref = districtParam
-                ? `/${locationParam}/${districtParam}/eventos/${ev.categorySlug}/${ev.slug}`
-                : `/${locationParam}/eventos/${ev.categorySlug}/${ev.slug}`;
+                ? `/${locationParam}/${districtParam}/eventos/${catSlug}/${evSlug}`
+                : `/${locationParam}/eventos/${catSlug}/${evSlug}`;
 
               return (
                 <article key={ev.id} className={`border-l pl-4 rounded-md ${highlight}`}>
                   {d && (
                     <div className="flex items-baseline gap-3 mb-3">
                       <span className="text-[10px] uppercase text-muted-foreground">
-                        {fmtWeekday(d)}
+                        {fmtWeekday.format(d).toUpperCase()}
                       </span>
                       <span className="text-3xl font-semibold leading-none">
-                        {fmtDay(d)}
+                        {fmtDay.format(d)}
                       </span>
                       <span className="text-[10px] uppercase text-muted-foreground">
-                        {fmtMonth(d)}
+                        {fmtMonth.format(d).toUpperCase()}
                       </span>
                     </div>
                   )}
@@ -562,7 +623,7 @@ export const EventLayout = () => {
                       {thumb ? (
                         <img
                           src={thumb}
-                          alt={ev.title}
+                          alt={evTitle}
                           className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                           loading="lazy"
                         />
@@ -573,14 +634,14 @@ export const EventLayout = () => {
                       {ev.sponsored && (
                         <div className="absolute top-2 left-2">
                           <span className="inline-flex items-center rounded-full bg-black/80 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
-                            Patrocinado
+                            {t("sponsored", { defaultValue: "Patrocinado" })}
                           </span>
                         </div>
                       )}
                     </div>
 
                     <h3 className="mt-2 text-base font-medium leading-snug line-clamp-2">
-                      {ev.title}
+                      {evTitle}
                     </h3>
                   </Link>
                 </article>

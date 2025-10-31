@@ -1,6 +1,62 @@
 {
     "mappings": {
         "properties": {
+            "title": {
+                "properties": {
+                    "pt": {
+                        "type": "text",
+                        "fields": {
+                            "keyword": {
+                                "type": "keyword"
+                            }
+                        }
+                    },
+                    "en": {
+                        "type": "text",
+                        "fields": {
+                            "keyword": {
+                                "type": "keyword"
+                            }
+                        }
+                    },
+                    "es": {
+                        "type": "text",
+                        "fields": {
+                            "keyword": {
+                                "type": "keyword"
+                            }
+                        }
+                    }
+                }
+            },
+            "slug": {
+                "properties": {
+                    "pt": {
+                        "type": "text",
+                        "fields": {
+                            "keyword": {
+                                "type": "keyword"
+                            }
+                        }
+                    },
+                    "en": {
+                        "type": "text",
+                        "fields": {
+                            "keyword": {
+                                "type": "keyword"
+                            }
+                        }
+                    },
+                    "es": {
+                        "type": "text",
+                        "fields": {
+                            "keyword": {
+                                "type": "keyword"
+                            }
+                        }
+                    }
+                }
+            },
             "active": {
                 "type": "boolean"
             },
@@ -73,14 +129,6 @@
             "pricing": {
                 "type": "double"
             },
-            "slug": {
-                "type": "text",
-                "fields": {
-                    "keyword": {
-                        "type": "keyword"
-                    }
-                }
-            },
             "sponsored": {
                 "type": "boolean"
             },
@@ -89,14 +137,6 @@
             },
             "thumbnail": {
                 "type": "keyword"
-            },
-            "title": {
-                "type": "text",
-                "fields": {
-                    "keyword": {
-                        "type": "keyword"
-                    }
-                }
             },
             "updated_at": {
                 "type": "date"

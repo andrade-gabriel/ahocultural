@@ -1,12 +1,14 @@
+import { I18nValue } from "types/language/types";
+
 export interface EventEntity {
     id: string;
-    title: string;
-    slug: string;
+    title: I18nValue;
+    slug: I18nValue;
     category: string;
     company: string;
     heroImage: string;
     thumbnail: string;
-    body: string;
+    body: I18nValue;
     startDate: Date;
     endDate: Date;
     pricing: number;
@@ -20,13 +22,13 @@ export interface EventEntity {
 
 export interface EventRequest {
     id: string;
-    title: string;
-    slug: string;
+    title: I18nValue;
+    slug: I18nValue;
     category: string;
     company: string;
     heroImage: string;
     thumbnail: string;
-    body: string;
+    body: I18nValue;
     startDate: Date;
     endDate: Date;
     pricing: number;
@@ -40,8 +42,8 @@ export interface EventRequest {
 
 export interface EventIndex {
     id: string;
-    title: string;
-    slug: string;
+    title: I18nValue;
+    slug: I18nValue;
     category: string;
     categoryName: string;
     categorySlug: string;
@@ -62,14 +64,14 @@ export interface EventIndex {
 
 export interface EventPublicIndex {
     id: string;
-    title: string;
-    slug: string;
+    title: I18nValue;
+    slug: I18nValue;
     categories: EventCategoryIndex[]
     location: EventLocationIndex;
     company: EventCompanyIndex;
     heroImage: string;
     thumbnail: string;
-    body: string;
+    body: I18nValue;
     startDate: Date;
     endDate: Date;
     pricing: number;
@@ -83,8 +85,8 @@ export interface EventPublicIndex {
 
 export interface EventCategoryIndex {
     id: string;
-    slug: string;
-    name: string;
+    slug: I18nValue;
+    name: I18nValue;
 }
 
 export interface EventCompanyIndex {
@@ -115,8 +117,8 @@ export interface EventLocationIndex {
 
 export interface EventListRequest {
     id: string;
-    title: string;
-    slug: string,
+    title: I18nValue;
+    slug: I18nValue,
     active: boolean;
 }
 

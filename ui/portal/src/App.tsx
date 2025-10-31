@@ -20,13 +20,13 @@ function App() {
         <Route element={<PanelLayout />}>
           <Route path=":location">
             <Route index element={<FilterLayout />} />
-            <Route path=":district?/eventos">
+            <Route path="eventos">
               <Route index element={<EventLayout />} />
               <Route path="hoje" element={<EventLayout />} />
               <Route path="esta-semana" element={<EventLayout />} />
               <Route path="fim-de-semana" element={<EventLayout />} />
               <Route path="aho-aconselha" element={<EventLayout />} />
-              <Route path=":category/:subcategory?">
+              <Route path=":category">
                 <Route index element={<EventLayout />} />
                 <Route path=":id" element={<EventDetailLayout />} />
               </Route>
