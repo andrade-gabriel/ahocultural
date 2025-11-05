@@ -4,7 +4,8 @@ import {
   Building2,
   MapPinCheckInside,
   Newspaper,
-  CalendarCheck
+  CalendarCheck,
+  Landmark
 } from "@/components/icons";
 import {
   Sidebar,
@@ -16,70 +17,161 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-
-const items = [
-  {
-    title: "Empresas",
-    url: "company",
-    icon: Building2,
-  },
-  {
-    title: "Categorias",
-    url: "category",
-    icon: Tags,
-  },
-  {
-    title: "Pontos de Referência",
-    url: "location",
-    icon: MapPinCheckInside,
-  },
-  // {
-  //   title: "Estações de Metrô",
-  //   url: "subway",
-  //   icon: TrainFront,
-  // },
-  {
-    title: "Matérias",
-    url: "article",
-    icon: Newspaper,
-  },
-  {
-    title: "Eventos",
-    url: "event",
-    icon: CalendarCheck,
-  },
-];
+import { cn } from "@/lib/utils";
 
 export function AppSidebar() {
   const { pathname } = useLocation();
+
+  const isActive = (url: string) =>
+    pathname === `/${url}` || pathname.startsWith(`/${url}/`);
+
   return (
     <Sidebar variant="inset" collapsible="icon">
-      <SidebarHeader className="text-center">
-        Portal Administrativo
-      </SidebarHeader>
+      <SidebarHeader className="text-center">Portal Administrativo</SidebarHeader>
+
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {items.map((item) => {
-                const href = `/${item.url}`;
-                const isActive = pathname === href || pathname.startsWith(href + "/");
-                return (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton
-                      className="gap-4 rounded-lg group-data-[collapsible=icon]:!p-2"
-                      size={"lg"}
-                      asChild
-                      data-active={isActive || undefined}
-                    >
-                      <Link to={`/${item.url}`} className="">
-                        <item.icon size={24} />
-                        <span>{item.title}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                )
-              })}
+
+              {/* -------- Seção: Institucional (header suave) -------- */}
+              <SidebarMenuItem>
+                <div className="flex items-center gap-3 px-3 py-2">
+                  <Landmark className="h-4 w-4" />
+                  <span>
+                    Institucional
+                  </span>
+                </div>
+
+                {/* Subitens com indentação e linha guia */}
+                <div className="ml-6 border-l pl-4 space-y-1">
+                  <SidebarMenuButton
+                    asChild
+                    size="sm"
+                    className={cn(
+                      "rounded-md text-sm text-muted-foreground hover:text-foreground",
+                      isActive("about") && "bg-accent/60 text-accent-foreground border border-accent/70"
+                    )}
+                  >
+                    <Link to="/about">Quem Somos</Link>
+                  </SidebarMenuButton>
+
+                  <SidebarMenuButton
+                    asChild
+                    size="sm"
+                    className={cn(
+                      "rounded-md text-sm text-muted-foreground hover:text-foreground",
+                      isActive("advertisement") && "bg-accent/60 text-accent-foreground border border-accent/70"
+                    )}
+                  >
+                    <Link to="/advertisement">Seu espaço na AHÔ</Link>
+                  </SidebarMenuButton>
+
+                  {/* <SidebarMenuButton
+                    asChild
+                    size="sm"
+                    className={cn(
+                      "rounded-md text-sm text-muted-foreground hover:text-foreground",
+                      isActive("contato") && "bg-accent/60 text-accent-foreground border border-accent/70"
+                    )}
+                  >
+                    <Link to="/contato">Contato</Link>
+                  </SidebarMenuButton> */}
+
+                  <SidebarMenuButton
+                    asChild
+                    size="sm"
+                    className={cn(
+                      "rounded-md text-sm text-muted-foreground hover:text-foreground",
+                      isActive("estudio-aho") && "bg-accent/60 text-accent-foreground border border-accent/70"
+                    )}
+                  >
+                    <Link to="/estudio-aho">Estúdio AHÔ</Link>
+                  </SidebarMenuButton>
+                </div>
+              </SidebarMenuItem>
+
+              {/* -------- Demais entradas de primeiro nível -------- */}
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  size="lg"
+                  className={cn(
+                    "gap-4 rounded-lg group-data-[collapsible=icon]:!p-2",
+                    isActive("company") && "bg-accent text-accent-foreground"
+                  )}
+                >
+                  <Link to="/company">
+                    <Building2 size={20} />
+                    <span>Empresas</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  size="lg"
+                  className={cn(
+                    "gap-4 rounded-lg group-data-[collapsible=icon]:!p-2",
+                    isActive("category") && "bg-accent text-accent-foreground"
+                  )}
+                >
+                  <Link to="/category">
+                    <Tags size={20} />
+                    <span>Categorias</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  size="lg"
+                  className={cn(
+                    "gap-4 rounded-lg group-data-[collapsible=icon]:!p-2",
+                    isActive("location") && "bg-accent text-accent-foreground"
+                  )}
+                >
+                  <Link to="/location">
+                    <MapPinCheckInside size={20} />
+                    <span>Pontos de Referência</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  size="lg"
+                  className={cn(
+                    "gap-4 rounded-lg group-data-[collapsible=icon]:!p-2",
+                    isActive("article") && "bg-accent text-accent-foreground"
+                  )}
+                >
+                  <Link to="/article">
+                    <Newspaper size={20} />
+                    <span>Matérias</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  size="lg"
+                  className={cn(
+                    "gap-4 rounded-lg group-data-[collapsible=icon]:!p-2",
+                    isActive("event") && "bg-accent text-accent-foreground"
+                  )}
+                >
+                  <Link to="/event">
+                    <CalendarCheck size={20} />
+                    <span>Eventos</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

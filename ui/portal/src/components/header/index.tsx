@@ -23,21 +23,28 @@ type NavItem = {
   showInMain?: boolean;
 };
 
+const isCity = (loc?: string) => !!loc && !["contato", "quem-somos", "anuncie", "estudio-aho"].includes(loc);
+const joinLoc = (loc: string | undefined, path: string) => {
+  const p = path.startsWith("/") ? path : `/${path}`;
+  return isCity(loc) ? `/${loc}${p}` : p;
+};
+
+
 export const NAV_ITEMS: NavItem[] = [
-  { label: "headerTodayLink", showInMain: true, href: (loc) => `/${loc ?? ""}/pra-hoje` },
-  { label: "headerWeekendLink", showInMain: true, href: (loc) => `/${loc ?? ""}/este-fds` },
-  { label: "headerWeekLink", showInMain: true, href: (loc) => `/${loc ?? ""}/esta-semana` },
-  { label: "headerFeaturedLink", showInMain: true, href: (loc) => `/${loc ?? ""}/destaques` },
-  { label: "headerStudioLink", showInMain: true, href: (loc) => `/${loc ?? ""}/estudio-aho` },
+  { label: "headerTodayLink", showInMain: true, href: (loc) => joinLoc(loc, `/pra-hoje`) },
+  { label: "headerWeekendLink", showInMain: true, href: (loc) => joinLoc(loc, `/este-fds`) },
+  { label: "headerWeekLink", showInMain: true, href: (loc) => joinLoc(loc, `/esta-semana`) },
+  { label: "headerFeaturedLink", showInMain: true, href: (loc) => joinLoc(loc, `/destaques`) },
+  { label: "headerStudioLink", showInMain: true, href: (loc) => joinLoc(loc, `/estudio-aho`) },
 ];
 
 /* ---------------------------
    2) SUBMENU FIXO
 ---------------------------- */
 const STUDIO_SUBMENU: SubItem[] = [
-  { label: "headerInstitutionalLink", href: (loc) => `/${loc ?? ""}/estudio-aho/quem-somos` },
-  { label: "headerAdvertiseLink", href: (loc) => `/${loc ?? ""}/estudio-aho/anuncie` },
-  { label: "headerContactLink", href: (loc) => `/${loc ?? ""}/estudio-aho/contato` },
+  { label: "headerInstitutionalLink", href: (loc) => joinLoc(loc, `/quem-somos`) },
+  { label: "headerAdvertiseLink", href: (loc) => joinLoc(loc, `/seu-espaco-na-aho`) },
+  { label: "headerContactLink", href: (loc) => joinLoc(loc, `/contato`) },
 ];
 
 const eqPath = (a: string, b: string) => {
@@ -183,7 +190,8 @@ export const Header = () => {
     e.preventDefault();
     const q = query.trim();
     if (!q) return;
-    navigate(`/${location ?? ""}/eventos?q=${encodeURIComponent(q)}`);
+    const base = joinLoc(location, "/eventos");
+    navigate(`${base}?q=${encodeURIComponent(q)}`);
   };
 
   const mainItems = useMemo(() => NAV_ITEMS.filter((i) => i.showInMain), []);

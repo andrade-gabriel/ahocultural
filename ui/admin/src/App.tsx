@@ -7,6 +7,10 @@ import { LoginLayout } from "@/features/access/login";
 /** PANEL */
 import { PanelLayout } from "@/features/panel/layout";
 
+/** INSTITUTIONAL */
+import { AboutLayout } from '@/features/panel/about'
+import { AdvertisementLayout } from '@/features/panel/advertisement'
+
 /** CATEGORY */
 import { CategoryLayout } from "./features/panel/category";
 import { CategoryDetailLayout } from "./features/panel/category/detail";
@@ -39,6 +43,12 @@ function App() {
           </Route>
         </Route>
         <Route element={<PanelLayout />}>
+          <Route path="about">
+            <Route index element={<AboutLayout />} />
+          </Route>
+          <Route path="advertisement">
+            <Route index element={<AdvertisementLayout />} />
+          </Route>
           <Route path="category">
             <Route index element={<CategoryLayout />} />
             <Route path="new" element={<CategoryDetailLayout />} />

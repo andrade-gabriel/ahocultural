@@ -4,6 +4,10 @@ import { LocationLayout } from './features/location'
 /** PANEL */
 import { PanelLayout } from './features/panel';
 
+/** INSTITUTIONAL */
+import { AboutLayout } from './features/panel/about'
+import { AdvertisementLayout } from './features/panel/advertisement'
+
 /** EVENT */
 import { EventLayout } from './features/panel/event';
 import { EventDetailLayout } from './features/panel/event/detail'
@@ -18,6 +22,8 @@ function App() {
       <Routes>
         <Route path="/" element={<LocationLayout/>} loader={locationLoader} />
         <Route element={<PanelLayout />}>
+          <Route path="quem-somos" element={<AboutLayout />} />
+          <Route path="seu-espaco-na-aho" element={<AdvertisementLayout />} />
           <Route path=":location">
             <Route index element={<FilterLayout />} />
             <Route path="eventos">
