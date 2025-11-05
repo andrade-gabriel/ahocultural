@@ -38,6 +38,16 @@ ts:
 		--tsconfig=$(TSCONFIG) \
 		--outfile=.dist/file/app.js
 
+	npx esbuild ./about/app.ts \
+		--bundle --platform=node --target=node22 \
+		--tsconfig=$(TSCONFIG) \
+		--outfile=.dist/about/app.js
+
+	npx esbuild ./advertisement/app.ts \
+		--bundle --platform=node --target=node22 \
+		--tsconfig=$(TSCONFIG) \
+		--outfile=.dist/advertisement/app.js
+
 build: ts
 	sam build
 

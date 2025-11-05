@@ -1,4 +1,4 @@
-import { I18nValue } from "types/language/types";
+import { I18nValue } from "domain/language/types";
 
 export interface EventEntity {
     id: string;

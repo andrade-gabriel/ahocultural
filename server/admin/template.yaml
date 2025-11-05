@@ -1307,6 +1307,280 @@ Resources:
         - StatusCode: 401
         - StatusCode: 500
 
+  ## About
+  AboutResource:
+    Type: 'AWS::ApiGateway::Resource'
+    Properties:
+      RestApiId: !FindInMap [EnvironmentMap, !Ref 'Environment', ApiGatewayId]
+      ParentId: !Ref AdminResource
+      PathPart: about
+  AboutLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .dist/
+      Handler: about/app.lambdaHandler
+      Runtime: nodejs22.x
+      Environment:
+        Variables:
+          BUCKET_DATABASE: !Sub ahocultural-database-${Environment}
+          BUCKET_ASSETS: !Sub ahocultural-assets-${Environment}
+      Policies: 
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - Statement:
+            - Sid: AboutLambdaS3Admin
+              Effect: Allow
+              Action:
+                - s3:GetObject
+                - s3:GetObjectTagging
+                - s3:PutObject
+                - s3:PutObjectTagging
+                - s3:DeleteObject
+                - s3:DeleteObjectTagging
+                - s3:ListBucket
+              Resource: 
+                - !Sub 'arn:aws:s3:::ahocultural-database-${Environment}'
+                - !Sub 'arn:aws:s3:::ahocultural-database-${Environment}/*'
+                - !Sub 'arn:aws:s3:::ahocultural-assets-${Environment}'
+                - !Sub 'arn:aws:s3:::ahocultural-assets-${Environment}/*'
+  AboutTrigger:
+    Type: 'AWS::Lambda::Permission'
+    Properties:
+      Action: 'lambda:invokeFunction'
+      FunctionName: !Ref AboutLambda
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 
+        - arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGatewayId}/*/*/v1/admin/about
+        - ApiGatewayId: !FindInMap [EnvironmentMap, !Ref 'Environment', ApiGatewayId]
+  AboutGetMethod:
+    DependsOn: 
+      - AboutTrigger
+    Type: 'AWS::ApiGateway::Method'
+    Properties: 
+      AuthorizationType: CUSTOM
+      AuthorizerId: !FindInMap [EnvironmentMap, !Ref 'Environment', AuthorizerId]
+      HttpMethod: GET
+      ResourceId: !Ref AboutResource
+      RestApiId: !FindInMap [EnvironmentMap, !Ref 'Environment', ApiGatewayId]
+      MethodResponses:
+        - StatusCode: 200
+        - StatusCode: 204
+        - StatusCode: 302
+        - StatusCode: 400
+        - StatusCode: 401
+        - StatusCode: 500
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub 
+          - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+          - LambdaArn: !GetAtt AboutLambda.Arn
+  AboutPostMethod:
+    DependsOn: 
+      - AboutTrigger
+    Type: 'AWS::ApiGateway::Method'
+    Properties: 
+      AuthorizationType: CUSTOM
+      AuthorizerId: !FindInMap [EnvironmentMap, !Ref 'Environment', AuthorizerId]
+      HttpMethod: POST
+      ResourceId: !Ref AboutResource
+      RestApiId: !FindInMap [EnvironmentMap, !Ref 'Environment', ApiGatewayId]
+      MethodResponses:
+        - StatusCode: 200
+        - StatusCode: 204
+        - StatusCode: 302
+        - StatusCode: 400
+        - StatusCode: 401
+        - StatusCode: 500
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub 
+          - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+          - LambdaArn: !GetAtt AboutLambda.Arn
+  AboutPutMethod:
+    DependsOn: 
+      - AboutTrigger
+    Type: 'AWS::ApiGateway::Method'
+    Properties: 
+      AuthorizationType: CUSTOM
+      AuthorizerId: !FindInMap [EnvironmentMap, !Ref 'Environment', AuthorizerId]
+      HttpMethod: PUT
+      ResourceId: !Ref AboutResource
+      RestApiId: !FindInMap [EnvironmentMap, !Ref 'Environment', ApiGatewayId]
+      MethodResponses:
+        - StatusCode: 200
+        - StatusCode: 204
+        - StatusCode: 302
+        - StatusCode: 400
+        - StatusCode: 401
+        - StatusCode: 500
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub 
+          - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+          - LambdaArn: !GetAtt AboutLambda.Arn
+  AboutOptionsMethod:
+    Type: 'AWS::ApiGateway::Method'
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: OPTIONS
+      ResourceId: !Ref AboutResource
+      RestApiId: !FindInMap [EnvironmentMap, !Ref 'Environment', ApiGatewayId]
+      Integration:
+        Type: MOCK
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+        IntegrationResponses:
+          - StatusCode: 200
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+              method.response.header.Access-Control-Allow-Methods: "'*'"
+              method.response.header.Access-Control-Allow-Headers: "'*'"
+      MethodResponses:
+        - StatusCode: 200
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Origin: true
+            method.response.header.Access-Control-Allow-Methods: true
+            method.response.header.Access-Control-Allow-Headers: true
+
+  ## Advertisement
+  AdvertisementResource:
+    Type: 'AWS::ApiGateway::Resource'
+    Properties:
+      RestApiId: !FindInMap [EnvironmentMap, !Ref 'Environment', ApiGatewayId]
+      ParentId: !Ref AdminResource
+      PathPart: advertisement
+  AdvertisementLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .dist/
+      Handler: advertisement/app.lambdaHandler
+      Runtime: nodejs22.x
+      Environment:
+        Variables:
+          BUCKET_DATABASE: !Sub ahocultural-database-${Environment}
+          BUCKET_ASSETS: !Sub ahocultural-assets-${Environment}
+      Policies: 
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - Statement:
+            - Sid: AdvertisementLambdaS3Admin
+              Effect: Allow
+              Action:
+                - s3:GetObject
+                - s3:GetObjectTagging
+                - s3:PutObject
+                - s3:PutObjectTagging
+                - s3:DeleteObject
+                - s3:DeleteObjectTagging
+                - s3:ListBucket
+              Resource: 
+                - !Sub 'arn:aws:s3:::ahocultural-database-${Environment}'
+                - !Sub 'arn:aws:s3:::ahocultural-database-${Environment}/*'
+                - !Sub 'arn:aws:s3:::ahocultural-assets-${Environment}'
+                - !Sub 'arn:aws:s3:::ahocultural-assets-${Environment}/*'
+  AdvertisementTrigger:
+    Type: 'AWS::Lambda::Permission'
+    Properties:
+      Action: 'lambda:invokeFunction'
+      FunctionName: !Ref AdvertisementLambda
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 
+        - arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGatewayId}/*/*/v1/admin/advertisement
+        - ApiGatewayId: !FindInMap [EnvironmentMap, !Ref 'Environment', ApiGatewayId]
+  AdvertisementGetMethod:
+    DependsOn: 
+      - AdvertisementTrigger
+    Type: 'AWS::ApiGateway::Method'
+    Properties: 
+      AuthorizationType: CUSTOM
+      AuthorizerId: !FindInMap [EnvironmentMap, !Ref 'Environment', AuthorizerId]
+      HttpMethod: GET
+      ResourceId: !Ref AdvertisementResource
+      RestApiId: !FindInMap [EnvironmentMap, !Ref 'Environment', ApiGatewayId]
+      MethodResponses:
+        - StatusCode: 200
+        - StatusCode: 204
+        - StatusCode: 302
+        - StatusCode: 400
+        - StatusCode: 401
+        - StatusCode: 500
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub 
+          - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+          - LambdaArn: !GetAtt AdvertisementLambda.Arn
+  AdvertisementPostMethod:
+    DependsOn: 
+      - AdvertisementTrigger
+    Type: 'AWS::ApiGateway::Method'
+    Properties: 
+      AuthorizationType: CUSTOM
+      AuthorizerId: !FindInMap [EnvironmentMap, !Ref 'Environment', AuthorizerId]
+      HttpMethod: POST
+      ResourceId: !Ref AdvertisementResource
+      RestApiId: !FindInMap [EnvironmentMap, !Ref 'Environment', ApiGatewayId]
+      MethodResponses:
+        - StatusCode: 200
+        - StatusCode: 204
+        - StatusCode: 302
+        - StatusCode: 400
+        - StatusCode: 401
+        - StatusCode: 500
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub 
+          - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+          - LambdaArn: !GetAtt AdvertisementLambda.Arn
+  AdvertisementPutMethod:
+    DependsOn: 
+      - AdvertisementTrigger
+    Type: 'AWS::ApiGateway::Method'
+    Properties: 
+      AuthorizationType: CUSTOM
+      AuthorizerId: !FindInMap [EnvironmentMap, !Ref 'Environment', AuthorizerId]
+      HttpMethod: PUT
+      ResourceId: !Ref AdvertisementResource
+      RestApiId: !FindInMap [EnvironmentMap, !Ref 'Environment', ApiGatewayId]
+      MethodResponses:
+        - StatusCode: 200
+        - StatusCode: 204
+        - StatusCode: 302
+        - StatusCode: 400
+        - StatusCode: 401
+        - StatusCode: 500
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub 
+          - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+          - LambdaArn: !GetAtt AdvertisementLambda.Arn
+  AdvertisementOptionsMethod:
+    Type: 'AWS::ApiGateway::Method'
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: OPTIONS
+      ResourceId: !Ref AdvertisementResource
+      RestApiId: !FindInMap [EnvironmentMap, !Ref 'Environment', ApiGatewayId]
+      Integration:
+        Type: MOCK
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+        IntegrationResponses:
+          - StatusCode: 200
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+              method.response.header.Access-Control-Allow-Methods: "'*'"
+              method.response.header.Access-Control-Allow-Headers: "'*'"
+      MethodResponses:
+        - StatusCode: 200
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Origin: true
+            method.response.header.Access-Control-Allow-Methods: true
+            method.response.header.Access-Control-Allow-Headers: true
+
   ## Deployment
   ApiGatewayDeployment:
       Type: 'AWS::ApiGateway::Deployment'
@@ -1350,6 +1624,14 @@ Resources:
         - FileOptionsMethod
         - FileOptionsIdMethod
         - FilePreSignedUrlMethod
+        - AboutGetMethod
+        - AboutPostMethod
+        - AboutPutMethod
+        - AboutOptionsMethod
+        - AdvertisementGetMethod
+        - AdvertisementPostMethod
+        - AdvertisementPutMethod
+        - AdvertisementOptionsMethod
       Properties:
         RestApiId: !FindInMap [EnvironmentMap, !Ref 'Environment', ApiGatewayId]
         StageName: !Ref Environment

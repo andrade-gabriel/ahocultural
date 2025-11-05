@@ -9,8 +9,8 @@ import { getArticleAsync, upsertArticleAsync } from '@article/store';
 import { notifyAsync } from '@article/notifier';
 import { getAsync } from '@article/indexer';
 import { randomUUID } from 'node:crypto';
-import { renameAndFinalizeAsset } from 'types/file/store';
-import { SeoImageType } from 'types/file/types';
+import { renameAndFinalizeAsset } from 'domain/file/store';
+import { SeoImageType } from 'domain/file/types';
 
 type HandlerFn = (event: APIGatewayProxyEvent) => Promise<DefaultResponse>;
 const handlerFactory = new Map<string, HandlerFn>([

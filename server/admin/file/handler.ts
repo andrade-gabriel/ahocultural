@@ -5,7 +5,7 @@ import { S3Client, PutObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { extension } from "mime-types";
 import { APIGatewayProxyEvent } from 'aws-lambda';
-import { toFileProperty } from 'types/file/mapper';
+import { toFileProperty } from 'domain/file/mapper';
 
 const s3Client = new S3Client({ region: 'us-east-1' });
 const BUCKET_ASSETS = config.s3.bucket;

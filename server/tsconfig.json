@@ -10,12 +10,14 @@
     "baseUrl": ".",
     "paths": {
       "@utils/*": ["./utils/*"],
-      "@user/*": ["./types/user/*"],
-      "@category/*": ["./types/category/*"],
-      "@company/*": ["./types/company/*"],
-      "@location/*": ["./types/location/*"],
-      "@article/*": ["./types/article/*"],
-      "@event/*": ["./types/event/*"],
+      "@user/*": ["./domain/user/*"],
+      "@category/*": ["./domain/category/*"],
+      "@company/*": ["./domain/company/*"],
+      "@location/*": ["./domain/location/*"],
+      "@article/*": ["./domain/article/*"],
+      "@event/*": ["./domain/event/*"],
+      "@about/*": ["./domain/about/*"],
+      "@advertisement/*": ["./domain/advertisement/*"]
     },
     // Real Warnings
     "noUnusedLocals": true,
