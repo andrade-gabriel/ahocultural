@@ -59,9 +59,15 @@ export async function getEventAsync(
                 created_at: Date;
                 updated_at: Date;
                 active: boolean;
+                recurrence?: {
+                    rrule: string;
+                    until: Date;
+                    exdates?: Date[];
+                    rdates?: Date[];
+                };
             };
 
-            const location: EventEntity = {
+            const event: EventEntity = {
                 id: raw.id,
                 title: {
                     pt: raw.title.pt,
@@ -90,36 +96,42 @@ export async function getEventAsync(
                 sponsored: raw.sponsored,
                 created_at: raw.created_at,
                 updated_at: raw.updated_at,
-                active: raw.active
+                active: raw.active,
+                recurrence: raw.recurrence ? {
+                    rrule: raw.recurrence.rrule,
+                    until: raw.recurrence.until,
+                    exdates: raw.recurrence.exdates,
+                    rdates: raw.recurrence.rdates
+                } : undefined
             };
-            return location;
+            return event;
         }
     }
     catch (e) {
-        console.log(`Error getting location: ${e}`);
+        console.log(`Error getting event: ${e}`);
     }
     return undefined;
 }
 
 export async function upsertEventAsync(
-    location: EventEntity,
+    event: EventEntity,
     s3Bucket: string
 ): Promise<Boolean> {
     let successfullyCreated: Boolean;
     try {
-        const key = buildKey(location.id);
+        const key = buildKey(event.id);
         await amazons3Client.send(
             new PutObjectCommand({
                 Bucket: s3Bucket,
                 Key: key,
-                Body: JSON.stringify(location),
+                Body: JSON.stringify(event),
                 ContentType: "application/json",
             })
         );
         successfullyCreated = true;
     }
     catch (e) {
-        console.log(`Error creating location: ${e}`);
+        console.log(`Error creating event: ${e}`);
         successfullyCreated = false;
     }
     return successfullyCreated;

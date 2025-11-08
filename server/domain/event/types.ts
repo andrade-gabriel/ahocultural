@@ -1,4 +1,5 @@
 import { I18nValue } from "domain/language/types";
+import { v5 as uuidv5 } from "uuid";
 
 export interface EventEntity {
     id: string;
@@ -18,6 +19,15 @@ export interface EventEntity {
     active: boolean;
     created_at: Date;
     updated_at: Date;
+    
+    // Recurring
+    recurrence?: {
+        rrule: string;                                      // ex.: "FREQ=WEEKLY;BYDAY=WE"
+        until: Date;                                        // Event will exists until...
+        exdates?: Date[];                                   // Exception Dates
+        rdates?: Date[];                                    // Extra Dates
+        // overrides?: Record<string, Partial<EventEntity>>;   // Specific replacements
+    };
 }
 
 export interface EventRequest {
@@ -38,17 +48,30 @@ export interface EventRequest {
     active: boolean;
     created_at: Date;
     updated_at: Date;
+    // Recurring
+    recurrence?: {
+        rrule: string;                                      // ex.: "FREQ=WEEKLY;BYDAY=WE"
+        until: Date;                                        // Event will exists until...
+        exdates?: Date[];                                   // Exception Dates
+        rdates?: Date[];                                    // Extra Dates
+        // overrides?: Record<string, Partial<EventEntity>>;   // Specific replacements
+    };
 }
 
 export interface EventIndex {
     id: string;
+    esId: string;
     title: I18nValue;
     slug: I18nValue;
     category: string;
-    categoryName: string;
-    categorySlug: string;
+    // categoryName: string;
+    // categorySlug: string;
     company: string;
-    location: string;
+    location: string; // sao-paulo
+    geoLocation: {
+        lat: number;
+        lon: number;
+    }
     heroImage: string;
     thumbnail: string;
     startDate: Date;
@@ -61,6 +84,20 @@ export interface EventIndex {
     created_at: Date;
     updated_at: Date;
 }
+
+export const generateEventIndexId = (id: string, date: Date | string): string => {
+  // TODO: config
+  const NAMESPACE_EVENTS = "6ba7b810-9dad-11d1-80b4-00c04fd430c8";
+
+  // Convert safely to Date if necessary
+  const parsedDate = date instanceof Date ? date : new Date(date);
+  if (isNaN(parsedDate.getTime())) {
+    throw new Error("Invalid date passed to generateEventIndexId");
+  }
+
+  const input = `${id}-${parsedDate.toISOString()}`;
+  return uuidv5(input, NAMESPACE_EVENTS);
+};
 
 export interface EventPublicIndex {
     id: string;
@@ -118,7 +155,7 @@ export interface EventLocationIndex {
 export interface EventListRequest {
     id: string;
     title: I18nValue;
-    slug: I18nValue,
+    slug: I18nValue;
     active: boolean;
 }
 

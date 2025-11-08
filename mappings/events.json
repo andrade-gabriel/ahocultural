@@ -68,30 +68,6 @@
                     }
                 }
             },
-            "categoryName": {
-                "type": "text",
-                "fields": {
-                    "keyword": {
-                        "type": "keyword"
-                    }
-                }
-            },
-            "categorySlug": {
-                "type": "text",
-                "fields": {
-                    "keyword": {
-                        "type": "keyword"
-                    }
-                }
-            },
-            "parentCategory": {
-                "type": "text",
-                "fields": {
-                    "keyword": {
-                        "type": "keyword"
-                    }
-                }
-            },
             "company": {
                 "type": "text",
                 "fields": {
@@ -125,6 +101,9 @@
                         "type": "keyword"
                     }
                 }
+            },
+            "geoLocation": { 
+                "type": "geo_point" 
             },
             "pricing": {
                 "type": "double"

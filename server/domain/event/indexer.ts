@@ -38,6 +38,54 @@ async function signedFetchEs(url: URL, method: string, bodyObj?: unknown) {
     });
 }
 
+export async function bulkUpsertAsync(
+  config: any,
+  docs: EventIndex[]
+): Promise<boolean> {
+  if (!Array.isArray(docs) || docs.length === 0) {
+    throw new Error("`docs` must be a non-empty array.");
+  }
+
+  // Base URL of the index
+  const base_path = `${config.elasticsearch.domain}/${config.elasticsearch.eventIndex}`;
+  const base_url = base_path.startsWith("http")
+    ? base_path
+    : `https://${base_path}`;
+
+  // Bulk endpoint
+  const url = new URL(`${base_url}/_bulk`);
+
+  // Build NDJSON payload (action + source)
+  const ndjson =
+    docs
+      .map((doc) => {
+        if (!doc.esId) throw new Error("`esId` is required for all documents.");
+        const action = { index: { _id: doc.esId } }; // "index" acts as an upsert
+        return JSON.stringify(action) + "\n" + JSON.stringify(doc);
+      })
+      .join("\n") + "\n";
+
+  const res = await signedFetchEs(url, "POST", ndjson);
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`OpenSearch bulk upsert failed: ${res.status} ${text}`);
+  }
+
+  const data: any = await res.json().catch(() => ({}));
+
+  // The `errors` field is true if any item failed
+  if (data?.errors) {
+    console.error(
+      "Bulk upsert contained errors:",
+      data.items?.filter((i: any) => i.index?.error)
+    );
+    return false;
+  }
+
+  return true;
+}
+
 export async function getBySlugAsync(
     config: any,
     slug: string
@@ -172,8 +220,6 @@ export async function getAsync(
   return json?.hits?.hits?.map(h => h._source).filter((x): x is EventIndex => !!x) ?? [];
 }
 
-
-
 export async function postAsync(config: any, doc: EventIndex): Promise<boolean> {
     if (!doc?.id)
         throw new Error("`id` é obrigatório.");
@@ -182,12 +228,8 @@ export async function postAsync(config: any, doc: EventIndex): Promise<boolean> 
     const base_path = `${config.elasticsearch.domain}/${config.elasticsearch.eventIndex}`;
     const base_url = base_path.startsWith("http") ? base_path : `https://${base_path}`;
 
-    const url = new URL(`${base_url}/_doc/${encodeURIComponent(doc.id)}`)
+    const url = new URL(`${base_url}/_doc/${encodeURIComponent(doc.esId)}`)
     const res = await signedFetchEs(url, "PUT", doc);
-
-    console.log('url', url);
-    console.log('body', JSON.stringify(doc));
-    console.log('elastisearch response', res);
 
     if (!res.ok) {
         const text = await res.text().catch(() => "");
@@ -197,6 +239,45 @@ export async function postAsync(config: any, doc: EventIndex): Promise<boolean> 
     const data: any = await res.json().catch(() => ({}));
     return data?.result === "created" || data?.result === "updated";
 }
+
+export async function deleteByQueryAsync(
+  config: any,
+  seriesId: string
+): Promise<boolean> {
+  if (!seriesId) {
+    throw new Error("`seriesId` é obrigatório.");
+  }
+
+  const base_path = `${config.elasticsearch.domain}/${config.elasticsearch.eventIndex}`;
+  const base_url = base_path.startsWith("http") ? base_path : `https://${base_path}`;
+
+  const url = new URL(`${base_url}/_delete_by_query`);
+  url.searchParams.set("routing", seriesId);
+  url.searchParams.set("conflicts", "proceed");
+  url.searchParams.set("wait_for_completion", "true");
+
+  const now = new Date().toISOString();
+  const body = {
+    query: {
+      bool: {
+        must: [
+          { term: { id: seriesId } },
+          { range: { startDate: { gte: now } } }
+        ]
+      }
+    }
+  };
+
+  const res = await signedFetchEs(url, "POST", body);
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`OpenSearch delete-by-query failed: ${res.status} ${text}`);
+  }
+
+  return true;
+}
+
 
 export async function getRelatedEventsBySlugCatLocDateAsync(
     config: any,

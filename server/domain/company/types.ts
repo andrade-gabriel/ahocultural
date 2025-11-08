@@ -16,8 +16,8 @@ export interface CompanyEntity {
     };
     location: string;
     geo: {
-        lat: number | null;     // WGS84
-        lng: number | null;     // WGS84
+        lat: number;     // WGS84
+        lng: number;     // WGS84
     };
     formatted_address?: string;
     created_at: Date;
@@ -43,8 +43,8 @@ export interface CompanyRequest {
     };
     location: string;
     geo: {
-        lat: number | null;     // WGS84
-        lng: number | null;     // WGS84
+        lat: number;     // WGS84
+        lng: number;     // WGS84
     };
     active: boolean;
 }

@@ -47,8 +47,8 @@ export async function getCompanyAsync(
                 };
                 location: string;
                 geo: {
-                    lat: number | null;
-                    lng: number | null;
+                    lat: number;
+                    lng: number;
                 };
                 created_at: Date;
                 updated_at: Date;
