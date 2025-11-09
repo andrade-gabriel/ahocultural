@@ -45,6 +45,9 @@ import { CategoryAutocomplete, CompanyAutocomplete } from "@/components/autocomp
 import { FileUpload } from "@/components/file-upload";
 import { getPreviewUrl } from "@/api/file";
 
+/** ---------- Recorrência (seu componente) ---------- */
+import { RecurrenceEditor } from "@/components/recurrence";
+
 /** Facilities */
 const FACILITY_OPTIONS = ["Acessibilidade", "Estacionamento", "Bicicletário"] as const;
 type Facility = (typeof FACILITY_OPTIONS)[number];
@@ -59,6 +62,7 @@ function isAbortError(e: unknown) {
     any?.message === "canceled"
   );
 }
+
 function toDatetimeLocalInput(d?: Date | string): string {
   if (!d) return "";
   const date = typeof d === "string" ? new Date(d) : d;
@@ -70,6 +74,7 @@ function toDatetimeLocalInput(d?: Date | string): string {
   const mi = `${date.getMinutes()}`.padStart(2, "0");
   return `${yyyy}-${mm}-${dd}T${hh}:${mi}`;
 }
+
 function slugify(v: string) {
   return v
     .normalize("NFD")
@@ -88,11 +93,19 @@ const LANGS: Array<{ code: LangCode; label: string; flag: string }> = [
   { code: "es", label: "ES", flag: "es" },
 ];
 
-/* ---------- schema (multilíngue) ---------- */
+/* ---------- schema (multilíngue + recorrência) ---------- */
 const I18nRequired = z.object({
   pt: z.string().min(1, "Obrigatório"),
   en: z.string().min(1, "Obrigatório"),
   es: z.string().min(1, "Obrigatório"),
+});
+
+// Recorrência (form usa strings datetime-local)
+const RecurrenceSchema = z.object({
+  rrule: z.string().min(1, "RRULE é obrigatório"),
+  until: z.string().min(1, "Data 'Até' é obrigatória"),
+  rdates: z.array(z.string()).optional().default([]),
+  exdates: z.array(z.string()).optional().default([]),
 });
 
 const Schema = z
@@ -104,7 +117,6 @@ const Schema = z
     thumbnail: z.string().min(1, "Thumbnail obrigatória"),
     category: z.string().min(1, "Categoria obrigatória"),
     company: z.string().min(1, "Empresa obrigatória"),
-    location: z.string().min(1, "Local obrigatório"), // ⬅️ adicionado
     startDate: z.string().min(1, "Início obrigatório"),
     endDate: z.string().min(1, "Fim obrigatório"),
     pricing: z.coerce.number().min(0, "Preço inválido"),
@@ -112,7 +124,12 @@ const Schema = z
     facilities: z.array(z.enum(FACILITY_OPTIONS)).default([]),
     sponsored: z.boolean().default(false),
     active: z.boolean().default(true),
+
+    // Toggle + payload de recorrência
+    recorrente: z.boolean().default(false),
+    recurrence: RecurrenceSchema.optional(),
   })
+  // end >= start
   .refine(
     (v) => {
       const s = v.startDate ? new Date(v.startDate) : null;
@@ -121,11 +138,21 @@ const Schema = z
       return e >= s;
     },
     { message: "A data de fim não pode ser anterior ao início.", path: ["endDate"] }
+  )
+  // until válido quando recorrente
+  .refine(
+    (v) => {
+      if (!v.recorrente) return true;
+      if (!v.recurrence?.until) return false;
+      const u = new Date(v.recurrence.until);
+      return !Number.isNaN(u.getTime());
+    },
+    { message: "Informe uma data 'Até' válida para a recorrência.", path: ["recurrence.until"] }
   );
 
 type FormValues = z.infer<typeof Schema>;
 
-/* ---------- typed field paths ---------- */
+/* ---------- paths tipados ---------- */
 type TitlePath = `title.${LangCode}`;
 type SlugPath = `slug.${LangCode}`;
 type BodyPath = `body.${LangCode}`;
@@ -133,7 +160,7 @@ const titlePath = (lang: LangCode): TitlePath => `title.${lang}` as const;
 const slugPath = (lang: LangCode): SlugPath => `slug.${lang}` as const;
 const bodyPath = (lang: LangCode): BodyPath => `body.${lang}` as const;
 
-/* ---------- page ---------- */
+/* ---------- página ---------- */
 export function EventDetailLayout() {
   const { id: idParam } = useParams();
   const navigate = useNavigate();
@@ -147,9 +174,8 @@ export function EventDetailLayout() {
   const acRef = useRef<AbortController | null>(null);
   const requestIdRef = useRef(0);
 
-  // ------------ RHF: force same generics across Form/FormField/resolver ------------
+  // RHF
   const form = useForm<FormValues, any, FormValues>({
-    // O cast do Resolver garante compat em projetos com versões distintas de RHF/resolvers
     resolver: zodResolver(Schema) as unknown as Resolver<FormValues>,
     defaultValues: {
       title: { pt: "", en: "", es: "" },
@@ -159,7 +185,6 @@ export function EventDetailLayout() {
       thumbnail: "",
       category: "",
       company: "",
-      location: "",
       startDate: "",
       endDate: "",
       pricing: 0,
@@ -167,6 +192,9 @@ export function EventDetailLayout() {
       facilities: [],
       sponsored: false,
       active: true,
+
+      recorrente: false,
+      recurrence: undefined,
     },
     mode: "onTouched",
   });
@@ -186,7 +214,7 @@ export function EventDetailLayout() {
     },
   });
 
-  // troca de idioma → atualiza editor
+  // troca de idioma → sincroniza editor
   useEffect(() => {
     if (!editor) return;
     const current = form.getValues(bodyPath(lang)) || "";
@@ -206,7 +234,7 @@ export function EventDetailLayout() {
     return () => sub.unsubscribe();
   }, [editor, form, lang]);
 
-  // GET por id
+  // GET por id (modo edição)
   useEffect(() => {
     if (!isEdit || !idParam) return;
 
@@ -244,7 +272,6 @@ export function EventDetailLayout() {
           thumbnail: data.thumbnail ?? "",
           category: data.category ?? "",
           company: data.company ?? "",
-          location: data.location ?? "",
           startDate: toDatetimeLocalInput(data.startDate),
           endDate: toDatetimeLocalInput(data.endDate),
           pricing: typeof data.pricing === "number" ? data.pricing : 0,
@@ -254,6 +281,20 @@ export function EventDetailLayout() {
             : [],
           sponsored: !!data.sponsored,
           active: !!data.active,
+
+          recorrente: !!data.recurrence,
+          recurrence: data.recurrence
+            ? {
+                rrule: data.recurrence.rrule ?? "",
+                until: toDatetimeLocalInput(data.recurrence.until),
+                rdates: Array.isArray(data.recurrence.rdates)
+                  ? data.recurrence.rdates.map(toDatetimeLocalInput).filter(Boolean)
+                  : [],
+                exdates: Array.isArray(data.recurrence.exdates)
+                  ? data.recurrence.exdates.map(toDatetimeLocalInput).filter(Boolean)
+                  : [],
+              }
+            : undefined,
         };
 
         form.reset(defaults);
@@ -281,6 +322,7 @@ export function EventDetailLayout() {
       setSaving(true);
       setError(undefined);
 
+      // Monta payload da API
       const payload: EventDetail = {
         id: idParam ?? "",
         title: {
@@ -294,7 +336,7 @@ export function EventDetailLayout() {
           es: slugify(values.slug.es),
         },
         body: {
-          pt: values.body.pt, // HTML
+          pt: values.body.pt,
           en: values.body.en,
           es: values.body.es,
         },
@@ -302,7 +344,6 @@ export function EventDetailLayout() {
         thumbnail: values.thumbnail,
         category: values.category,
         company: values.company,
-        location: values.location,
         startDate: new Date(values.startDate),
         endDate: new Date(values.endDate),
         pricing: values.pricing,
@@ -310,6 +351,17 @@ export function EventDetailLayout() {
         facilities: values.facilities,
         sponsored: values.sponsored,
         active: values.active,
+
+        // Somente envia recorrência se ligado
+        recurrence:
+          values.recorrente && values.recurrence
+            ? {
+                rrule: values.recurrence.rrule.trim(),
+                until: new Date(values.recurrence.until),
+                rdates: (values.recurrence.rdates ?? []).map((d) => new Date(d)),
+                exdates: (values.recurrence.exdates ?? []).map((d) => new Date(d)),
+              }
+            : undefined,
       };
 
       if (isEdit && idParam) await updateEvent(idParam, payload);
@@ -334,7 +386,7 @@ export function EventDetailLayout() {
     <Card className="shadow-sm">
       <CardHeader>
         <CardTitle>{titleText}</CardTitle>
-        <CardDescription>Gerencie os dados multilíngua do evento</CardDescription>
+        <CardDescription>Gerencie os dados multilíngua do evento e a recorrência</CardDescription>
       </CardHeader>
 
       <CardContent>
@@ -353,12 +405,14 @@ export function EventDetailLayout() {
         ) : (
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-6" aria-busy={saving}>
-              {/* Idiomas + campos principais */}
+              {/* Idiomas + principais */}
               <div className="grid gap-6 md:grid-cols-5">
-                {/* MENU LATERAL */}
+                {/* Menu lateral de idiomas */}
                 <aside className="md:col-span-1">
                   <div className="rounded-lg border p-2">
-                    <div className="px-2 py-1 text-xs font-medium uppercase text-muted-foreground">Idiomas</div>
+                    <div className="px-2 py-1 text-xs font-medium uppercase text-muted-foreground">
+                      Idiomas
+                    </div>
                     <div className="mt-2 flex flex-col gap-2">
                       {LANGS.map((l) => {
                         const active = l.code === lang;
@@ -384,7 +438,7 @@ export function EventDetailLayout() {
                   </div>
                 </aside>
 
-                {/* CAMPOS DO IDIOMA ATIVO */}
+                {/* Campos do idioma ativo */}
                 <section key={lang} className="md:col-span-4 grid gap-4">
                   <div className="grid gap-4 md:grid-cols-2">
                     <FormField
@@ -434,7 +488,7 @@ export function EventDetailLayout() {
                               onClick={() => generateSlugFor(lang)}
                               title="Gerar slug a partir do título"
                             >
-                              Gerar slug
+                              Gerar
                             </Button>
                           </div>
                         </FormItem>
@@ -517,7 +571,7 @@ export function EventDetailLayout() {
                     name="heroImage"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Imagem Principal</FormLabel>
+                        <FormLabel>Imagem principal</FormLabel>
                         <FormControl>
                           <FileUpload
                             accept="image/*"
@@ -568,8 +622,8 @@ export function EventDetailLayout() {
                 </div>
               </div>
 
-              {/* Categoria / Empresa / Local */}
-              <div className="grid gap-4 md:grid-cols-3">
+              {/* Categoria / Empresa */}
+              <div className="grid gap-4 md:grid-cols-2">
                 <FormField
                   control={form.control}
                   name="category"
@@ -599,23 +653,6 @@ export function EventDetailLayout() {
                           value={field.value ? String(field.value) : null}
                           onChange={(id) => field.onChange(id ?? "")}
                           disabled={saving}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="location"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Local</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Ex.: Teatro Municipal, Av. X, 123 – Centro"
-                          value={field.value ?? ""}
-                          onChange={field.onChange}
                         />
                       </FormControl>
                       <FormMessage />
@@ -654,6 +691,23 @@ export function EventDetailLayout() {
                 />
               </div>
 
+              {/* Recorrência (usa seu componente) */}
+              <FormField
+                control={form.control}
+                name="recorrente"
+                render={({ field }) => (
+                  <RecurrenceEditor
+                    enabled={field.value}
+                    onToggleEnabled={(v) => field.onChange(Boolean(v))}
+                    value={form.watch("recurrence")}
+                    onChange={(val) =>
+                      form.setValue("recurrence", val, { shouldDirty: true, shouldValidate: true })
+                    }
+                    disabled={saving}
+                  />
+                )}
+              />
+
               {/* Preço / Link externo */}
               <div className="grid gap-4 md:grid-cols-2">
                 <FormField
@@ -683,9 +737,13 @@ export function EventDetailLayout() {
                   name="externalTicketLink"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Ingresso Externo (ex.: Sympla, etc)</FormLabel>
+                      <FormLabel>Ingresso externo (Sympla etc.)</FormLabel>
                       <FormControl>
-                        <Input placeholder="Link do site de ingressos" value={field.value ?? ""} onChange={field.onChange} />
+                        <Input
+                          placeholder="URL do site de ingressos"
+                          value={field.value ?? ""}
+                          onChange={field.onChange}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -693,7 +751,7 @@ export function EventDetailLayout() {
                 />
               </div>
 
-              {/* Facilities */}
+              {/* Facilidades */}
               <div className="space-y-2">
                 <FormLabel>Facilidades</FormLabel>
                 <div className="grid gap-2 md:grid-cols-3">
@@ -729,7 +787,7 @@ export function EventDetailLayout() {
                 <FormMessage />
               </div>
 
-              {/* Patrocinado / Ativo */}
+              {/* Estados */}
               <div className="grid gap-4 md:grid-cols-2">
                 <FormField
                   control={form.control}

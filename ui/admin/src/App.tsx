@@ -30,6 +30,7 @@ import { ArticleDetailLayout } from "./features/panel/article/detail";
 /** EVENT */
 import { EventLayout } from "./features/panel/event";
 import { EventDetailLayout } from "./features/panel/event/detail";
+import { HighlightEventLayout } from "./features/panel/highlight";
 
 // import { SubwayLayout  } from "./features/panel/subway";
 
@@ -48,6 +49,9 @@ function App() {
           </Route>
           <Route path="advertisement">
             <Route index element={<AdvertisementLayout />} />
+          </Route>
+          <Route path="highlight">
+            <Route index element={<HighlightEventLayout />} />
           </Route>
           <Route path="category">
             <Route index element={<CategoryLayout />} />

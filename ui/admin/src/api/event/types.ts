@@ -11,7 +11,6 @@ export type Event = {
   title: I18nValue;
   slug: I18nValue;
   category: string;
-  location: string;
   company: string;
   heroImage: string;
   thumbnail: string;
@@ -30,7 +29,6 @@ export type EventDetail = {
   title: I18nValue;
   slug: I18nValue;
   category: string;
-  location: string;
   company: string;
   heroImage: string;
   thumbnail: string;
@@ -42,4 +40,19 @@ export type EventDetail = {
   facilities: string[];
   sponsored: boolean;
   active: boolean;
+  recurrence?: {
+      rrule: string;                                      // ex.: "FREQ=WEEKLY;BYDAY=WE"
+      until: Date;                                        // Event will exists until...
+      exdates?: Date[];                                   // Exception Dates
+      rdates?: Date[];                                    // Extra Dates
+      // overrides?: Record<string, Partial<EventEntity>>;   // Specific replacements
+  };
+};
+
+export type HighlightItem = { id: string; weight?: number };
+export type HighlightPayload = {
+  version: number;
+  updatedAt: string;     // ISO string
+  items: HighlightItem[]; // máx. 16 itens (regra de negócio na UI)
+  max?: number;           // opcional, ex.: 16
 };

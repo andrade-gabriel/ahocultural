@@ -5,7 +5,8 @@ import {
   MapPinCheckInside,
   Newspaper,
   CalendarCheck,
-  Landmark
+  Landmark,
+  Star
 } from "@/components/icons";
 import {
   Sidebar,
@@ -107,7 +108,6 @@ export function AppSidebar() {
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-
               <SidebarMenuItem>
                 <SidebarMenuButton
                   asChild
@@ -168,6 +168,22 @@ export function AppSidebar() {
                   <Link to="/event">
                     <CalendarCheck size={20} />
                     <span>Eventos</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  size="lg"
+                  className={cn(
+                    "gap-4 rounded-lg group-data-[collapsible=icon]:!p-2",
+                    isActive("highlight") && "bg-accent text-accent-foreground"
+                  )}
+                >
+                  <Link to="/highlight">
+                    <Star size={20} />
+                    <span>Destaques</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>

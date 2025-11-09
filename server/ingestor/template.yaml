@@ -511,6 +511,7 @@ Resources:
       CodeUri: .dist/
       Handler: event/app.lambdaHandler
       Runtime: nodejs22.x
+      Timeout: 60
       Environment:
         Variables:
           BUCKET_DATABASE: !Sub ahocultural-database-${Environment}

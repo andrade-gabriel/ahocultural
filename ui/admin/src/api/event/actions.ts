@@ -4,6 +4,7 @@ import type { DefaultResponse } from "../response/types";
 import type {
   Event,
   EventDetail,
+  HighlightPayload,
   ListEventsParams,
 } from "./types";
 
@@ -123,4 +124,31 @@ export async function updateEventActivity(
   }
 
   throw new Error("Resposta inválida ao atualizar evento.");
+}
+
+export async function saveHighlightEvents(
+  payload: HighlightPayload,
+  opts?: { signal?: AbortSignal }
+): Promise<boolean> {
+  // const { data } = await httpAuth.put<DefaultResponse<boolean>>(
+  //   "/admin/featured-events",
+  //   payload,
+  //   { signal: opts?.signal, headers: { "Content-Type": "application/json" } }
+  // );
+
+  const data = {
+    success: true,
+    data: true,
+    errors: []
+  }
+
+  if (data?.success === true && data.data === true) {
+    return true;
+  }
+
+  if (data?.success === false && Array.isArray(data.errors)) {
+    throw new Error(data.errors[0] || "Falha ao salvar destaques.");
+  }
+
+  throw new Error("Resposta inválida ao salvar destaques.");
 }
