@@ -1,4 +1,4 @@
-import { CompanyEntity } from "@company/types";
+import { Company } from "@company/types";
 import {
   EventRequest,
   EventEntity,
@@ -101,7 +101,7 @@ export function toEventRequest(input: EventEntity): EventRequest {
   };
 }
 
-export function toEventIndex(input: EventEntity, company: CompanyEntity): EventIndex {
+export function toEventIndex(input: EventEntity, company: Company): EventIndex {
   return {
     id: input.id.trim(),
     esId: generateEventIndexId(input.id.trim(), input.startDate),
@@ -117,7 +117,7 @@ export function toEventIndex(input: EventEntity, company: CompanyEntity): EventI
     },
     category: input.category,
     company: input.company,
-    location: company.location,
+    location: company.locationId.toString(),
     geoLocation: { lat: company.geo.lat, lon: company.geo.lng },
     heroImage: input.heroImage,
     thumbnail: input.thumbnail,
@@ -199,7 +199,7 @@ function normalizeRRule(raw: string): string {
 
 export function toEventIndexes(
   event: EventEntity,
-  company: CompanyEntity
+  company: Company
 ): EventIndex[] {
   if (!event.recurrence) return [toEventIndex(event, company)];
 
@@ -261,7 +261,7 @@ export function toEventIndexes(
       },
       category: event.category,
       company: event.company,
-      location: company.location,
+      location: company.locationId.toString(),
       geoLocation: { lat: company.geo.lat, lon: company.geo.lng },
       heroImage: event.heroImage,
       thumbnail: event.thumbnail,
@@ -303,7 +303,7 @@ export function toEventListRequest(input: EventIndex): EventListRequest {
 export function toEventPublicIndex(
   event: EventEntity,
   category: CategoryIndex,
-  company: CompanyEntity,
+  company: Company,
   location: LocationEntity
 ): EventPublicIndex {
   const eventPublicIndex: EventPublicIndex = {
@@ -326,7 +326,7 @@ export function toEventPublicIndex(
       },
     ],
     company: {
-      id: company.id,
+      id: company.id.toString(),
       name: company.name,
       slug: company.slug,
       address: company.address,

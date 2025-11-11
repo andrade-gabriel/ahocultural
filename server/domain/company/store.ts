@@ -1,142 +1,312 @@
-import { S3Client, GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
-import type { CompanyEntity } from "./types";
+import { createConnection } from '@db/connection';
+import type { DatabaseConfig } from '@db/types';
+import type { Company, CompanyListItem, CompanyRow } from './types';
+import { mapRowToCompany } from './mapper';
 
-/** Constant Properties */
-const DEFAULT_PREFIX = "companies";
-const amazons3Client = new S3Client({
-    region: 'us-east-1'
-});
-
-export function buildKey(
-    slug: string
-): string {
-    const key = `${DEFAULT_PREFIX}/${encodeURIComponent(slug.toLowerCase().trim())}.json`;
-    return key;
-}
-
+/** Busca empresa por ID (JOIN com address) */
 export async function getCompanyAsync(
-    id: string,
-    s3Bucket: string
-): Promise<CompanyEntity | undefined> {
-    const Key = buildKey(id);
-    // TODO: futuro buscar no cloudfront
-    try {
-        const res = await amazons3Client.send(
-            new GetObjectCommand({
-                Bucket: s3Bucket
-                , Key
-            })
-        );
-        const text = await (res.Body as any)?.transformToString?.();
-        if (text) {
-            const raw = JSON.parse(text) as {
-                id: string;
-                name: string;
-                slug: string;
-                address: {
-                    street: string;
-                    number?: string;
-                    complement?: string;
-                    district?: string;
-                    city: string;
-                    state: string;
-                    state_full?: string;
-                    postal_code?: string;
-                    country: string;
-                    country_code: string;
-                };
-                location: string;
-                geo: {
-                    lat: number;
-                    lng: number;
-                };
-                created_at: Date;
-                updated_at: Date;
-                active: boolean;
-            };
+    config: DatabaseConfig,
+    id: number
+): Promise<Company | undefined> {
+    const conn = await createConnection(config);
+    let company: Company | undefined = undefined;
 
-            const company: CompanyEntity = {
-                id: raw.id,
-                name: raw.name,
-                slug: raw.slug,
-                address: {
-                    street: raw.address.street,
-                    number: raw.address.number,
-                    complement: raw.address.complement,
-                    district: raw.address.district,
-                    city: raw.address.city,
-                    state: raw.address.state,
-                    state_full: raw.address.state_full,
-                    postal_code: raw.address.postal_code,
-                    country: raw.address.country,
-                    country_code: raw.address.country_code,
-                },
-                location: raw.location,
-                geo: {
-                    lat: raw.geo.lat,
-                    lng: raw.geo.lng,
-                },
-                created_at: raw.created_at,
-                updated_at: raw.updated_at,
-                formatted_address: buildFormattedAddress(raw.address),
-                active: raw.active
-            };
-            return company;
+    try {
+        const sql = `
+      SELECT
+        c.id, c.name, c.slug, c.address_id, c.location_id, c.location_district_id,
+        c.active, c.created_at, c.updated_at,
+        a.street, a.number, a.complement, a.district, a.city, a.state,
+        a.postal_code, a.country, a.country_code, a.latitude, a.longitude
+      FROM \`company\` c
+      JOIN \`address\` a ON a.id = c.address_id
+      WHERE c.id = ?
+      LIMIT 1`;
+
+        const [rows] = await conn.execute(sql, [id]);
+        const result = rows as CompanyRow[];
+        if (result.length > 0) {
+            company = mapRowToCompany(result[0]);
         }
+    } catch (e) {
+        console.error('Error getting company:', e);
+    } finally {
+        await conn.end();
     }
-    catch (e) {
-        console.log(`Error getting company: ${e}`);
-    }
-    return undefined;
+
+    return company;
 }
 
-export async function upsertCompanyAsync(
-    company: CompanyEntity,
-    s3Bucket: string
-): Promise<Boolean> {
-    let successfullyCreated: Boolean;
+/**
+ * Insere uma nova empresa e um novo endereço.
+ */
+export async function insertCompanyAsync(
+    config: DatabaseConfig,
+    company: Company
+): Promise<number | undefined> {
+    const conn = await createConnection(config);
+    let companyId: number | undefined;
+
     try {
-        const key = buildKey(company.id);
-        await amazons3Client.send(
-            new PutObjectCommand({
-                Bucket: s3Bucket,
-                Key: key,
-                Body: JSON.stringify(company),
-                ContentType: "application/json",
-            })
+        const now = new Date();
+        await conn.beginTransaction();
+
+        // 1) Insere novo endereço
+        const [addrRes]: any = await conn.execute(
+            `
+      INSERT INTO \`address\`
+        (street, number, complement, district, city, state, postal_code,
+         country, country_code, latitude, longitude, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `,
+            [
+                company.address.street,
+                company.address.number ?? null,
+                company.address.complement ?? null,
+                company.address.district ?? null,
+                company.address.city,
+                company.address.state,
+                company.address.postal_code ?? null,
+                company.address.country,
+                company.address.country_code,
+                company.geo.lat,
+                company.geo.lng,
+                now,
+                now,
+            ]
         );
-        successfullyCreated = true;
+
+        const addressId: number = addrRes.insertId;
+
+        // 2) Insere empresa
+        const [result]: any = await conn.execute(
+            `
+      INSERT INTO \`company\`
+        (name, slug, address_id, location_id, location_district_id, active, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `,
+            [
+                company.name,
+                company.slug?.toLowerCase().trim(),
+                addressId,
+                company.locationId,
+                company.locationDistrictId,
+                company.active ?? true,
+                now,
+                now,
+            ]
+        );
+
+        companyId = result.insertId;
+        await conn.commit();
+    } catch (e) {
+        await conn.rollback();
+        console.error('Error inserting company:', e);
+    } finally {
+        await conn.end();
     }
-    catch (e) {
-        console.log(`Error creating company: ${e}`);
-        successfullyCreated = false;
-    }
-    return successfullyCreated;
+
+    return companyId;
 }
 
-function buildFormattedAddress(address: CompanyEntity["address"]): string {
-  const parts: string[] = [];
+/**
+ * Atualiza uma empresa existente e o seu endereço associado.
+ * Não cria novo endereço: edita o já vinculado em company.address_id.
+ */
+export async function updateCompanyAsync(
+    config: DatabaseConfig,
+    company: Company
+): Promise<boolean> {
+    if (!company.id) {
+        throw new Error('company.id é obrigatório para update.');
+    }
 
-  if (address.street) {
-    parts.push(`${address.street}${address.number ? `, ${address.number}` : ""}`);
-  }
-  if (address.complement) {
-    parts.push(address.complement);
-  }
-  if (address.district) {
-    parts.push(address.district);
-  }
-  if (address.city && address.state) {
-    parts.push(`${address.city} - ${address.state}`);
-  } else if (address.city) {
-    parts.push(address.city);
-  }
-  if (address.postal_code) {
-    parts.push(address.postal_code);
-  }
-  if (address.country) {
-    parts.push(address.country);
-  }
+    const conn = await createConnection(config);
+    let success = false;
 
-  return parts.join(", ");
+    try {
+        const now = new Date();
+        await conn.beginTransaction();
+
+        // 1) Carrega o address_id atual da empresa (e garante que a empresa existe)
+        const [rows]: any = await conn.execute(
+            'SELECT address_id FROM `company` WHERE id = ? FOR UPDATE',
+            [company.id]
+        );
+
+        if (!rows || rows.length === 0) {
+            throw new Error(`Empresa id=${company.id} não encontrada.`);
+        }
+        const addressId: number = rows[0].address_id;
+
+        // 2) Atualiza COMPANY (campos editáveis)
+        const [compRes]: any = await conn.execute(
+            `
+      UPDATE \`company\`
+      SET
+        name = ?,
+        slug = ?,
+        location_id = ?,
+        location_district_id = ?,
+        active = ?,
+        updated_at = ?
+      WHERE id = ?
+      `,
+            [
+                company.name,
+                company.slug?.toLowerCase().trim(),
+                company.locationId,
+                company.locationDistrictId,
+                company.active ?? true,
+                now,
+                company.id,
+            ]
+        );
+
+        // 3) Atualiza ADDRESS vinculado
+        const [addrRes]: any = await conn.execute(
+            `
+      UPDATE \`address\`
+      SET
+        street = ?,
+        number = ?,
+        complement = ?,
+        district = ?,
+        city = ?,
+        state = ?,
+        postal_code = ?,
+        country = ?,
+        country_code = ?,
+        latitude = ?,
+        longitude = ?,
+        updated_at = ?
+      WHERE id = ?
+      `,
+            [
+                company.address.street,
+                company.address.number ?? null,
+                company.address.complement ?? null,
+                company.address.district ?? null,
+                company.address.city,
+                company.address.state,
+                company.address.postal_code ?? null,
+                company.address.country,
+                company.address.country_code,
+                company.geo.lat,
+                company.geo.lng,
+                now,
+                addressId,
+            ]
+        );
+
+        // Se a empresa existia, consideramos sucesso (mesmo que não haja mudança de valores)
+        success = compRes.affectedRows >= 0 && addrRes.affectedRows >= 0;
+
+        await conn.commit();
+    } catch (e) {
+        await conn.rollback();
+        console.error('Error updating company and address:', e);
+    } finally {
+        await conn.end();
+    }
+
+    return success;
+}
+
+export async function updateCompanyActiveAsync(
+    config: DatabaseConfig,
+    companyId: number,
+    active: boolean
+): Promise<boolean> {
+    if (typeof companyId !== 'number' || companyId <= 0) {
+        throw new Error('companyId é obrigatório e deve ser um número válido.');
+    }
+
+    const conn = await createConnection(config);
+    let success = false;
+
+    try {
+        const now = new Date();
+        await conn.beginTransaction();
+        const [result]: any = await conn.execute(
+            `
+      UPDATE \`company\`
+      SET active = ?, updated_at = ?
+      WHERE id = ?
+      `,
+            [active, now, companyId]
+        );
+
+        success = result.affectedRows > 0;
+        await conn.commit();
+    } catch (e) {
+        await conn.rollback();
+        console.error('Error updating company active status:', e);
+    } finally {
+        await conn.end();
+    }
+    return success;
+}
+
+function escapeLikeTermRaw(term: string): string {
+  // escape backslash first
+  return term.replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_');
+}
+
+export async function listCompaniesAsync(
+  config: DatabaseConfig,
+  skip: number,
+  take: number,
+  name?: string | null
+): Promise<CompanyListItem[]> {
+  // validação rígida
+  if (!Number.isInteger(skip) || skip < 0) {
+    throw new Error('skip inválido — deve ser inteiro >= 0');
+  }
+  if (!Number.isInteger(take) || take <= 0) {
+    throw new Error('take inválido — deve ser inteiro > 0');
+  }
+  const MAX_TAKE = 500;
+  const safeTake = Math.min(take, MAX_TAKE);
+
+  const conn = await createConnection(config);
+
+  try {
+    // usamos o escape do próprio connection para garantir compatibilidade com o driver
+    // conn.escape(value) -> string segura pronta para interpolação
+    let whereClause = '';
+    if (name && name.trim() !== '') {
+      const raw = escapeLikeTermRaw(name.trim());
+      const likeWithPercents = `%${raw}%`;
+      // conn.escape adiciona aspas, por ex: "'%termo%'" e faz escaping apropriado
+      const escapedLike = conn.escape(likeWithPercents);
+      // Importante: definimos ESCAPE '\' se sua collation usar isso como padrão (opcional)
+      whereClause = `WHERE name LIKE ${escapedLike} ESCAPE '\\'`;
+    }
+
+    // escape de números com conn.escape também é seguro — garante que algo malformado vire '0' ou seja escapado
+    // porém fazemos validação acima; aqui apenas convertemos e escapamos
+    const escapedOffset = conn.escape(skip);      // ex:  '0'
+    const escapedRowCount = conn.escape(safeTake); // ex: '10'
+
+    const sql = `
+      SELECT id, name, slug, active
+      FROM \`company\`
+      ${whereClause}
+      ORDER BY name ASC, id ASC
+      LIMIT ${escapedOffset}, ${escapedRowCount}
+    `;
+
+    // Como tudo já foi escapado, podemos executar sem parâmetros
+    const [rows]: any = await conn.query(sql);
+
+    return (rows || []).map((r: any) => ({
+      id: String(r.id),
+      name: r.name,
+      slug: r.slug,
+      active: !!r.active,
+    }));
+  } finally {
+    await conn.end();
+  }
 }

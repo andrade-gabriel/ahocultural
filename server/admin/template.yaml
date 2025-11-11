@@ -11,6 +11,19 @@ Mappings:
         AuthorizerId: 1apnn6
         OpenSearchDomain: search-ahocultural-qa-2o6wra2alh6cjmp6ycl5nzgpvy.us-east-1.es.amazonaws.com
         CdnUrl: https://qa.ahocultural.com
+        VpcId: 'vpc-037d9670c525ce3b4'
+        SubnetA: 'subnet-049a592833b7912e2'
+        SubnetB: 'subnet-00be133ebb883899d'
+        DatabaseName: 'aho'
+        InstanceClass: 'db.t3.micro'  ## free tier
+        EngineVersion: '8.4.6'
+        AllocatedStorage: 20
+        DbHost: 'rds-aho-qa.c8zgqsy8ou3j.us-east-1.rds.amazonaws.com'
+        DbPort: 3306
+        DbUser: 'admin'
+        DbPassword: 'aB8d3F9kLm2Pq7Rt'
+        DbName: 'aho'
+        DbSsl: 'true'
       prod:
         ApiGatewayId: '1111'
         V1Resource: '1111'
@@ -23,13 +36,97 @@ Parameters:
     AllowedValues:
     - qa
     - prod
+  DBUsername:
+    Description: Database Username
+    Type: String
+    Default: admin
+  DBPassword:
+    Description: Database Password
+    Type: String
+    NoEcho: true
 
 Globals:
   Function:
     Timeout: 5
     MemorySize: 256
+    Environment:
+      Variables:
+        DATABASE_HOST: !FindInMap [EnvironmentMap, !Ref 'Environment', DbHost]
+        DATABASE_PORT: !FindInMap [EnvironmentMap, !Ref 'Environment', DbPort]
+        DATABASE_USER: !FindInMap [EnvironmentMap, !Ref 'Environment', DbUser]
+        DATABASE_PASSWORD: !FindInMap [EnvironmentMap, !Ref 'Environment', DbPassword]
+        DATABASE_NAME: !FindInMap [EnvironmentMap, !Ref 'Environment', DbName]
+        DATABASE_SSL: !FindInMap [EnvironmentMap, !Ref 'Environment', DbSsl]
 
 Resources:
+  RDSSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: SG do RDS MySQL
+      VpcId: !FindInMap [EnvironmentMap, !Ref 'Environment', VpcId]
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 3306
+          ToPort: 3306
+          CidrIp: 179.167.223.185/32          # restrito ao IP da minha rede
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: !Sub rds-aho-${Environment}-sg
+
+  # Subnet Group usando as duas subnets privadas informadas
+  RDSSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: Subnet Group para RDS MySQL QA
+      DBSubnetGroupName: !Sub rds-aho-${Environment}-subnetgrp
+      SubnetIds:
+        - !FindInMap [EnvironmentMap, !Ref 'Environment', SubnetA]
+        - !FindInMap [EnvironmentMap, !Ref 'Environment', SubnetB]
+
+  MySqlParameterGroup:
+    Type: AWS::RDS::DBParameterGroup
+    Properties:
+      Description: Param group MySQL 8.0 (TLS obrigatório)
+      Family: mysql8.4
+      Parameters:
+        character_set_server: utf8mb4
+        collation_server: utf8mb4_unicode_ci
+        require_secure_transport: 'ON'     # TLS
+
+  # Instancia RDS MySQL
+  MySqlInstance:
+    Type: AWS::RDS::DBInstance
+    DeletionPolicy: Snapshot
+    UpdateReplacePolicy: Snapshot
+    Properties:
+      DBInstanceIdentifier: !Sub rds-aho-${Environment}
+      Engine: mysql
+      EngineVersion: !FindInMap [EnvironmentMap, !Ref 'Environment', EngineVersion]
+      DBName: !FindInMap [EnvironmentMap, !Ref 'Environment', DatabaseName]
+      MasterUsername: !Ref DBUsername
+      MasterUserPassword: !Ref DBPassword
+
+      DBInstanceClass: !FindInMap [EnvironmentMap, !Ref 'Environment', InstanceClass]
+      AllocatedStorage: !FindInMap [EnvironmentMap, !Ref 'Environment', AllocatedStorage]
+      MaxAllocatedStorage: !FindInMap [EnvironmentMap, !Ref 'Environment', AllocatedStorage]
+      StorageType: gp2
+      StorageEncrypted: true
+      CopyTagsToSnapshot: true
+
+      PubliclyAccessible: true
+      MultiAZ: false
+      BackupRetentionPeriod: 7
+      PreferredBackupWindow: "03:00-04:00"
+      AutoMinorVersionUpgrade: true
+
+      DBSubnetGroupName: !Ref RDSSubnetGroup
+      VPCSecurityGroups:
+        - !GetAtt RDSSecurityGroup.GroupId
+      DBParameterGroupName: !Ref MySqlParameterGroup
+
   AdminResource:
     Type: 'AWS::ApiGateway::Resource'
     Properties:
@@ -1635,3 +1732,17 @@ Resources:
       Properties:
         RestApiId: !FindInMap [EnvironmentMap, !Ref 'Environment', ApiGatewayId]
         StageName: !Ref Environment
+
+Outputs:
+  RDSEndpoint:
+    Description: Endpoint do MySQL
+    Value: !GetAtt MySqlInstance.Endpoint.Address
+  RDSPort:
+    Description: Porta do MySQL
+    Value: !GetAtt MySqlInstance.Endpoint.Port
+  RdsSecurityGroupId:
+    Description: Security Group do RDS
+    Value: !Ref RDSSecurityGroup
+  RdsSubnetGroupName:
+    Description: DB Subnet Group
+    Value: !Ref RDSSubnetGroup

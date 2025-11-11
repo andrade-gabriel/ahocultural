@@ -1,7 +1,7 @@
-import { CompanyRequest } from "./types";
+import { Company } from "./types";
 
 export function validateCompany(
-  company: CompanyRequest
+  company: Company
 ): string[] {
   const errors: string[] = [];
 

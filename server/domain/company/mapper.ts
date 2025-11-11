@@ -1,12 +1,39 @@
-import { CompanyRequest, CompanyEntity, CompanyIndex, CompanyListRequest } from "./types";
+import { Company, CompanyRow } from "./types";
+
+export const mapRowToCompany = (row: CompanyRow): Company => ({
+    id: row.id,
+    name: row.name,
+    slug: row.slug,
+    address: {
+        street: row.street,
+        number: row.number ?? undefined,
+        complement: row.complement ?? undefined,
+        district: row.district ?? undefined,
+        city: row.city,
+        state: row.state,
+        state_full: undefined,
+        postal_code: row.postal_code ?? undefined,
+        country: row.country,
+        country_code: row.country_code,
+    },
+    locationId: row.location_id,
+    locationDistrictId: row.location_district_id,
+    geo: {
+        lat: row.latitude,
+        lng: row.longitude,
+    },
+    created_at: new Date(row.created_at),
+    updated_at: new Date(row.updated_at),
+    active: !!row.active,
+});
 
 export function toCompanyEntity(
-    input: CompanyRequest,
-    existingCompanyEntity: CompanyEntity | undefined
-): CompanyEntity {
+    input: Company,
+    existingCompanyEntity: Company | undefined
+): Company {
     const now = new Date();
     return {
-        id: input.id?.trim() ?? '',
+        id: input.id ?? 0,
         name: input.name.trim(),
         slug: input.slug.trim(),
         address: {
@@ -21,7 +48,8 @@ export function toCompanyEntity(
             country: input.address.country.trim(),
             country_code: input.address.country_code.trim().toUpperCase()
         },
-        location: input.location.trim(),
+        locationId: input.locationId ?? 0,
+        locationDistrictId: input.locationDistrictId ?? 0,
         geo: {
             lat: input.geo.lat,
             lng: input.geo.lng
@@ -30,69 +58,4 @@ export function toCompanyEntity(
         updated_at: now,
         active: input.active
     };
-}
-
-export function toCompanyRequest(
-    input: CompanyEntity
-): CompanyRequest {
-    return {
-        id: input.id,
-        name: input.name,
-        slug: input.slug,
-        address: {
-            street: input.address.street,
-            number: input.address.number,
-            complement: input.address.complement,
-            district: input.address.district,
-            city: input.address.city,
-            state: input.address.state,
-            state_full: input.address.state_full,
-            postal_code: input.address.postal_code,
-            country: input.address.country,
-            country_code: input.address.country_code
-        },
-        location: input.location,
-        geo: {
-            lat: input.geo.lat,
-            lng: input.geo.lng
-        },
-        active: input.active
-    };
-}
-
-export function toCompanyListRequest(
-    input: CompanyIndex
-) : CompanyListRequest {
-    return {
-        id: input.id,
-        name: input.name,
-        slug: input.slug,
-        active: input.active
-    }
-}
-
-export function toCompanyIndex(
-  input: CompanyEntity
-): CompanyIndex {
-  return {
-    id: input.id.trim(),
-    name: input.name.trim(),
-    slug: input.slug.trim(),
-    street: input.address.street.trim(),
-    number: input.address.number?.trim(),
-    complement: input.address.complement?.trim(),
-    district: input.address.district?.trim(),
-    city: input.address.city.trim(),
-    state: input.address.state.trim(),
-    state_full: input.address.state_full?.trim(),
-    postal_code: input.address.postal_code?.trim(),
-    country: input.address.country.trim(),
-    country_code: input.address.country_code.trim().toUpperCase(),
-    location: input.location.trim(),
-    geo: {
-      lat: input.geo.lat ?? 0,
-      lon: input.geo.lng ?? 0
-    },
-    active: input.active
-  };
 }

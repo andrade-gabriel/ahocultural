@@ -1,14 +1,10 @@
 import type { APIGatewayProxyEvent } from 'aws-lambda';
 import { config } from './config'
-import { tryParseJson } from '@utils/request/parser';
 import { DefaultResponse } from "@utils/response/types"
-import { CompanyEntity, CompanyIndex, CompanyListRequest, CompanyToggleRequest } from '@company/types';
+import { Company, CompanyListItem } from '@company/types';
 import { validateCompany } from '@company/validator';
-import { toCompanyEntity, toCompanyListRequest, toCompanyRequest } from '@company/mapper';
-import { getCompanyAsync, upsertCompanyAsync } from '@company/store';
-import { notifyAsync } from '@company/notifier';
-import { getAsync } from '@company/indexer';
-import { randomUUID } from 'node:crypto';
+import { toCompanyEntity } from '@company/mapper';
+import { getCompanyAsync, insertCompanyAsync, listCompaniesAsync, updateCompanyActiveAsync, updateCompanyAsync } from '@company/store';
 
 type HandlerFn = (event: APIGatewayProxyEvent) => Promise<DefaultResponse>;
 const handlerFactory = new Map<string, HandlerFn>([
@@ -29,13 +25,14 @@ export async function getHandler(event: APIGatewayProxyEvent): Promise<DefaultRe
 }
 
 export async function getByIdHandler(event: APIGatewayProxyEvent): Promise<DefaultResponse> {
-    const id: string | undefined = event.pathParameters?.id;
+    const idParam = event.pathParameters?.id;
+    const id: number | undefined = idParam ? parseInt(idParam, 10) : undefined;
     if (id) {
-        const companyEntity: CompanyEntity | undefined = await getCompanyAsync(id, config.s3.bucket);
-        if (companyEntity) {
+        const company: Company | undefined = await getCompanyAsync(config, id);
+        if (company) {
             return {
                 success: true,
-                data: toCompanyRequest(companyEntity)
+                data: company
             };
         }
         return {
@@ -57,17 +54,15 @@ export async function listIdHandler(event: APIGatewayProxyEvent): Promise<Defaul
     const take = qs.take ? parseInt(qs.take, 10) : 10;
     const name = qs.name ? qs.name : null;
 
-    const indexedCompanies: CompanyIndex[] = await getAsync(config, skip, take, name);
-    const companies: CompanyListRequest[] = indexedCompanies.map(indexedCompany => toCompanyListRequest(indexedCompany));
+    const indexedCompanies: CompanyListItem[] = await listCompaniesAsync(config, skip, take, name);
     return {
         success: true,
-        data: companies
+        data: indexedCompanies
     };
 }
 
 export async function postHandler(event: APIGatewayProxyEvent): Promise<DefaultResponse> {
     const req = event.body ? JSON.parse(event.body) : {
-        id: "",
         name: "",
         slug: "",
         address: {
@@ -90,19 +85,15 @@ export async function postHandler(event: APIGatewayProxyEvent): Promise<DefaultR
     };
     let errors: string[] = validateCompany(req);
     if (errors.length == 0) {
-        req.id = randomUUID();
-        const companyEntity = await toCompanyEntity(req, undefined);
-        if (!await upsertCompanyAsync(companyEntity, config.s3.bucket))
+        const company = await toCompanyEntity(req, undefined);
+        const id = await insertCompanyAsync(config, company);
+        if (id)
+            return {
+                success: true,
+                data: id
+            }
+        else
             errors = ["Failed to Insert Company - Please, contact suport."];
-        else {
-            if (await notifyAsync(config.sns.companyTopic, {
-                id: req.id
-            }))
-                return {
-                    success: true,
-                    data: req.id
-                }
-        }
     }
     return {
         success: false,
@@ -137,19 +128,12 @@ export async function putHandler(event: APIGatewayProxyEvent): Promise<DefaultRe
     req.id = event.pathParameters?.id ?? '';
     let errors: string[] = validateCompany(req);
     if (errors.length == 0) {
-        const existingCompanyEntity: CompanyEntity | undefined = await getCompanyAsync(req.id, config.s3.bucket);
+        const existingCompanyEntity: Company | undefined = await getCompanyAsync(config, req.id);
         if (existingCompanyEntity) {
-            const companyEntity = await toCompanyEntity(req, existingCompanyEntity);
-            if (!await upsertCompanyAsync(companyEntity, config.s3.bucket))
-                errors = ["Failed to Update Company - Please, contact suport!"];
-            else {
-                if (await notifyAsync(config.sns.companyTopic, {
-                    id: req.id
-                }))
-                    return {
-                        success: true,
-                        data: true
-                    }
+            const company = await toCompanyEntity(req, existingCompanyEntity);
+            return {
+                success: true,
+                data: await updateCompanyAsync(config, company)
             }
         }
         else
@@ -162,31 +146,20 @@ export async function putHandler(event: APIGatewayProxyEvent): Promise<DefaultRe
 }
 
 export async function patchHandler(event: APIGatewayProxyEvent): Promise<DefaultResponse> {
-    const id: string | undefined = event.pathParameters?.id;
-    const req: CompanyToggleRequest = tryParseJson<CompanyToggleRequest>(event.body, {
+    const idParam = event.pathParameters?.id;
+    const id: number | undefined = idParam ? parseInt(idParam, 10) : undefined;
+    const req = event.body ? JSON.parse(event.body) : {
         active: false
-    });
+    };
     let errors: string[] = [];
     if (!id)
         errors.push('Campo `id` deve ser preenchido.');
 
     if (req.active != null && id && errors.length == 0) {
-        const existingCompanyEntity: CompanyEntity | undefined = await getCompanyAsync(id, config.s3.bucket);
-        if (existingCompanyEntity) {
-            existingCompanyEntity.active = req.active;
-            if (!await upsertCompanyAsync(existingCompanyEntity, config.s3.bucket))
-                errors = ["Failed to Upsert Company `" + id + "`- Please, contact suport."];
-            else {
-                if (await notifyAsync(config.sns.companyTopic, {
-                    id
-                }))
-                    return {
-                        success: true,
-                        data: true
-                    }
-            }
-        } else
-            errors = ["Empresa `" + id + "` não existe para ser alterada"]
+        return {
+            success: true,
+            data: await updateCompanyActiveAsync(config, id, req.active)
+        }
     }
     return {
         success: false,

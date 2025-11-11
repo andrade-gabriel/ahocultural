@@ -1,83 +1,79 @@
-import { S3Client, GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
 import type { UserEntity } from "./types";
+import { createConnection } from "@db/connection";
+import { DatabaseConfig } from "@db/types";
 
-/** Constant Properties */
-const DEFAULT_PREFIX = "users";
-const amazons3Client = new S3Client({
-    region: 'us-east-1'
+const mapRowToUser = (row: any): UserEntity => ({
+    email: row.email ?? '',
+    firstName: row.first_name ?? '',
+    password: row.password ?? '',
+    active: !!row.active,
+    createdAt: new Date(row.created_at ?? new Date()),
+    updatedAt: new Date(row.updated_at ?? new Date()),
 });
 
-export function buildKey(
-    email: string
-): string {
-    const key = `${DEFAULT_PREFIX}/${encodeURIComponent(email.toLowerCase().trim())}.json`;
-    return key;
-}
+export async function getUserAsync(config: DatabaseConfig, email: string): Promise<UserEntity | undefined> {
+    const conn = await createConnection(config);
+    let user: UserEntity | undefined = undefined;
 
-export async function getUserAsync(
-    email: string,
-    s3Bucket: string
-): Promise<UserEntity | undefined>
-{
-    const Key = buildKey(email);
-    try
-    {
-        const res = await amazons3Client.send(
-            new GetObjectCommand({ 
-                Bucket: s3Bucket
-                , Key 
-            })
+    try {
+        const [rows] = await conn.execute(
+            `
+      SELECT email, first_name, password, active, created_at, updated_at
+      FROM \`user\`
+      WHERE email = ?
+      LIMIT 1
+      `,
+            [email.toLowerCase().trim()]
         );
-        const text = await (res.Body as any)?.transformToString?.();
-        if (text)
-        {
-            const raw = JSON.parse(text) as {
-                email: string;
-                firstName: string;
-                createdAt: Date;
-                updatedAt: Date;
-                password: string;
-                active: boolean;
-            };
-            return {
-                email: raw.email,
-                firstName: raw.firstName,
-                createdAt: raw.createdAt,
-                updatedAt: raw.updatedAt,
-                password: raw.password,
-                active: raw.active
-            }
+
+        const result = rows as any[];
+        if (result.length > 0) {
+            user = mapRowToUser(result[0]);
         }
-    }
-    catch(e)
-    {
+    } catch (e) {
         console.log(`Error getting user: ${e}`);
+    } finally {
+        await conn.end();
     }
-    return undefined;
+    return user;
 }
 
-export async function upsertUserAsync(
-  user: UserEntity,
-  s3Bucket: string
-): Promise<Boolean> {
-    let successfullyCreated: Boolean;
-    try
-    {
-        const key = buildKey(user.email);
-        await amazons3Client.send(
-            new PutObjectCommand({
-                Bucket: s3Bucket,
-                Key: key,
-                Body: JSON.stringify(user),
-                ContentType: "application/json",
-            })
-        );
-        successfullyCreated = true;
+export async function saveUserAsync(
+  config: DatabaseConfig,
+  user: UserEntity
+): Promise<boolean> {
+  let success = false;
+  const conn = await createConnection(config);
+
+  try {
+    const now = new Date();
+    const createdAt = user.createdAt ?? now;
+    const updatedAt = user.updatedAt ?? now;
+
+    const sql = `
+      INSERT INTO \`user\` (email, password, first_name, active, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?)`;
+
+    await conn.execute(sql, [
+      user.email.toLowerCase().trim(),
+      user.password,
+      user.firstName,
+      user.active ?? true,
+      createdAt,
+      updatedAt,
+    ]);
+
+    success = true;
+  } catch (e: any) {
+    // 1062 = ER_DUP_ENTRY (email já existe)
+    if (e?.code === 'ER_DUP_ENTRY' || e?.errno === 1062) {
+      console.warn(`User already exists (email UNIQUE): ${user.email}`);
+    } else {
+      console.error(`Error inserting user:`, e);
     }
-    catch(e)
-    {
-        console.log(`Error creating user: ${e}`);
-        successfullyCreated = false;
-    }
-    return successfullyCreated;
+  } finally {
+    await conn.end();
+  }
+
+  return success;
 }

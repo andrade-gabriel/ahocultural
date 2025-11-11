@@ -10,6 +10,12 @@ Mappings:
         V1Resource: mbsw8v
         JwtSecretHash: b63e00f0d6a7c482cc73b6ec7bb93b95c90f45e98c63f6b0d71cb0dcd2480d89db7cf72505c3ad1d49d2e33a7b4e3246
         JwtExpirationTime: 14400
+        DbHost: 'rds-aho-qa.c8zgqsy8ou3j.us-east-1.rds.amazonaws.com'
+        DbPort: 3306
+        DbUser: 'admin'
+        DbPassword: 'aB8d3F9kLm2Pq7Rt'
+        DbName: 'aho'
+        DbSsl: 'true'
       prod:
         ApiGatewayId: '1111'
         V1Resource: '1111'
@@ -25,8 +31,16 @@ Parameters:
 
 Globals:
   Function:
-    Timeout: 5
+    Timeout: 15
     MemorySize: 256
+    Environment:
+      Variables:
+        DATABASE_HOST: !FindInMap [EnvironmentMap, !Ref 'Environment', DbHost]
+        DATABASE_PORT: !FindInMap [EnvironmentMap, !Ref 'Environment', DbPort]
+        DATABASE_USER: !FindInMap [EnvironmentMap, !Ref 'Environment', DbUser]
+        DATABASE_PASSWORD: !FindInMap [EnvironmentMap, !Ref 'Environment', DbPassword]
+        DATABASE_NAME: !FindInMap [EnvironmentMap, !Ref 'Environment', DbName]
+        DATABASE_SSL: !FindInMap [EnvironmentMap, !Ref 'Environment', DbSsl]
 
 Resources:
   AccessResource:

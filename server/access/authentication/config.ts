@@ -11,7 +11,12 @@ export const config = {
     secret: requireEnv("JWT_SECRET"),
     expiresInSeconds: parseInt(requireEnv("JWT_EXPIRES_IN"), 10),
   },
-  s3: {
-    bucket: requireEnv("BUCKET_DATABASE"),
-  },
+  database: {
+    host: requireEnv("DATABASE_HOST"),
+    port: parseInt(requireEnv("DATABASE_PORT"), 10),
+    user: requireEnv("DATABASE_USER"),
+    password: requireEnv("DATABASE_PASSWORD"),
+    name: requireEnv("DATABASE_NAME"),
+    ssl: requireEnv("DATABASE_SSL")?.toLowerCase().trim() === 'true'
+  }
 };

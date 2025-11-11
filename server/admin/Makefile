@@ -6,6 +6,9 @@ STACK_NAME=AhoCultural-Admin
 REGION=us-east-1
 TSCONFIG:=../tsconfig.json
 
+DB_PASSWORD_QA := 'aB8d3F9kLm2Pq7Rt'
+DB_PASSWORD_PROD := '9yH3vZ6wQ1rT8nLp'
+
 ts:
 	npm install
 	npx esbuild ./company/app.ts \
@@ -55,7 +58,7 @@ package-qa:
 	sam package --output-template-file deployment.yaml --s3-bucket $(S3_BUCKET_QA) --profile AHO
 
 deploy-qa:
-	sam deploy --template-file deployment.yaml --region $(REGION) --capabilities CAPABILITY_IAM --s3-bucket $(S3_BUCKET_QA) --stack-name $(STACK_NAME)-Qa --parameter-overrides Environment=qa --profile AHO
+	sam deploy --template-file deployment.yaml --region $(REGION) --capabilities CAPABILITY_IAM --s3-bucket $(S3_BUCKET_QA) --stack-name $(STACK_NAME)-Qa --parameter-overrides Environment=qa DBUsername=admin DBPassword=$(DB_PASSWORD_QA) --profile AHO
 
 qa: build package-qa deploy-qa
 
@@ -63,6 +66,13 @@ package-prod:
 	sam package --output-template-file deployment.yaml --s3-bucket $(S3_BUCKET_PROD) --profile AHO
 
 deploy-prod:
-	sam deploy --template-file deployment.yaml --region $(REGION) --capabilities CAPABILITY_IAM --s3-bucket $(S3_BUCKET_QA) --stack-name $(STACK_NAME)-Prod --parameter-overrides Environment=prod --profile AHO
+	sam deploy \
+		--template-file deployment.yaml \
+		--region $(REGION) \
+		--capabilities CAPABILITY_IAM \
+		--s3-bucket $(S3_BUCKET_PROD) \
+		--stack-name $(STACK_NAME)-Prod \
+		--parameter-overrides Environment=prod DBUsername=admin DBPassword=$(DB_PASSWORD_PROD) \
+		--profile AHO
 
 prod: build package-prod deploy-prod

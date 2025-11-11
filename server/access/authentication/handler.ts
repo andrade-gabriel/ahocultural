@@ -9,7 +9,7 @@ export async function handleAuthentication(
     password: string
 ): Promise<JwtAuthentication | null> {
 
-    const user = await getUserAsync(email, config.s3.bucket);
+    const user = await getUserAsync(config, email);
     if (user && user.active) {
         if (await bcrypt.compare(password, user.password)) {
             // generate jwt based on

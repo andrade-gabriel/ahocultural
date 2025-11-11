@@ -11,6 +11,11 @@ Mappings:
       MinTTL: 300
       DefaultTTL: 86400
       MaxTTL: 31536000
+      VpcCidr: 10.10.0.0/16
+      PublicSubnetACidr: 10.10.0.0/24
+      PublicSubnetBCidr: 10.10.1.0/24
+      PrivateSubnetACidr: 10.10.10.0/24
+      PrivateSubnetBCidr: 10.10.11.0/24
     prod:
       Domain: ahocultural.com
       BucketName: ahocultural-static-prod
@@ -18,6 +23,11 @@ Mappings:
       MinTTL: 300
       DefaultTTL: 86400
       MaxTTL: 31536000
+      VpcCidr: 10.20.0.0/16
+      PublicSubnetACidr: 10.20.0.0/24
+      PublicSubnetBCidr: 10.20.1.0/24
+      PrivateSubnetACidr: 10.20.10.0/24
+      PrivateSubnetBCidr: 10.20.11.0/24
 Parameters:
   Environment:
     Type: String
@@ -28,6 +38,120 @@ Parameters:
     Type: String
     Description: SSL Certificate Identification for API Gateway Webhook
 Resources:
+  # VPC
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !FindInMap [EnvironmentMap, !Ref 'Environment', VpcCidr]
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      Tags:
+        - Key: Name
+          Value: !Sub ahocultural-${Environment}
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-igw
+  VPCGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+  
+  # Subnets
+  PublicSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !FindInMap [EnvironmentMap, !Ref 'Environment', PublicSubnetACidr]
+      AvailabilityZone: !Select [0, !GetAZs '']
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-public-a"
+  PublicSubnetB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !FindInMap [EnvironmentMap, !Ref 'Environment', PublicSubnetBCidr]
+      AvailabilityZone: !Select [1, !GetAZs '']
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-public-b"
+  PrivateSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !FindInMap [EnvironmentMap, !Ref 'Environment', PrivateSubnetACidr]
+      AvailabilityZone: !Select [0, !GetAZs '']
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-private-a"
+  PrivateSubnetB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !FindInMap [EnvironmentMap, !Ref 'Environment', PrivateSubnetBCidr]
+      AvailabilityZone: !Select [1, !GetAZs '']
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-private-b"
+
+  # Route Tables
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-public-rt"
+  PublicDefaultRoute:
+    Type: AWS::EC2::Route
+    DependsOn: VPCGatewayAttachment
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+  PublicSubnetAAssoc:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnetA
+      RouteTableId: !Ref PublicRouteTable
+  PublicSubnetBAssoc:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnetB
+      RouteTableId: !Ref PublicRouteTable
+  PrivateRouteTableA:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-private-a-rt"
+  PrivateRouteTableB:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-private-b-rt"
+  PrivateSubnetAAssoc:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnetA
+      RouteTableId: !Ref PrivateRouteTableA
+  PrivateSubnetBAssoc:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnetB
+      RouteTableId: !Ref PrivateRouteTableB
+
   ## Database Bucket
   DatabaseBucket:
     Type: AWS::S3::Bucket
@@ -499,3 +623,18 @@ Outputs:
     Value: !Ref V1Resource
     Export:
       Name: 'AhoCultural-V1Resource'
+  VpcId:
+    Description: VPC Id
+    Value: !Ref VPC
+  PublicSubnetAId:
+    Description: Subnet pública A
+    Value: !Ref PublicSubnetA
+  PublicSubnetBId:
+    Description: Subnet pública B
+    Value: !Ref PublicSubnetB
+  PrivateSubnetAId:
+    Description: Subnet privada A
+    Value: !Ref PrivateSubnetA
+  PrivateSubnetBId:
+    Description: Subnet privada B
+    Value: !Ref PrivateSubnetB

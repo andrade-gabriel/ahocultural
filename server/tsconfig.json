@@ -9,6 +9,7 @@
     "outDir": "dist",
     "baseUrl": ".",
     "paths": {
+      "@db/*": ["./db/*"],
       "@utils/*": ["./utils/*"],
       "@user/*": ["./domain/user/*"],
       "@category/*": ["./domain/category/*"],
