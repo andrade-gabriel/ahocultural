@@ -273,7 +273,7 @@ function CategoriesTable() {
 
   function askToggleConfirm(category: Category) {
     setTargetId(category.id);
-    setTargetName(category.name.pt);
+    setTargetName(category.name_pt.pt);
     setNextActive(!category.active);
     setConfirmOpen(true);
   }
@@ -335,15 +335,15 @@ function CategoriesTable() {
             return (
               <TableRow key={c.id}>
                 <TableCell className="font-medium underline">
-                  <Link to={`/category/${c.id}`}>{c.name.pt}</Link>
+                  <Link to={`/category/${c.id}`}>{c.name_pt}</Link>
                 </TableCell>
-                <TableCell className="font-mono text-xs text-muted-foreground">{c.slug.pt}</TableCell>
+                <TableCell className="font-mono text-xs text-muted-foreground">{c.slug_pt}</TableCell>
                 <TableCell>
                   <Switch
                     checked={c.active}
                     onCheckedChange={() => askToggleConfirm(c)}
                     disabled={isSaving || loading}
-                    aria-label={`Ativar/desativar ${c.name}`}
+                    aria-label={`Ativar/desativar ${c.name_pt}`}
                   />
                 </TableCell>
               </TableRow>

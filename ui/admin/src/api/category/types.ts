@@ -9,12 +9,8 @@ export type ListCategorysParams = {
 
 export type Category = {
   id: string;
-  // parent_id: string | null;
-  // parent_name: string | null;
-  // parent_slug: string | null;
-  name: I18nValue;
-  slug: I18nValue;
-  description: I18nNullableValue;
+  name_pt: string;
+  slug_pt: string;
   active: boolean;
 };
 

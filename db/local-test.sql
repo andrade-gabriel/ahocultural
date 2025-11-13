@@ -160,3 +160,108 @@ WHERE a.street = 'R. Joaquim Antunes'
   AND a.number = '210'
   AND a.postal_code = '05415-010'
   AND NOT EXISTS (SELECT 1 FROM company c WHERE c.slug = 'mani');
+  
+INSERT IGNORE INTO `category` (
+  `name_pt`, `name_en`, `name_es`,
+  `slug_pt`, `slug_en`, `slug_es`,
+  `description_pt`, `description_en`, `description_es`,
+  `active`
+)
+VALUES
+-- 1) Cinema & Teatro
+(
+  'Cinema & Teatro',
+  'Cinema & Theater',
+  'Cine y Teatro',
+  'cinema-e-teatro',
+  'cinema-and-theater',
+  'cine-y-teatro',
+  'Espetáculos, peças e exibições de filmes em geral',
+  'Shows, plays and general movie screenings',
+  'Espectáculos, obras y proyecciones de películas en general',
+  TRUE
+),
+
+-- 2) Arte & Design
+(
+  'Arte & Design',
+  'Art & Design',
+  'Arte y Diseño',
+  'arte-e-design',
+  'art-and-design',
+  'arte-y-diseno',
+  'Categorias relacionadas a arte, design e criatividade',
+  'Categories related to art, design and creativity',
+  'Categorías relacionadas con arte, diseño y creatividad',
+  TRUE
+),
+
+-- 3) Restaurante Japonês
+(
+  'Restaurante Japonês',
+  'Japanese Restaurant',
+  'Restaurante Japonés',
+  'restaurante-japones',
+  'japanese-restaurant',
+  'restaurante-japones',
+  'Culinária japonesa e restaurantes especializados em sushi e sashimi',
+  'Japanese cuisine and restaurants specialized in sushi and sashimi',
+  'Cocina japonesa y restaurantes especializados en sushi y sashimi',
+  TRUE
+),
+
+-- 4) Restaurante Árabe
+(
+  'Restaurante Árabe',
+  'Arabic Restaurant',
+  'Restaurante Árabe',
+  'restaurante-arabe',
+  'arabic-restaurant',
+  'restaurante-arabe',
+  'Culinária árabe e restaurantes especializados em comida do Oriente Médio',
+  'Arabic cuisine and restaurants specialized in Middle Eastern food',
+  'Cocina árabe y restaurantes especializados en comida del Medio Oriente',
+  TRUE
+),
+
+-- 5) Restaurante Italiano
+(
+  'Restaurante Italiano',
+  'Italian Restaurant',
+  'Restaurante Italiano',
+  'restaurante-italiano',
+  'italian-restaurant',
+  'restaurante-italiano',
+  'Culinária italiana e restaurantes especializados em massas e pizzas',
+  'Italian cuisine and restaurants specialized in pasta and pizza',
+  'Cocina italiana y restaurantes especializados en pastas y pizzas',
+  TRUE
+),
+
+-- 6) Comida & Bebida
+(
+  'Comida & Bebida',
+  'Food & Drinks',
+  'Comida y Bebida',
+  'comida-e-bebida',
+  'food-and-drinks',
+  'comida-y-bebida',
+  'Restaurantes em geral',
+  'Restaurants in general',
+  'Restaurantes en general',
+  TRUE
+),
+
+-- 7) Restaurante Brasileiro
+(
+  'Restaurante Brasileiro',
+  'Brazilian Restaurant',
+  'Restaurante Brasileño',
+  'restaurante-brasileiro',
+  'brazilian-restaurant',
+  'restaurante-brasileno',
+  'Culinária brasileira e restaurantes típicos regionais',
+  'Brazilian cuisine and traditional regional restaurants',
+  'Cocina brasileña y restaurantes típicos regionales',
+  TRUE
+);

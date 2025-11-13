@@ -1,22 +1,23 @@
-import { CategoryRequest } from "./types";
+import { Category } from "./types";
 
-export function validateCategory(
-  category: CategoryRequest
-): string[] {
+export function validateCategory(category: Category): string[] {
   const errors: string[] = [];
 
-  for (const [lang, slug] of Object.entries(category.slug ?? {})) {
-    if (!slug || slug.trim().length < 3) {
-      errors.push(`O campo \`slug.${lang}\` deve ser um slug válido (mínimo 3 caracteres).`);
-    }
-  }
+  // Names
+  if (!category.name.pt || category.name.pt.trim().length < 2)
+    errors.push("O campo `name.pt` deve ser informado.");
+  if (!category.name.en || category.name.en.trim().length < 2)
+    errors.push("O campo `name.en` deve ser informado.");
+  if (!category.name.es || category.name.es.trim().length < 2)
+    errors.push("O campo `name.es` deve ser informado.");
 
-  // name
-  for (const [lang, name] of Object.entries(category.name ?? {})) {
-    if (!name || name.trim().length < 2) {
-      errors.push(`O campo \`name.${lang}\` deve ser informado (mínimo 2 caracteres).`);
-    }
-  }
+  // Slugs
+  if (!category.slug.pt || category.slug.pt.trim().length < 3)
+    errors.push("O campo `slug.pt` deve ter ao menos 3 caracteres.");
+  if (!category.slug.en || category.slug.en.trim().length < 3)
+    errors.push("O campo `slug.en` deve ter ao menos 3 caracteres.");
+  if (!category.slug.es || category.slug.es.trim().length < 3)
+    errors.push("O campo `slug.es` deve ter ao menos 3 caracteres.");
 
   return errors;
 }

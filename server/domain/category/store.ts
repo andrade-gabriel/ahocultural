@@ -1,107 +1,248 @@
-import { S3Client, GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
-import type { CategoryEntity } from "./types";
+// store.ts
 
-/** Constant Properties */
-const DEFAULT_PREFIX = "categories";
-const amazons3Client = new S3Client({
-    region: 'us-east-1'
-});
+import { getConnectionPool } from "@db/connection";
+import type { DatabaseConfig } from "@db/types";
+import type { Category, CategoryListItem, CategoryRow } from "./types";
+import { mapRowToCategory } from "./mapper";
 
-export function buildKey(
-    slug: string
-): string {
-    const key = `${DEFAULT_PREFIX}/${encodeURIComponent(slug.toLowerCase().trim())}.json`;
-    return key;
+/**
+ * Escapa caracteres especiais para uso em LIKE com ESCAPE '\'
+ */
+function escapeLikeTermRaw(term: string): string {
+  return term
+    .replace(/\\/g, "\\\\")
+    .replace(/%/g, "\\%")
+    .replace(/_/g, "\\_");
 }
 
+/**
+ * Busca categoria por ID
+ */
 export async function getCategoryAsync(
-    id: string,
-    s3Bucket: string
-): Promise<CategoryEntity | undefined> {
-    const Key = buildKey(id);
-    // TODO: futuro buscar no cloudfront
-    try {
-        const res = await amazons3Client.send(
-            new GetObjectCommand({
-                Bucket: s3Bucket
-                , Key
-            })
-        );
-        const text = await (res.Body as any)?.transformToString?.();
-        if (text) {
-            const raw = JSON.parse(text) as {
-                id: string;
-                parent_id: string;
-                name: {
-                    pt: string;
-                    en: string;
-                    es: string;
-                }
-                slug: {
-                    pt: string;
-                    en: string;
-                    es: string;
-                };
-                description: {
-                    pt?: string;
-                    en?: string;
-                    es?: string;
-                };
-                created_at: Date;
-                updated_at: Date;
-                active: boolean;
-            };
+  config: DatabaseConfig,
+  id: number
+): Promise<Category | undefined> {
+  const pool = getConnectionPool(config);
+  let category: Category | undefined;
 
-            const category: CategoryEntity = {
-                id: raw.id,
-                name: {
-                    pt: raw.name.pt.trim(),
-                    en: raw.name.en.trim(),
-                    es: raw.name.es.trim(),
-                },
-                slug: {
-                    pt: raw.slug.pt.trim(),
-                    en: raw.slug.en.trim(),
-                    es: raw.slug.es.trim(),
-                },
-                description: {
-                    pt: raw.description.pt?.trim(),
-                    en: raw.description.en?.trim(),
-                    es: raw.description.es?.trim(),
-                },
-                created_at: raw.created_at,
-                updated_at: raw.updated_at,
-                active: raw.active
-            };
-            return category;
-        }
+  const sql = `
+    SELECT
+      id,
+      name_pt, name_en, name_es,
+      slug_pt, slug_en, slug_es,
+      description_pt, description_en, description_es,
+      active,
+      created_at,
+      updated_at
+    FROM \`category\`
+    WHERE id = ?
+    LIMIT 1
+  `;
+
+  try {
+    const [rows] = await pool.execute(sql, [id]);
+    const result = rows as CategoryRow[];
+
+    if (result.length > 0) {
+      category = mapRowToCategory(result[0]);
     }
-    catch (e) {
-        console.log(`Error getting category: ${e}`);
-    }
-    return undefined;
+  } catch (e) {
+    console.error("Error getting category:", e);
+  }
+
+  return category;
 }
 
-export async function upsertCategoryAsync(
-    category: CategoryEntity,
-    s3Bucket: string
-): Promise<Boolean> {
-    let successfullyCreated: Boolean;
-    try {
-        const key = buildKey(category.id);
-        await amazons3Client.send(
-            new PutObjectCommand({
-                Bucket: s3Bucket,
-                Key: key,
-                Body: JSON.stringify(category),
-                ContentType: "application/json",
-            })
-        );
-        successfullyCreated = true;
-    }
-    catch (e) {
-        console.log(`Error creating category: ${e}`);
-        successfullyCreated = false;
-    }
-    return successfullyCreated;
+/**
+ * Insere uma nova categoria
+ */
+export async function insertCategoryAsync(
+  config: DatabaseConfig,
+  category: Category
+): Promise<number | undefined> {
+  const pool = getConnectionPool(config);
+  let categoryId: number | undefined;
+
+  const now = new Date();
+
+  const sql = `
+    INSERT INTO \`category\`
+      (
+        name_pt, name_en, name_es,
+        slug_pt, slug_en, slug_es,
+        description_pt, description_en, description_es,
+        active,
+        created_at, updated_at
+      )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `;
+
+  try {
+    const [result]: any = await pool.execute(sql, [
+      category.name.pt,
+      category.name.en,
+      category.name.es,
+
+      category.slug.pt.toLowerCase().trim(),
+      category.slug.en.toLowerCase().trim(),
+      category.slug.es.toLowerCase().trim(),
+
+      category.description?.pt ?? null,
+      category.description?.en ?? null,
+      category.description?.es ?? null,
+
+      category.active ?? true,
+      now,
+      now,
+    ]);
+
+    categoryId = result.insertId;
+  } catch (e) {
+    console.error("Error inserting category:", e);
+  }
+
+  return categoryId;
+}
+
+/**
+ * Atualiza uma categoria existente
+ */
+export async function updateCategoryAsync(
+  config: DatabaseConfig,
+  category: Category
+): Promise<boolean> {
+  if (!category.id) {
+    throw new Error("category.id é obrigatório para update.");
+  }
+
+  const pool = getConnectionPool(config);
+  const now = new Date();
+  let success = false;
+
+  const sql = `
+    UPDATE \`category\`
+    SET
+      name_pt = ?,
+      name_en = ?,
+      name_es = ?,
+      slug_pt = ?,
+      slug_en = ?,
+      slug_es = ?,
+      description_pt = ?,
+      description_en = ?,
+      description_es = ?,
+      active = ?,
+      updated_at = ?
+    WHERE id = ?
+  `;
+
+  try {
+    const [result]: any = await pool.execute(sql, [
+      category.name.pt,
+      category.name.en,
+      category.name.es,
+
+      category.slug.pt.toLowerCase().trim(),
+      category.slug.en.toLowerCase().trim(),
+      category.slug.es.toLowerCase().trim(),
+
+      category.description?.pt ?? null,
+      category.description?.en ?? null,
+      category.description?.es ?? null,
+
+      category.active,
+      now,
+      category.id,
+    ]);
+
+    success = result.affectedRows > 0;
+  } catch (e) {
+    console.error("Error updating category:", e);
+  }
+
+  return success;
+}
+
+/**
+ * Atualiza apenas o campo active da categoria
+ */
+export async function updateCategoryActiveAsync(
+  config: DatabaseConfig,
+  categoryId: number,
+  active: boolean
+): Promise<boolean> {
+  if (typeof categoryId !== "number" || categoryId <= 0) {
+    throw new Error("categoryId é obrigatório e deve ser um número válido.");
+  }
+
+  const pool = getConnectionPool(config);
+  const now = new Date();
+  let success = false;
+
+  const sql = `
+    UPDATE \`category\`
+    SET active = ?, updated_at = ?
+    WHERE id = ?
+  `;
+
+  try {
+    const [result]: any = await pool.execute(sql, [active, now, categoryId]);
+    success = result.affectedRows > 0;
+  } catch (e) {
+    console.error("Error updating category active status:", e);
+  }
+
+  return success;
+}
+
+/**
+ * Lista categorias com paginação e filtro opcional por nome_pt
+ */
+export async function listCategoriesAsync(
+  config: DatabaseConfig,
+  skip: number,
+  take: number,
+  name?: string | null
+): Promise<CategoryListItem[]> {
+  if (!Number.isInteger(skip) || skip < 0) {
+    throw new Error("skip inválido — deve ser inteiro >= 0");
+  }
+  if (!Number.isInteger(take) || take <= 0) {
+    throw new Error("take inválido — deve ser inteiro > 0");
+  }
+
+  const MAX_TAKE = 500;
+  const safeTake = Math.min(take, MAX_TAKE);
+
+  const pool = getConnectionPool(config);
+  const esc = (v: any) => (pool as any).escape(v);
+
+  let whereClause = "";
+  if (name && name.trim() !== "") {
+    const raw = escapeLikeTermRaw(name.trim());
+    const likeWithPercents = `%${raw}%`;
+    const escapedLike = esc(likeWithPercents);
+    // filtrando por name_pt; se quiser, pode expandir para OR em name_en/name_es
+    whereClause = `WHERE name_pt LIKE ${escapedLike} ESCAPE '\\'`;
+  }
+
+  const escapedOffset = esc(skip);
+  const escapedRowCount = esc(safeTake);
+
+  const sql = `
+    SELECT id, name_pt, slug_pt, active
+    FROM \`category\`
+    ${whereClause}
+    ORDER BY name_pt ASC, id ASC
+    LIMIT ${escapedOffset}, ${escapedRowCount}
+  `;
+
+  const [rows]: any = await pool.query(sql);
+
+  return (rows || []).map((r: any) => ({
+    id: String(r.id),
+    name_pt: r.name_pt,
+    slug_pt: r.slug_pt,
+    active: !!r.active,
+  }));
 }
