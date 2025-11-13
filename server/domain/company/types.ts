@@ -28,19 +28,14 @@ export interface Company {
     name: string;
     slug: string;
     address: {
+        locationId: number;
+        locationDistrictId: number;
         street: string;         // "Av. Paulista"
         number?: string;        // "1578"
         complement?: string;    // "Conj. 1203"
         district?: string;      // "Bela Vista"
-        city: string;           // "São Paulo"
-        state: string;          // "SP"
-        state_full?: string;    // "São Paulo"
         postal_code?: string;   // "01310-200"
-        country: string;        // "Brasil"
-        country_code: string;   // "BR"
     };
-    locationId: number;
-    locationDistrictId: number;
     geo: {
         lat: number;     // WGS84
         lng: number;     // WGS84

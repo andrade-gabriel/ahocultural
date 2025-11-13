@@ -1,14 +1,10 @@
-import { config } from './config'
 import type { APIGatewayProxyEvent } from 'aws-lambda';
-import { tryParseJson } from '@utils/request/parser';
+import { config } from './config'
 import { DefaultResponse } from "@utils/response/types"
-import { LocationEntity, LocationIndex, LocationListRequest, LocationToggleRequest } from '@location/types';
+import { Location, LocationListItem } from '@location/types';
 import { validateLocation } from '@location/validator';
-import { toLocationEntity, toLocationListRequest, toLocationRequest } from '@location/mapper';
-import { getLocationAsync, upsertLocationAsync } from '@location/store';
-import { notifyAsync } from '@location/notifier';
-import { getAsync } from '@location/indexer';
-import { randomUUID } from 'node:crypto';
+import { toLocation } from '@location/mapper';
+import { getLocationAsync, getLocationWithDistrictsAsync, insertLocationAsync, listLocationsAsync, updateLocationActiveAsync, updateLocationAsync } from '@location/store';
 
 type HandlerFn = (event: APIGatewayProxyEvent) => Promise<DefaultResponse>;
 const handlerFactory = new Map<string, HandlerFn>([
@@ -29,13 +25,14 @@ export async function getHandler(event: APIGatewayProxyEvent): Promise<DefaultRe
 }
 
 export async function getByIdHandler(event: APIGatewayProxyEvent): Promise<DefaultResponse> {
-    const id: string | undefined = event.pathParameters?.id;
+    const idParam = event.pathParameters?.id;
+    const id: number | undefined = idParam ? parseInt(idParam, 10) : undefined;
     if (id) {
-        const locationEntity: LocationEntity | undefined = await getLocationAsync(id, config.s3.bucket);
-        if (locationEntity) {
+        const location: Location | undefined = await getLocationWithDistrictsAsync(config, id);
+        if (location) {
             return {
                 success: true,
-                data: toLocationRequest(locationEntity)
+                data: location
             };
         }
         return {
@@ -57,42 +54,36 @@ export async function listIdHandler(event: APIGatewayProxyEvent): Promise<Defaul
     const take = qs.take ? parseInt(qs.take, 10) : 10;
     const name = qs.name ? qs.name : null;
 
-    const indexedCompanies: LocationIndex[] = await getAsync(config, skip, take, name);
-    const companies: LocationListRequest[] = indexedCompanies.map(indexedLocation => toLocationListRequest(indexedLocation));
+    const locations: LocationListItem[] = await listLocationsAsync(config, skip, take, name);
     return {
         success: true,
-        data: companies
+        data: locations
     };
 }
 
 export async function postHandler(event: APIGatewayProxyEvent): Promise<DefaultResponse> {
     const req = event.body ? JSON.parse(event.body) : {
-        id: '',
-        country: '',
-        countrySlug: '',
-        state: '',
-        stateSlug: '',
-        city: '',
-        citySlug: '',
-        districtsAndSlugs: {},
-        active: false
+        country: "",
+        countrySlug: "",
+        state: "",
+        stateSlug: "",
+        city: "",
+        citySlug: "",
+        description: "",
+        active: true,
+        districts: null
     };
     let errors: string[] = validateLocation(req);
     if (errors.length == 0) {
-        req.id = randomUUID();
-        // TODO: Validate if already exists one location w/ same Country + State + City
-        const locationEntity = await toLocationEntity(req, undefined);
-        if (!await upsertLocationAsync(locationEntity, config.s3.bucket))
+        const location = await toLocation(req, undefined);
+        const id = await insertLocationAsync(config, location);
+        if (id)
+            return {
+                success: true,
+                data: id
+            }
+        else
             errors = ["Failed to Insert Location - Please, contact suport."];
-        else {
-            if (await notifyAsync(config.sns.locationTopic, {
-                id: req.id
-            }))
-                return {
-                    success: true,
-                    data: req.id
-                }
-        }
     }
     return {
         success: false,
@@ -102,35 +93,31 @@ export async function postHandler(event: APIGatewayProxyEvent): Promise<DefaultR
 
 export async function putHandler(event: APIGatewayProxyEvent): Promise<DefaultResponse> {
     const req = event.body ? JSON.parse(event.body) : {
-        id: '',
-        country: '',
-        countrySlug: '',
-        state: '',
-        stateSlug: '',
-        city: '',
-        citySlug: '',
-        districtsAndSlugs: {},
-        active: false
+        id: 0,
+        country: "",
+        countrySlug: "",
+        state: "",
+        stateSlug: "",
+        city: "",
+        citySlug: "",
+        description: "",
+        active: true,
+        districts: null
     };
     // Force Id in put handler
     req.id = event.pathParameters?.id ?? '';
     let errors: string[] = validateLocation(req);
-    if (req && req.id && errors.length == 0) {
-        const existingLocationEntity: LocationEntity | undefined = await getLocationAsync(req?.id, config.s3.bucket);
-        if (existingLocationEntity) {
-            const locationEntity = await toLocationEntity(req, existingLocationEntity);
-            if (!await upsertLocationAsync(locationEntity, config.s3.bucket))
-                errors = ["Failed to Update Location - Please, contact suport."];
-            else {
-                if (await notifyAsync(config.sns.locationTopic, {
-                    id: req.id
-                }))
-                    return {
-                        success: true,
-                        data: true
-                    }
+    if (errors.length == 0) {
+        const existingLocation: Location | undefined = await getLocationAsync(config, req.id);
+        if (existingLocation) {
+            const location = await toLocation(req, existingLocation);
+            return {
+                success: true,
+                data: await updateLocationAsync(config, location)
             }
         }
+        else
+            errors = ["Cannot Update a Location that does not exists."];
     }
     return {
         success: false,
@@ -139,31 +126,20 @@ export async function putHandler(event: APIGatewayProxyEvent): Promise<DefaultRe
 }
 
 export async function patchHandler(event: APIGatewayProxyEvent): Promise<DefaultResponse> {
-    const id: string | undefined = event.pathParameters?.id;
-    const req: LocationToggleRequest = tryParseJson<LocationToggleRequest>(event.body, {
+    const idParam = event.pathParameters?.id;
+    const id: number | undefined = idParam ? parseInt(idParam, 10) : undefined;
+    const req = event.body ? JSON.parse(event.body) : {
         active: false
-    });
+    };
     let errors: string[] = [];
     if (!id)
         errors.push('Campo `id` deve ser preenchido.');
 
     if (req.active != null && id && errors.length == 0) {
-        const existingLocationEntity: LocationEntity | undefined = await getLocationAsync(id, config.s3.bucket);
-        if (existingLocationEntity) {
-            existingLocationEntity.active = req.active;
-            if (!await upsertLocationAsync(existingLocationEntity, config.s3.bucket))
-                errors = ["Failed to Upsert Location `" + id + "`- Please, contact suport."];
-            else {
-                if (await notifyAsync(config.sns.locationTopic, {
-                    id
-                }))
-                    return {
-                        success: true,
-                        data: true
-                    }
-            }
-        } else
-            errors: ["Empresa `" + id + "` não existe para ser alterada"]
+        return {
+            success: true,
+            data: await updateLocationActiveAsync(config, id, req.active)
+        }
     }
     return {
         success: false,

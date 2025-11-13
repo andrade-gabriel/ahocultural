@@ -47,7 +47,7 @@ Parameters:
 
 Globals:
   Function:
-    Timeout: 5
+    Timeout: 15
     MemorySize: 256
     Environment:
       Variables:
@@ -85,7 +85,6 @@ Resources:
       SubnetIds:
         - !FindInMap [EnvironmentMap, !Ref 'Environment', SubnetA]
         - !FindInMap [EnvironmentMap, !Ref 'Environment', SubnetB]
-
   MySqlParameterGroup:
     Type: AWS::RDS::DBParameterGroup
     Properties:
@@ -126,7 +125,6 @@ Resources:
       VPCSecurityGroups:
         - !GetAtt RDSSecurityGroup.GroupId
       DBParameterGroupName: !Ref MySqlParameterGroup
-
   AdminResource:
     Type: 'AWS::ApiGateway::Resource'
     Properties:
@@ -807,6 +805,199 @@ Resources:
       AuthorizationType: NONE
       HttpMethod: OPTIONS
       ResourceId: !Ref LocationIdResource
+      RestApiId: !FindInMap [EnvironmentMap, !Ref 'Environment', ApiGatewayId]
+      Integration:
+        Type: MOCK
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+        IntegrationResponses:
+          - StatusCode: 200
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+              method.response.header.Access-Control-Allow-Methods: "'*'"
+              method.response.header.Access-Control-Allow-Headers: "'*'"
+      MethodResponses:
+        - StatusCode: 200
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Origin: true
+            method.response.header.Access-Control-Allow-Methods: true
+            method.response.header.Access-Control-Allow-Headers: true
+
+  ## Geo
+  GeoResource:
+    Type: 'AWS::ApiGateway::Resource'
+    Properties:
+      RestApiId: !FindInMap [EnvironmentMap, !Ref 'Environment', ApiGatewayId]
+      ParentId: !Ref AdminResource
+      PathPart: geo
+  CountryResource:
+    Type: 'AWS::ApiGateway::Resource'
+    Properties:
+      RestApiId: !FindInMap [EnvironmentMap, !Ref 'Environment', ApiGatewayId]
+      ParentId: !Ref GeoResource
+      PathPart: country
+  StateResource:
+    Type: 'AWS::ApiGateway::Resource'
+    Properties:
+      RestApiId: !FindInMap [EnvironmentMap, !Ref 'Environment', ApiGatewayId]
+      ParentId: !Ref GeoResource
+      PathPart: state
+  StateIdResource:
+    Type: 'AWS::ApiGateway::Resource'
+    Properties:
+      RestApiId: !FindInMap [EnvironmentMap, !Ref 'Environment', ApiGatewayId]
+      ParentId: !Ref StateResource
+      PathPart: '{countryId}'
+  CityResource:
+    Type: 'AWS::ApiGateway::Resource'
+    Properties:
+      RestApiId: !FindInMap [EnvironmentMap, !Ref 'Environment', ApiGatewayId]
+      ParentId: !Ref GeoResource
+      PathPart: city
+  CityIdResource:
+    Type: 'AWS::ApiGateway::Resource'
+    Properties:
+      RestApiId: !FindInMap [EnvironmentMap, !Ref 'Environment', ApiGatewayId]
+      ParentId: !Ref CityResource
+      PathPart: '{stateId}'
+  GeoLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .dist/
+      Handler: geo/app.lambdaHandler
+      Runtime: nodejs22.x
+      Policies: 
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+  GeoTrigger:
+    Type: 'AWS::Lambda::Permission'
+    Properties:
+      Action: 'lambda:invokeFunction'
+      FunctionName: !Ref GeoLambda
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 
+        - arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGatewayId}/*/*/v1/admin/geo/*
+        - ApiGatewayId: !FindInMap [EnvironmentMap, !Ref 'Environment', ApiGatewayId]
+  GeoCountryGetMethod:
+    DependsOn: 
+      - GeoTrigger
+    Type: 'AWS::ApiGateway::Method'
+    Properties: 
+      AuthorizationType: CUSTOM
+      AuthorizerId: !FindInMap [EnvironmentMap, !Ref 'Environment', AuthorizerId]
+      HttpMethod: GET
+      ResourceId: !Ref CountryResource
+      RestApiId: !FindInMap [EnvironmentMap, !Ref 'Environment', ApiGatewayId]
+      MethodResponses:
+        - StatusCode: 200
+        - StatusCode: 204
+        - StatusCode: 302
+        - StatusCode: 400
+        - StatusCode: 401
+        - StatusCode: 500
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub 
+          - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+          - LambdaArn: !GetAtt GeoLambda.Arn
+  GeoCountryOptionsMethod:
+    Type: 'AWS::ApiGateway::Method'
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: OPTIONS
+      ResourceId: !Ref CountryResource
+      RestApiId: !FindInMap [EnvironmentMap, !Ref 'Environment', ApiGatewayId]
+      Integration:
+        Type: MOCK
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+        IntegrationResponses:
+          - StatusCode: 200
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+              method.response.header.Access-Control-Allow-Methods: "'*'"
+              method.response.header.Access-Control-Allow-Headers: "'*'"
+      MethodResponses:
+        - StatusCode: 200
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Origin: true
+            method.response.header.Access-Control-Allow-Methods: true
+            method.response.header.Access-Control-Allow-Headers: true
+  GeoStateGetMethod:
+    DependsOn: 
+      - GeoTrigger
+    Type: 'AWS::ApiGateway::Method'
+    Properties: 
+      AuthorizationType: CUSTOM
+      AuthorizerId: !FindInMap [EnvironmentMap, !Ref 'Environment', AuthorizerId]
+      HttpMethod: GET
+      ResourceId: !Ref StateIdResource
+      RestApiId: !FindInMap [EnvironmentMap, !Ref 'Environment', ApiGatewayId]
+      MethodResponses:
+        - StatusCode: 200
+        - StatusCode: 204
+        - StatusCode: 302
+        - StatusCode: 400
+        - StatusCode: 401
+        - StatusCode: 500
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub 
+          - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+          - LambdaArn: !GetAtt GeoLambda.Arn
+  GeoStateOptionsMethod:
+    Type: 'AWS::ApiGateway::Method'
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: OPTIONS
+      ResourceId: !Ref StateIdResource
+      RestApiId: !FindInMap [EnvironmentMap, !Ref 'Environment', ApiGatewayId]
+      Integration:
+        Type: MOCK
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+        IntegrationResponses:
+          - StatusCode: 200
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+              method.response.header.Access-Control-Allow-Methods: "'*'"
+              method.response.header.Access-Control-Allow-Headers: "'*'"
+      MethodResponses:
+        - StatusCode: 200
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Origin: true
+            method.response.header.Access-Control-Allow-Methods: true
+            method.response.header.Access-Control-Allow-Headers: true
+  GeoCityGetMethod:
+    DependsOn: 
+      - GeoTrigger
+    Type: 'AWS::ApiGateway::Method'
+    Properties: 
+      AuthorizationType: CUSTOM
+      AuthorizerId: !FindInMap [EnvironmentMap, !Ref 'Environment', AuthorizerId]
+      HttpMethod: GET
+      ResourceId: !Ref CityIdResource
+      RestApiId: !FindInMap [EnvironmentMap, !Ref 'Environment', ApiGatewayId]
+      MethodResponses:
+        - StatusCode: 200
+        - StatusCode: 204
+        - StatusCode: 302
+        - StatusCode: 400
+        - StatusCode: 401
+        - StatusCode: 500
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub 
+          - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+          - LambdaArn: !GetAtt GeoLambda.Arn
+  GeoCityOptionsMethod:
+    Type: 'AWS::ApiGateway::Method'
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: OPTIONS
+      ResourceId: !Ref CityIdResource
       RestApiId: !FindInMap [EnvironmentMap, !Ref 'Environment', ApiGatewayId]
       Integration:
         Type: MOCK

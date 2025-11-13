@@ -1,41 +1,66 @@
-import { LocationRequest } from "./types";
+import { Location, LocationDistrict } from "./types";
 
-export function validateLocation(
-  location: LocationRequest
-): string[] {
+export function validateLocation(location: Location): string[] {
   const errors: string[] = [];
-  // country
-  if (!location.country || location.country.trim().length < 2)
-    errors.push("O campo `country` deve ser informado.");
 
-  // countrySlug
-  if (!location.countrySlug || location.countrySlug.trim().length < 2)
-    errors.push("O campo `countrySlug` deve ser informado.");
+  // cityId (required, positive integer)
+  if (!Number.isInteger(location.cityId) || location.cityId <= 0) {
+    errors.push("Field `cityId` must be a positive integer.");
+  }
 
-  // state
-  if (!location.state || location.state.trim().length < 2)
-    errors.push("O campo `state` deve ser informado.");
+  // description (required, non-empty)
+  if (!location.description || String(location.description).trim().length < 1) {
+    errors.push("Field `description` is required.");
+  }
 
-  // stateSlug
-  if (!location.stateSlug || location.stateSlug.trim().length < 2)
-    errors.push("O campo `stateSlug` deve ser informado.");
+  // active (boolean) — opcional, só valida tipo se vier algo inesperado
+  if (typeof location.active !== "boolean") {
+    errors.push("Field `active` must be a boolean.");
+  }
 
-  // citySlug
-  if (!location.citySlug || location.citySlug.trim().length < 2)
-    errors.push("O campo `citySlug` deve ser informado.");
+  // districts (optional)
+  if (Array.isArray(location.districts) && location.districts.length > 0) {
+    const districtErrors = validateLocationDistricts(location.districts);
+    errors.push(...districtErrors);
 
-  // city
-  if (!location.city || location.city.trim().length < 2)
-    errors.push("O campo `city` deve ser informado.");
-
-  // districts
-  if (Object.keys(location.districtsAndSlugs).length > 0) {
-    for (const [key, value] of Object.entries(location.districtsAndSlugs)) {
-      if (!key || !value || value.trim().length < 2) {
-        errors.push(`Campo inválido: \`${key}\` = \`${value}\``);
+    // Uniqueness de slug (case-insensitive) dentro do payload
+    const seen = new Set<string>();
+    for (const d of location.districts) {
+      const slug = String(d.slug ?? "").trim().toLowerCase();
+      if (!slug) continue;
+      if (seen.has(slug)) {
+        errors.push(`Duplicate district slug detected: \`${slug}\`.`);
       }
+      seen.add(slug);
     }
   }
 
+  return errors;
+}
+
+export function validateLocationDistricts(districts: LocationDistrict[]): string[] {
+  const errors: string[] = [];
+  for (const district of districts) {
+    const name = String(district.district ?? "").trim();
+    const slug = String(district.slug ?? "").trim();
+
+    // district (required, >= 2 chars)
+    if (name.length < 2) {
+      errors.push(
+        `District "${name || "(unnamed)"}": field \`district\` must be at least 2 characters.`
+      );
+    }
+
+    // slug (required, >= 2 chars, allowed chars optional check)
+    if (slug.length < 2) {
+      errors.push(
+        `District "${name || "(unnamed)"}": field \`slug\` must be at least 2 characters.`
+      );
+    } else if (!/^[a-z0-9-]+$/.test(slug)) {
+      errors.push(
+        `District "${name || "(unnamed)"}": field \`slug\` must contain only lowercase letters, digits, and hyphens.`
+      );
+    }
+  }
   return errors;
 }

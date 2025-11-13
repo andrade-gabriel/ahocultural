@@ -1,68 +1,103 @@
-import { LocationRequest, LocationEntity, LocationIndex, LocationListRequest } from "./types";
+import { Location, LocationDistrict, LocationDistrictRow, LocationRow } from "./types";
 
-export function toLocationEntity(
-    input: LocationRequest,
-    existingLocationEntity: LocationEntity | undefined
-): LocationEntity {
-    const now = new Date();
-    return {
-        id: input.id.toLowerCase().trim(),
-        country: input.country,
-        countrySlug: input.countrySlug,
-        state: input.state,
-        stateSlug: input.stateSlug,
-        city: input.city,
-        citySlug: input.citySlug,
-        districtsAndSlugs: input.districtsAndSlugs,
-        description: input.description,
-        created_at: existingLocationEntity ? existingLocationEntity.created_at : now,
-        updated_at: now,
-        active: input?.active
-    };
+/** Row -> Domain */
+export function mapLocationRowToLocation(row: LocationRow): Location {
+  return {
+    id: row.id,
+    cityId: row.city_id,
+    stateId: row.state_id,
+    countryId: row.country_id,
+    description: row.description,
+    active: row.active === 1,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+  };
 }
 
-export function toLocationRequest(
-    input: LocationEntity
-): LocationRequest {
-    return {
-        id: input.id,
-        country: input.country,
-        countrySlug: input.countrySlug,
-        state: input.state,
-        stateSlug: input.stateSlug,
-        city: input.city,
-        citySlug: input.citySlug,
-        districtsAndSlugs: input.districtsAndSlugs,
-        description: input.description,
-        active: input.active
-    };
+/** Domain -> Row (útil para INSERT/UPDATE com driver que não converte boolean) */
+export function mapLocationToRow(model: Location): LocationRow {
+  return {
+    id: model.id,
+    city_id: model.cityId,
+    description: model.description,
+    active: model.active ? 1 : 0,
+    created_at: model.created_at,
+    updated_at: model.updated_at,
+  };
 }
 
-export function toLocationListRequest(
-    input: LocationIndex
-): LocationListRequest {
-    return {
-        id: input.id,
-        country: input.country,
-        state: input.state,
-        city: input.city,
-        active: input.active
-    }
+/** Input (API/UI) -> Domain (merge com existente quando fizer update) */
+export function toLocation(
+  input: any,
+  existingLocationEntity: Location | undefined
+): Location {
+  const now = new Date();
+
+  // id
+  const id =
+    typeof input.id === "number"
+      ? input.id
+      : existingLocationEntity?.id ??
+        (input.id ? parseInt(String(input.id), 10) : 0);
+
+  // cityId (obrigatório na nova modelagem)
+  const cityIdRaw = input.cityId ?? input.city_id;
+  const cityId =
+    typeof cityIdRaw === "number"
+      ? cityIdRaw
+      : cityIdRaw
+      ? parseInt(String(cityIdRaw), 10)
+      : existingLocationEntity?.cityId ?? 0;
+
+  // districts
+  let districts: LocationDistrict[] = [];
+  if (Array.isArray(input.districts)) {
+    districts = input.districts.map((d: any) => toLocationDistrict(d));
+  } else if (existingLocationEntity?.districts) {
+    districts = existingLocationEntity.districts;
+  }
+
+  return {
+    id,
+    cityId,
+    description: String(input.description ?? existingLocationEntity?.description ?? "").trim(),
+    created_at: existingLocationEntity?.created_at ?? now,
+    updated_at: now,
+    active:
+      typeof input.active === "boolean"
+        ? input.active
+        : existingLocationEntity?.active ?? true,
+    districts,
+  };
 }
 
-export function toLocationIndex(
-    input: LocationEntity
-): LocationIndex {
-    return {
-        id: input.id.trim(),
-        country: input.country,
-        countrySlug: input.countrySlug,
-        state: input.state,
-        stateSlug: input.stateSlug,
-        city: input.city,
-        citySlug: input.citySlug,
-        districtsAndSlugs: input.districtsAndSlugs,
-        description: input.description,
-        active: input.active
-    };
+/** Row -> Domain */
+export function mapRowToLocationDistrict(row: LocationDistrictRow): LocationDistrict {
+  return {
+    id: row.id,
+    district: row.district,
+    slug: row.slug,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+  };
+}
+
+/** Input (API/UI) -> Domain */
+export function toLocationDistrict(input: any): LocationDistrict {
+  const now = new Date();
+
+  const id =
+    typeof input.id === "number"
+      ? input.id
+      : input.id
+      ? parseInt(String(input.id), 10)
+      : undefined;
+
+  return {
+    id,
+    district: String(input.district ?? "").trim(),
+    slug: String(input.slug ?? "").trim(),
+    created_at: input.created_at ?? now,
+    updated_at: input.updated_at ?? now,
+  };
 }

@@ -16,14 +16,12 @@ export function validateCompany(
   const { address } = company;
   if (!address.street || address.street.trim().length < 2)
     errors.push("O campo `address.street` deve ser informado.");
-  if (!address.city || address.city.trim().length < 2)
-    errors.push("O campo `address.city` deve ser informado.");
-  if (!address.state || address.state.trim().length < 2)
-    errors.push("O campo `address.state` deve ser informado.");
-  if (!address.country || address.country.trim().length < 2)
-    errors.push("O campo `address.country` deve ser informado.");
-  if (!address.country_code || !/^[A-Z]{2}$/.test(address.country_code))
-    errors.push("O campo `address.country_code` deve ser um código ISO-3166-1 alpha-2 válido (ex: BR).");
+  if (!address.number || address.number.trim().length < 2)
+    errors.push("O campo `address.number` deve ser informado.");
+  if (!address.district || address.district.trim().length < 2)
+    errors.push("O campo `address.district` deve ser informado.");
+  if (!address.locationId || address.locationId == 0)
+    errors.push("O campo `address.locationId` deve ser informado.");
   if (address.postal_code && !/^\d{5}-?\d{3}$/.test(address.postal_code))
     errors.push("O campo `address.postal_code` deve ser um CEP válido (ex: 01310-200).");
 

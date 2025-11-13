@@ -5,32 +5,28 @@ export type ListCompaniesParams = {
 };
 
 export type Company = {
-  id: string;
+  id: number;
   name: string;
   slug: string;
   active: boolean;
 };
 
 export type CompanyDetail = {
-  id: string;
+  id: number;
   name: string;
   slug: string;
   active: boolean;
   address?: {
-    street?: string;
-    number?: string;
+    locationId: number;
+    locationDistrictId: number;
+    street: string;
+    number: string;
     complement?: string;
-    district?: string;
-    city?: string;
-    state?: string;
-    state_full?: string;
-    postal_code?: string;
-    country?: string;
-    country_code?: string;
+    district: string;
+    postal_code: string;
   };
-  location: string;
-  geo?: {
-    lat?: number;
-    lng?: number;
+  geo: {
+    lat: number;
+    lng: number;
   };
 };

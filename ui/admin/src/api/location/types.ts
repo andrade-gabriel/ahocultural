@@ -1,3 +1,5 @@
+// packages/app/src/api/location/types.ts
+
 export type ListLocationsParams = {
   skip?: number; // default 0
   take?: number; // default 10
@@ -5,25 +7,23 @@ export type ListLocationsParams = {
 };
 
 export type Location = {
-  id: string;
+  id: number;
   country: string;
-  countrySlug: string;
   state: string;
-  stateSlug: string;
   city: string;
-  citySlug: string;
   active: boolean;
 };
 
 export type LocationDetail = {
-  id: string;
-  country: string;
-  countrySlug: string;
-  state: string;
-  stateSlug: string;
-  city: string;
-  citySlug: string;
-  districtsAndSlugs: Record<string, string>;
+  id: number;
+  cityId: number;
+  stateId: number;
+  countryId: number;
   description: string;
   active: boolean;
+  districts: {
+    id: number; 
+    district: string; 
+    slug: string 
+  }[];
 };

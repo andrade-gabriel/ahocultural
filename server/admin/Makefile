@@ -51,6 +51,11 @@ ts:
 		--tsconfig=$(TSCONFIG) \
 		--outfile=.dist/advertisement/app.js
 
+	npx esbuild ./geo/app.ts \
+		--bundle --platform=node --target=node22 \
+		--tsconfig=$(TSCONFIG) \
+		--outfile=.dist/geo/app.js
+
 build: ts
 	sam build
 

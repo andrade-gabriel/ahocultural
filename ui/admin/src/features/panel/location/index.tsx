@@ -45,8 +45,8 @@ type LocationContextShape = {
     params: Params;
     search: string;
     hasNextPage: boolean;
-    mutating: Set<string>;
-    toggleActivity: (id: string, next?: boolean) => Promise<void>;
+    mutating: Set<number>;
+    toggleActivity: (id: number, next?: boolean) => Promise<void>;
     setSearch: (v: string) => void;
     setPageSize: (take: number) => void;
     nextPage: () => void;
@@ -90,7 +90,7 @@ function LocationProvider({ children }: PropsWithChildren) {
 
     const [searchInput, setSearchInput] = useState("");
     const debouncedSearch = useDebounced(searchInput, 400);
-    const [mutating, setMutating] = useState<Set<string>>(new Set());
+    const [mutating, setMutating] = useState<Set<number>>(new Set());
 
     // comece com search undefined para não mudar params no mount
     const [params, setParams] = useState<Params>({ skip: 0, take: 10, search: undefined });
@@ -106,7 +106,7 @@ function LocationProvider({ children }: PropsWithChildren) {
     }, [debouncedSearch]);
 
     const toggleActivity = useCallback(
-        async (id: string, nextFromCaller?: boolean) => {
+        async (id: number, nextFromCaller?: boolean) => {
             if (mutating.has(id)) return;
 
             const current = items.find((l) => l.id === id)?.active;
@@ -263,7 +263,7 @@ function LocationsTable() {
 
     // estado do modal
     const [confirmOpen, setConfirmOpen] = useState(false);
-    const [targetId, setTargetId] = useState<string | null>(null);
+    const [targetId, setTargetId] = useState<number | null>(null);
     const [targetLabel, setTargetLabel] = useState<string>("");
     const [nextActive, setNextActive] = useState<boolean | null>(null);
 

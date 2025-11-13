@@ -1,3 +1,5 @@
+# drop database aho;
+# create database aho;
 use aho;
 
 CREATE TABLE IF NOT EXISTS `user` (
@@ -11,53 +13,59 @@ CREATE TABLE IF NOT EXISTS `user` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE IF NOT EXISTS `address` (
-  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  `street` VARCHAR(255) NOT NULL,
-  `number` VARCHAR(255) NOT NULL,
-  `complement` VARCHAR(100),
-  `district` VARCHAR(100) NOT NULL,
-  `city` VARCHAR(100) NOT NULL,
-  `state` CHAR(2) NOT NULL,
-  `state_full` VARCHAR(100) NOT NULL,
-  `postal_code` VARCHAR(20) NOT NULL,
-  `country` VARCHAR(100) NOT NULL,
-  `country_code` CHAR(2) NOT NULL,
-  `latitude` DECIMAL(10,8) NOT NULL,
-  `longitude` DECIMAL(11,8) NOT NULL,
+CREATE TABLE IF NOT EXISTS `country` (
+  `id` INT UNSIGNED NOT NULL,
+  `name` VARCHAR(150) NOT NULL,
+  `iso2` CHAR(2) NOT NULL,           -- Ex.: BR
+  `slug` VARCHAR(150) NOT NULL,
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_country_iso2` (`iso2`),
+  UNIQUE KEY `uq_country_slug` (`slug`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE IF NOT EXISTS `company` (
-  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  `name` VARCHAR(255) NOT NULL,
-  `slug` VARCHAR(255) NOT NULL,
-  `address_id` INT UNSIGNED NOT NULL,
-  `location_id` INT UNSIGNED NOT NULL,
-  `location_district_id` INT UNSIGNED NOT NULL,
+CREATE TABLE IF NOT EXISTS `state` (
+  `id` INT UNSIGNED NOT NULL,
+  `country_id` INT UNSIGNED NOT NULL,
+  `name` VARCHAR(150) NOT NULL,      -- Ex.: São Paulo
+  `uf` CHAR(2) NOT NULL,             -- Ex.: SP
+  `slug` VARCHAR(150) NOT NULL,
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  `active` BOOLEAN NOT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_company_slug` (`slug`),
-  FOREIGN KEY (`address_id`) REFERENCES `address`(`id`)
+  CONSTRAINT `fk_state_country` FOREIGN KEY (`country_id`) REFERENCES `country`(`id`)
+    ON UPDATE CASCADE ON DELETE RESTRICT,
+  UNIQUE KEY `uq_state_country_uf` (`country_id`, `uf`),
+  UNIQUE KEY `uq_state_country_name` (`country_id`, `name`),
+  UNIQUE KEY `uq_state_slug` (`slug`),
+  KEY `ix_state_country` (`country_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `city` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `state_id` INT UNSIGNED NOT NULL,
+  `name` VARCHAR(200) NOT NULL,      -- Ex.: Santos
+  `slug` VARCHAR(200) NOT NULL,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  CONSTRAINT `fk_city_state` FOREIGN KEY (`state_id`) REFERENCES `state`(`id`)
+    ON UPDATE CASCADE ON DELETE RESTRICT,
+  KEY `ix_city_state` (`state_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `location` (
   `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  `country` VARCHAR(100) NOT NULL,
-  `country_slug` VARCHAR(100) NOT NULL,
-  `state` VARCHAR(100) NOT NULL,
-  `state_slug` VARCHAR(100) NOT NULL,
-  `city` VARCHAR(100) NOT NULL,
-  `city_slug` VARCHAR(100) NOT NULL,
+  `city_id` INT UNSIGNED NOT NULL,
   `description` TEXT NOT NULL,
   `active` BOOLEAN NOT NULL DEFAULT TRUE,
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`),
+  CONSTRAINT `fk_location_city` FOREIGN KEY (`city_id`) REFERENCES `city`(`id`)
+    ON UPDATE CASCADE ON DELETE RESTRICT,
+  KEY `ix_location_city` (`city_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `location_district` (
@@ -67,6 +75,41 @@ CREATE TABLE IF NOT EXISTS `location_district` (
   `slug` VARCHAR(255) NOT NULL,
   PRIMARY KEY (`id`),
   FOREIGN KEY (`location_id`) REFERENCES `location`(`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `address` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `street` VARCHAR(255) NOT NULL,
+  `number` VARCHAR(50) NOT NULL,
+  `complement` VARCHAR(100) NULL,
+  `district` VARCHAR(100) NOT NULL,
+  `postal_code` VARCHAR(20) NOT NULL,
+  `location_id` INT UNSIGNED NOT NULL,
+  `location_district_id` INT UNSIGNED NULL,
+  `latitude` DECIMAL(10,8) NULL,
+  `longitude` DECIMAL(11,8) NULL,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  CONSTRAINT `fk_address_location` FOREIGN KEY (`location_id`) REFERENCES `location`(`id`)
+    ON UPDATE CASCADE ON DELETE RESTRICT,
+  CONSTRAINT `fk_address_location_district` FOREIGN KEY (`location_district_id`) REFERENCES `location_district`(`id`)
+    ON UPDATE CASCADE ON DELETE RESTRICT,
+  KEY `ix_address_location_id` (`location_id`),
+  KEY `ix_address_postal_code` (`postal_code`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `company` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `name` VARCHAR(255) NOT NULL,
+  `slug` VARCHAR(255) NOT NULL,
+  `address_id` INT UNSIGNED NOT NULL,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `active` BOOLEAN NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_company_slug` (`slug`),
+  FOREIGN KEY (`address_id`) REFERENCES `address`(`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `category` (
