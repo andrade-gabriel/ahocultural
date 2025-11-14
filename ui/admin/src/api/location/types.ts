@@ -21,8 +21,7 @@ export type LocationDetail = {
   countryId: number;
   description: string;
   active: boolean;
-  districts: {
-    id: number; 
+  districts: { 
     district: string; 
     slug: string 
   }[];

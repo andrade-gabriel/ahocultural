@@ -71,7 +71,7 @@ const AddressSchema = z.object({
     .int()
     .min(1, "Selecione uma localização")
     .default(0),
-  locationDistrictId: z.number().int().nullable().optional().default(null),
+  locationDistrictId: z.number().int().default(0),
   street: z.string().default(""),
   number: z.string().default(""),
   complement: z.string().default(""),
@@ -144,7 +144,7 @@ export function CompanyDetailLayout() {
       active: true,
       address: {
         locationId: 0,
-        locationDistrictId: null,
+        locationDistrictId: 0,
         street: "",
         number: "",
         complement: "",
@@ -204,7 +204,7 @@ export function CompanyDetailLayout() {
             active: !!data.active,
             address: {
               locationId: data.address?.locationId ?? 0,
-              locationDistrictId: data.address?.locationDistrictId ?? null,
+              locationDistrictId: data.address?.locationDistrictId ?? 0,
               street: data.address?.street ?? "",
               number: data.address?.number ?? "",
               complement: data.address?.complement ?? "",
@@ -245,7 +245,7 @@ export function CompanyDetailLayout() {
 
     if (!locId) {
       setDistricts([]);
-      form.setValue("address.locationDistrictId", null, { shouldDirty: true });
+      form.setValue("address.locationDistrictId", 0, { shouldDirty: true });
       return;
     }
 
@@ -262,7 +262,7 @@ export function CompanyDetailLayout() {
         }
 
         if (current != null) {
-          form.setValue("address.locationDistrictId", null, {
+          form.setValue("address.locationDistrictId", 0, {
             shouldDirty: true,
           });
         }
@@ -271,7 +271,7 @@ export function CompanyDetailLayout() {
           console.error("Erro ao carregar distritos:", e);
         }
         setDistricts([]);
-        form.setValue("address.locationDistrictId", null, { shouldDirty: true });
+        form.setValue("address.locationDistrictId", 0, { shouldDirty: true });
       } finally {
         setDistrictLoading(false);
       }

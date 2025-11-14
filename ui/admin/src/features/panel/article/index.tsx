@@ -257,7 +257,7 @@ function ArticlesTable() {
 
   function askToggleConfirm(article: Article) {
     setTargetId(article.id);
-    setTargetLabel(article.title.pt);
+    setTargetLabel(article.title);
     setNextActive(!article.active);
     setConfirmOpen(true);
   }
@@ -319,9 +319,9 @@ function ArticlesTable() {
             return (
               <TableRow key={a.id}>
                 <TableCell className="font-medium underline">
-                  <Link to={`/article/${a.id}`}>{a.title.pt}</Link>
+                  <Link to={`/article/${a.id}`}>{a.title}</Link>
                 </TableCell>
-                <TableCell className="text-sm text-muted-foreground">{a.slug.pt}</TableCell>
+                <TableCell className="text-sm text-muted-foreground">{a.slug}</TableCell>
                 <TableCell className="text-sm text-muted-foreground">
                   {new Date(a.publicationDate).toLocaleDateString("pt-BR")}
                 </TableCell>

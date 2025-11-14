@@ -273,7 +273,7 @@ function CategoriesTable() {
 
   function askToggleConfirm(category: Category) {
     setTargetId(category.id);
-    setTargetName(category.name_pt.pt);
+    setTargetName(category.name_pt);
     setNextActive(!category.active);
     setConfirmOpen(true);
   }

@@ -106,7 +106,7 @@ export async function listCompanies(
  * Resposta: { success: true, data: true }
  */
 export async function updateCompanyActivity(
-  id: string,
+  id: number,
   active: boolean,
   opts?: { signal?: AbortSignal }
 ): Promise<boolean> {

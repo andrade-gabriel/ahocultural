@@ -1,105 +1,42 @@
-import { ArticleRequest, ArticleEntity, ArticleIndex, ArticleListRequest } from "./types";
+import { Article, ArticleListItem, ArticleRow } from "./types";
 
-export function toArticleEntity(
-    input: ArticleRequest,
-    existingArticleEntity: ArticleEntity | undefined
-): ArticleEntity {
-    const now = new Date();
+export function mapRowToArticle(
+    input: ArticleRow
+): Article {
     return {
-        id: input.id.toLowerCase().trim(),
+        id: input?.id,
         title: {
-            pt: input.title.pt.trim(),
-            en: input.title.en.trim(),
-            es: input.title.es.trim(),
+            pt: input?.title_pt.trim(),
+            en: input?.title_en.trim(),
+            es: input?.title_es.trim(),
         },
         slug: {
-            pt: input.slug.pt.trim(),
-            en: input.slug.en.trim(),
-            es: input.slug.es.trim(),
+            pt: input?.slug_pt.trim(),
+            en: input?.slug_en.trim(),
+            es: input?.slug_es.trim(),
         },
-        heroImage: input.heroImage,
-        thumbnail: input.thumbnail,
+        heroImage: input?.heroImage,
+        thumbnail: input?.thumbnail,
         body: {
-            pt: input.body.pt.trim(),
-            en: input.body.en.trim(),
-            es: input.body.es.trim(),
+            pt: input?.body_pt.trim(),
+            en: input?.body_en.trim(),
+            es: input?.body_es.trim(),
         },
-        publicationDate: input.publicationDate,
-        created_at: existingArticleEntity ? existingArticleEntity.created_at : now,
-        updated_at: now,
+        publicationDate: input?.publicationDate,
+        active: input?.active,
+        created_at: input?.created_at,
+        updated_at: input?.updated_at,
+    };
+}
+
+export function mapRowToArticleListItem(
+    input: ArticleRow
+): ArticleListItem {
+    return {
+        id: input?.id,
+        title: input?.title_pt.trim(),
+        slug: input?.slug_pt.trim(),
+        publicationDate: input?.publicationDate,
         active: input?.active
-    };
-}
-
-export function toArticleRequest(
-    input: ArticleEntity
-): ArticleRequest {
-    return {
-        id: input.id,
-        title: {
-            pt: input.title.pt.trim(),
-            en: input.title.en.trim(),
-            es: input.title.es.trim(),
-        },
-        slug: {
-            pt: input.slug.pt.trim(),
-            en: input.slug.en.trim(),
-            es: input.slug.es.trim(),
-        },
-        heroImage: input.heroImage,
-        thumbnail: input.thumbnail,
-        body: {
-            pt: input.body.pt.trim(),
-            en: input.body.en.trim(),
-            es: input.body.es.trim(),
-        },
-        publicationDate: input.publicationDate,
-        created_at: input.created_at,
-        updated_at: input.updated_at,
-        active: input.active
-    };
-}
-
-export function toArticleListRequest(
-    input: ArticleIndex
-): ArticleListRequest {
-    return {
-        id: input.id,
-        title: {
-            pt: input.title.pt.trim(),
-            en: input.title.en.trim(),
-            es: input.title.es.trim(),
-        },
-        slug: {
-            pt: input.slug.pt.trim(),
-            en: input.slug.en.trim(),
-            es: input.slug.es.trim(),
-        },
-        publicationDate: input.publicationDate,
-        active: input.active
-    }
-}
-
-export function toArticleIndex(
-    input: ArticleEntity
-): ArticleIndex {
-    return {
-        id: input.id.trim(),
-        title: {
-            pt: input.title.pt.trim(),
-            en: input.title.en.trim(),
-            es: input.title.es.trim(),
-        },
-        slug: {
-            pt: input.slug.pt.trim(),
-            en: input.slug.en.trim(),
-            es: input.slug.es.trim(),
-        },
-        heroImage: input.heroImage,
-        thumbnail: input.thumbnail,
-        publicationDate: input.publicationDate,
-        created_at: input.created_at,
-        updated_at: input.updated_at,
-        active: input.active
     };
 }

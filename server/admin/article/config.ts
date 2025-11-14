@@ -7,15 +7,12 @@ function requireEnv(key: string): string {
 }
 
 export const config = {
-  s3: {
-    bucket: requireEnv("BUCKET_DATABASE"),
-    assetsBucket: requireEnv("BUCKET_ASSETS")
-  },
-  sns: {
-    articleTopic: requireEnv("ARTICLE_NOTIFIER"),
-  },
-  elasticsearch: {
-    domain: requireEnv("OPENSEARCH_ENDPOINT").replace(/\/+$/, ""),
-    articleIndex: requireEnv("ARTICLE_INDEX")
+  database: {
+    host: requireEnv("DATABASE_HOST"),
+    port: parseInt(requireEnv("DATABASE_PORT"), 10),
+    user: requireEnv("DATABASE_USER"),
+    password: requireEnv("DATABASE_PASSWORD"),
+    name: requireEnv("DATABASE_NAME"),
+    ssl: requireEnv("DATABASE_SSL")?.toLowerCase().trim() === 'true'
   }
 };

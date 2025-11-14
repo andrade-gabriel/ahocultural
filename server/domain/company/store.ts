@@ -20,7 +20,7 @@ export async function getCompanyAsync(
     FROM \`company\` c
     INNER JOIN \`address\` a 
       ON a.id = c.address_id
-    WHERE c.id = 4
+    WHERE c.id = ?
     LIMIT 1`;
 
   try {

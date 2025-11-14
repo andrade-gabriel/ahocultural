@@ -260,7 +260,10 @@ export function LocationDetailLayout() {
         stateId:   Number(values.stateId),
         cityId:    Number(values.cityId),
         description: values.description ?? "",
-        districts: (values.districts ?? []).map(d => ({ district: d.district.trim(), slug: d.slug.trim() })),
+        districts: (values.districts ?? []).map(d => ({
+          district: d.district.trim(), 
+          slug: d.slug.trim() 
+        })),
         active: Boolean(values.active),
       };
 

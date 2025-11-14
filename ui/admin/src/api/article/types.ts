@@ -8,11 +8,8 @@ export type ListArticlesParams = {
 
 export type Article = {
   id: string;
-  title: I18nValue;
-  slug: I18nValue;
-  heroImage: string;
-  thumbnail: string;
-  body: I18nValue;
+  title: string;
+  slug: string;
   publicationDate: Date;
   active: boolean;
 };

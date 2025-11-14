@@ -47,8 +47,21 @@ import {
   AlignLeft,
   AlignCenter,
   AlignRight,
-  X,
+  Trash2,
 } from "lucide-react";
+
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription as AlertDialogDescriptionDialog,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
@@ -62,6 +75,7 @@ import { Underline } from "@tiptap/extension-underline";
 
 import { FileUpload } from "@/components/file-upload";
 import { getPreviewUrl } from "@/api/file";
+import { cn } from "@/lib/utils";
 
 /* ---------- helpers ---------- */
 
@@ -107,7 +121,7 @@ type FormValues = z.infer<typeof Schema>;
 
 type BodyPath = `body.${LangCode}`;
 type CategoryNamePath = `categories.${number}.name.${LangCode}`;
-type CategoryMediasPath = `categories.${number}.medias.${number}`;
+type CategoryMediasPath = `categories.${number}.medias`;
 
 const bodyPath = (lang: LangCode): BodyPath => `body.${lang}` as const;
 
@@ -157,17 +171,7 @@ function ColorPicker({
   }, [value]);
 
   return (
-    <div className="flex items-center gap-2">
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        className="gap-2 rounded"
-        title="Cor do texto"
-      >
-        <PaintBucket className="h-4 w-4" />
-        <ColorDot color={value || "#000000"} />
-      </Button>
+    <div className="flex flex-col gap-2">
       <div className="flex items-center gap-2">
         <div className="h-8 w-8 overflow-hidden rounded border">
           <input
@@ -199,7 +203,7 @@ function ColorPicker({
           Limpar
         </Button>
       </div>
-      <Separator orientation="vertical" className="mx-2 h-6" />
+      <Separator orientation="horizontal" className="my-1" />
       <div className="grid grid-cols-8 gap-2">
         {SWATCHES.map((c) => (
           <button
@@ -320,11 +324,27 @@ function EditorToolbar({ editor }: { editor: any }) {
 
       <Separator orientation="vertical" className="mx-1 h-6" />
 
-      <ColorPicker
-        value={currentColor}
-        onChange={(hex) => editor.chain().focus().setColor(hex).run()}
-        onClear={() => editor.chain().focus().unsetColor().run()}
-      />
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="gap-2 rounded"
+            title="Cor do texto"
+          >
+            <PaintBucket className="h-4 w-4" />
+            <ColorDot color={currentColor || "#000000"} />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-[260px] space-y-2">
+          <ColorPicker
+            value={currentColor}
+            onChange={(hex) => editor.chain().focus().setColor(hex).run()}
+            onClear={() => editor.chain().focus().unsetColor().run()}
+          />
+        </PopoverContent>
+      </Popover>
 
       <Separator orientation="vertical" className="mx-1 h-6" />
 
@@ -351,6 +371,12 @@ export const StudioLayout = () => {
   const [error, setError] = useState<string>();
   const [lang, setLang] = useState<LangCode>("pt");
   const [mode, setMode] = useState<"visual" | "html">("visual");
+  const [selectedCategoryIndex, setSelectedCategoryIndex] = useState(0);
+
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [categoryIndexToDelete, setCategoryIndexToDelete] = useState<number | null>(
+    null
+  );
 
   const hasExistingRef = useRef(false);
   const acRef = useRef<AbortController | null>(null);
@@ -380,6 +406,17 @@ export const StudioLayout = () => {
     control,
     name: "categories",
   }) as FormValues["categories"] | undefined;
+
+  // garante que selectedCategoryIndex sempre aponte pra algo válido
+  useEffect(() => {
+    if (categoryFields.length === 0) {
+      setSelectedCategoryIndex(0);
+      return;
+    }
+    if (selectedCategoryIndex > categoryFields.length - 1) {
+      setSelectedCategoryIndex(categoryFields.length - 1);
+    }
+  }, [categoryFields.length, selectedCategoryIndex]);
 
   const editor = useEditor({
     extensions: [
@@ -515,9 +552,9 @@ export const StudioLayout = () => {
       setSaving(true);
       setError(undefined);
 
-      const categoriesRecord: Studio["categories"] = {};
+      const categoriesRecord: Studio["categories"] = [] as any;
       values.categories.forEach((cat, index) => {
-        categoriesRecord[index] = {
+        (categoriesRecord as any)[index] = {
           name: {
             pt: cat.name.pt ?? "",
             en: cat.name.en ?? "",
@@ -548,6 +585,39 @@ export const StudioLayout = () => {
     }
   };
 
+  const handleAddCategory = () => {
+    const newIndex = categoryFields.length;
+    appendCategory({
+      name: { pt: "", en: "", es: "" },
+      medias: [],
+    });
+    setSelectedCategoryIndex(newIndex);
+  };
+
+  const handleRemoveCategory = (index: number) => {
+    removeCategory(index);
+  };
+
+  const requestDeleteCategory = (index: number) => {
+    setCategoryIndexToDelete(index);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteCategory = () => {
+    if (categoryIndexToDelete == null) {
+      setDeleteDialogOpen(false);
+      return;
+    }
+    handleRemoveCategory(categoryIndexToDelete);
+    setDeleteDialogOpen(false);
+    setCategoryIndexToDelete(null);
+  };
+
+  const cancelDeleteCategory = () => {
+    setDeleteDialogOpen(false);
+    setCategoryIndexToDelete(null);
+  };
+
   return (
     <Card className="shadow-sm">
       <CardHeader>
@@ -569,301 +639,310 @@ export const StudioLayout = () => {
             Carregando…
           </div>
         ) : (
-          <Form {...form}>
-            <form
-              onSubmit={form.handleSubmit(onSubmit)}
-              className="grid gap-6"
-              aria-busy={saving}
-            >
-              <div className="grid gap-6 md:grid-cols-5">
-                {/* Lateral de idiomas – reaproveitada para body e categorias */}
-                <aside className="md:col-span-1">
-                  <div className="rounded-lg border p-2">
-                    <div className="px-2 py-1 text-xs font-medium uppercase text-muted-foreground">
-                      IDIOMAS
-                    </div>
-                    <div className="mt-2 flex flex-col gap-2">
-                      {LANGS.map((l) => {
-                        const active = l.code === lang;
-                        return (
-                          <Button
-                            key={l.code}
-                            type="button"
-                            variant={active ? "default" : "outline"}
-                            className="justify-start gap-3"
-                            onClick={() => setLang(l.code)}
-                            aria-pressed={active}
-                          >
-                            <img
-                              src={`/admin/languages/${l.flag}.svg`}
-                              alt={l.label}
-                              className="h-4 w-4 rounded-full object-cover"
-                            />
-                            <span className="font-medium">{l.label}</span>
-                          </Button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </aside>
-
-                {/* Conteúdo principal – editor + categorias na mesma coluna da direita */}
-                <section className="md:col-span-4 space-y-6">
-                  {/* Editor multilíngua */}
-                  <div className="grid gap-3">
-                    <div className="flex items-center gap-2">
-                      <Button
-                        type="button"
-                        variant={mode === "visual" ? "default" : "outline"}
-                        onClick={() => setMode("visual")}
-                        className="h-8"
-                      >
-                        Visual
-                      </Button>
-                      <Button
-                        type="button"
-                        variant={mode === "html" ? "default" : "outline"}
-                        onClick={() => setMode("html")}
-                        className="h-8"
-                      >
-                        HTML
-                      </Button>
-                    </div>
-
-                    <FormField
-                      control={form.control}
-                      name={bodyPath(lang)}
-                      render={() => (
-                        <FormItem>
-                          <FormLabel>Conteúdo ({lang.toUpperCase()})</FormLabel>
-                          <FormControl>
-                            <div className="rounded-md border">
-                              {mode === "visual" && <EditorToolbar editor={editor} />}
-                              {mode === "visual" ? (
-                                <EditorContent
-                                  editor={editor}
-                                  className="prose max-w-none min-h-[240px] p-3"
-                                />
-                              ) : (
-                                <textarea
-                                  className="w-full min-h-[240px] border-0 p-3 font-mono text-sm outline-none"
-                                  value={form.watch(bodyPath(lang)) ?? ""}
-                                  onChange={(e) =>
-                                    form.setValue(bodyPath(lang), e.target.value, {
-                                      shouldDirty: true,
-                                      shouldValidate: true,
-                                    })
-                                  }
-                                />
-                              )}
-                            </div>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  {/* Categorias (nome internacionalizado + imagens) */}
-                  <section className="space-y-4">
-                    <div className="space-y-1">
-                      <h2 className="text-sm font-semibold">Categorias do Stúdio</h2>
-                      <p className="text-xs text-muted-foreground">
-                        Use o seletor de idioma à esquerda para editar o nome da categoria
-                        em cada língua.
-                      </p>
-                    </div>
-
-                    {categoryFields.length === 0 ? (
-                      <p className="text-sm text-muted-foreground">
-                        Nenhuma categoria cadastrada.
-                      </p>
-                    ) : (
-                      <div className="grid gap-4">
-                        {categoryFields.map((field, index) => {
-                          const cat = categoriesWatch?.[index];
-                          const medias = cat?.medias ?? [];
-
+          <>
+            <Form {...form}>
+              <form
+                onSubmit={form.handleSubmit(onSubmit)}
+                className="grid gap-6"
+                aria-busy={saving}
+              >
+                <div className="grid gap-6 md:grid-cols-5">
+                  {/* Lateral de idiomas */}
+                  <aside className="md:col-span-1">
+                    <div className="rounded-lg border p-3">
+                      <div className="px-1 py-1 text-xs font-medium uppercase text-muted-foreground">
+                        IDIOMAS
+                      </div>
+                      <div className="mt-2 flex flex-col gap-2">
+                        {LANGS.map((l) => {
+                          const active = l.code === lang;
                           return (
-                            <div
-                              key={field.id}
-                              className="space-y-4 rounded-lg border bg-muted/20 p-4"
+                            <Button
+                              key={l.code}
+                              type="button"
+                              variant={active ? "default" : "outline"}
+                              className="justify-start gap-3"
+                              onClick={() => setLang(l.code)}
+                              aria-pressed={active}
                             >
-                              <div className="flex items-center justify-between gap-2">
-                                <span className="text-sm font-medium">
-                                  Categoria {index + 1}
-                                </span>
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="sm"
-                                  className="text-destructive hover:text-destructive"
-                                  onClick={() => removeCategory(index)}
-                                >
-                                  <X className="mr-1 h-4 w-4" />
-                                  Remover
-                                </Button>
-                              </div>
-
-                              {/* Nome da categoria controlado pelo idioma selecionado */}
-                              <FormField
-                                control={form.control}
-                                name={
-                                  `categories.${index}.name.${lang}` as CategoryNamePath
-                                }
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel>
-                                      Nome da categoria ({lang.toUpperCase()})
-                                    </FormLabel>
-                                    <FormControl>
-                                      <Input
-                                        name={field.name}
-                                        ref={field.ref}
-                                        value={field.value ?? ""}
-                                        onChange={(e) => field.onChange(e.target.value)}
-                                        onBlur={field.onBlur}
-                                        placeholder="Ex.: Cenografia e Ambientação"
-                                      />
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
+                              <img
+                                src={`/admin/languages/${l.flag}.svg`}
+                                alt={l.label}
+                                className="h-4 w-4 rounded-full object-cover"
                               />
-
-                              {/* Imagens da categoria */}
-                              <div className="space-y-2">
-                                <div className="flex items-center justify-between">
-                                  <FormLabel>Imagens da categoria</FormLabel>
-                                  <Button
-                                    type="button"
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => {
-                                      const current = medias ?? [];
-                                      form.setValue(
-                                        `categories.${index}.medias`,
-                                        [...current, ""],
-                                        {
-                                          shouldDirty: true,
-                                          shouldValidate: true,
-                                        }
-                                      );
-                                    }}
-                                  >
-                                    Adicionar imagem
-                                  </Button>
-                                </div>
-
-                                {medias.length === 0 ? (
-                                  <p className="text-xs text-muted-foreground">
-                                    Nenhuma imagem adicionada ainda.
-                                  </p>
-                                ) : (
-                                  <div className="grid gap-3 md:grid-cols-2">
-                                    {medias.map((_, mediaIndex) => (
-                                      <FormField
-                                        key={mediaIndex}
-                                        control={form.control}
-                                        name={
-                                          `categories.${index}.medias.${mediaIndex}` as CategoryMediasPath
-                                        }
-                                        render={({ field }) => (
-                                          <FormItem>
-                                            <FormControl>
-                                              <div className="flex items-center gap-2">
-                                                <div className="min-w-0 flex-1">
-                                                  <FileUpload
-                                                    accept="image/*"
-                                                    maxSizeMB={5}
-                                                    name={field.name}
-                                                    value={field.value}
-                                                    onChange={field.onChange}
-                                                    onBlur={field.onBlur}
-                                                    ref={field.ref}
-                                                    loadPreview={async (id) => {
-                                                      const {
-                                                        url,
-                                                        name,
-                                                        size,
-                                                        contentType,
-                                                      } = await getPreviewUrl(id);
-                                                      return { url, name, size, contentType };
-                                                    }}
-                                                  />
-                                                </div>
-                                                <Button
-                                                  type="button"
-                                                  size="icon"
-                                                  variant="ghost"
-                                                  className="shrink-0 text-destructive hover:text-destructive"
-                                                  onClick={() => {
-                                                    const current = medias ?? [];
-                                                    const next = current.filter(
-                                                      (_m, i) => i !== mediaIndex
-                                                    );
-                                                    form.setValue(
-                                                      `categories.${index}.medias`,
-                                                      next,
-                                                      {
-                                                        shouldDirty: true,
-                                                        shouldValidate: true,
-                                                      }
-                                                    );
-                                                  }}
-                                                  title="Remover imagem"
-                                                >
-                                                  <X className="h-4 w-4" />
-                                                </Button>
-                                              </div>
-                                            </FormControl>
-                                            <FormMessage />
-                                          </FormItem>
-                                        )}
-                                      />
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
-                            </div>
+                              <span className="font-medium">{l.label}</span>
+                            </Button>
                           );
                         })}
                       </div>
-                    )}
+                    </div>
+                  </aside>
 
-                    {/* Botão full width abaixo das categorias */}
+                  {/* Conteúdo principal – editor */}
+                  <section className="md:col-span-4 space-y-6">
+                    <div className="grid gap-3">
+                      <div className="flex items-center gap-2">
+                        <Button
+                          type="button"
+                          variant={mode === "visual" ? "default" : "outline"}
+                          onClick={() => setMode("visual")}
+                          className="h-8"
+                        >
+                          Visual
+                        </Button>
+                        <Button
+                          type="button"
+                          variant={mode === "html" ? "default" : "outline"}
+                          onClick={() => setMode("html")}
+                          className="h-8"
+                        >
+                          HTML
+                        </Button>
+                      </div>
+                      <FormField
+                        key={`${lang}-${mode}`}
+                        control={form.control}
+                        name={bodyPath(lang)}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Conteúdo ({lang.toUpperCase()})</FormLabel>
+                            <FormControl>
+                              <div className="rounded-md border">
+                                {mode === "visual" && <EditorToolbar editor={editor} />}
+
+                                {mode === "visual" ? (
+                                  <EditorContent
+                                    editor={editor}
+                                    className="prose max-w-none min-h-[240px] p-3"
+                                  />
+                                ) : (
+                                  <textarea
+                                    className="w-full min-h-[240px] border-0 p-3 font-mono text-sm outline-none"
+                                    value={field.value ?? ""}
+                                    onChange={(e) =>
+                                      field.onChange(e.target.value)
+                                    }
+                                  />
+                                )}
+                              </div>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </section>
+                </div>
+
+                {/* Seção de categorias */}
+                <div className="space-y-1">
+                  <h2 className="text-sm font-semibold">Categorias do Studio</h2>
+                  <p className="text-xs text-muted-foreground">
+                    Use o seletor de idioma à esquerda para editar o nome da categoria
+                    em cada língua. Use a lista abaixo para navegar entre as categorias.
+                  </p>
+                </div>
+
+                {categoryFields.length === 0 ? (
+                  <div className="grid gap-6 md:grid-cols-5">
+                    <p className="text-sm text-muted-foreground">
+                      Nenhuma categoria cadastrada.
+                    </p>
                     <Button
                       type="button"
                       variant="outline"
-                      className="mt-1 w-full border-dashed"
-                      onClick={() =>
-                        appendCategory({
-                          name: { pt: "", en: "", es: "" },
-                          medias: [],
-                        })
-                      }
+                      className="w-full border-dashed"
+                      onClick={handleAddCategory}
                     >
-                      Adicionar categoria
+                      Adicionar primeira categoria
                     </Button>
-                  </section>
-                </section>
-              </div>
+                  </div>
+                ) : (
+                  <div className="grid gap-6 md:grid-cols-5">
+                    {/* Lista de categorias (esquerda) */}
+                    <aside className="md:col-span-1">
+                      <div className="rounded-lg border p-3">
+                        <div className="px-1 py-1 text-xs font-medium uppercase text-muted-foreground">
+                          CATEGORIAS
+                        </div>
+                        <div className="mt-2 flex flex-col gap-2">
+                          {categoryFields.map((field, index) => {
+                            const active = index === selectedCategoryIndex;
+                            const cat = categoriesWatch?.[index];
+                            const label =
+                              cat?.name?.[lang] || cat?.name?.pt || `Categoria ${index + 1}`;
 
-              {/* Ações */}
-              <div className="flex items-center justify-end gap-2">
-                <Button type="submit" disabled={saving}>
-                  {saving ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      <span className="sr-only">Salvando</span>
-                    </>
-                  ) : (
-                    "Salvar"
-                  )}
-                </Button>
-              </div>
-            </form>
-          </Form>
+                            return (
+                              <div
+                                key={field.id}
+                                className={cn(
+                                  "flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors",
+                                  active
+                                    ? "bg-black text-white border-black"
+                                    : "bg-background text-foreground"
+                                )}
+                              >
+                                <button
+                                  type="button"
+                                  className="flex min-w-0 flex-1 items-center gap-2 text-left"
+                                  onClick={() => setSelectedCategoryIndex(index)}
+                                  aria-pressed={active}
+                                >
+                                  {/* bolinha do número */}
+                                  <span
+                                    className={cn(
+                                      "inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold",
+                                      active
+                                        ? "bg-white/10 text-white border border-white/40"
+                                        : "bg-muted text-foreground"
+                                    )}
+                                  >
+                                    {index + 1}
+                                  </span>
+
+                                  {/* texto com ellipsis */}
+                                  <span className="min-w-0 flex-1 truncate">
+                                    {label}
+                                  </span>
+                                </button>
+
+                                {/* ícone de lixeira */}
+                                <button
+                                  type="button"
+                                  className={cn(
+                                    "shrink-0 transition-colors",
+                                    active
+                                      ? "text-white hover:text-white/80"
+                                      : "text-destructive hover:text-destructive/80"
+                                  )}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    requestDeleteCategory(index);
+                                  }}
+                                  title="Remover categoria"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </div>
+                            );
+                          })}
+
+
+                          {categoryFields.length > 0 && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className="mt-1 w-full border-dashed"
+                              onClick={handleAddCategory}
+                            >
+                              Adicionar categoria
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    </aside>
+
+                    {/* Detalhes da categoria selecionada (direita) */}
+                    <section className="md:col-span-4 space-y-6">
+                      {categoryFields[selectedCategoryIndex] && (
+                        <div className="space-y-4 rounded-lg border bg-muted/20 p-4">
+                          <FormField
+                            key={`${selectedCategoryIndex}-${lang}`}
+                            control={form.control}
+                            name={
+                              `categories.${selectedCategoryIndex}.name.${lang}` as CategoryNamePath
+                            }
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>
+                                  Nome da categoria ({lang.toUpperCase()})
+                                </FormLabel>
+                                <FormControl>
+                                  <Input
+                                    name={field.name}
+                                    ref={field.ref}
+                                    value={field.value ?? ""}
+                                    onChange={(e) => field.onChange(e.target.value)}
+                                    onBlur={field.onBlur}
+                                    placeholder="Ex.: Cenografia e Ambientação"
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            key={`cat-medias-${selectedCategoryIndex}`} // só depende da categoria
+                            control={form.control}
+                            name={
+                              `categories.${selectedCategoryIndex}.medias` as CategoryMediasPath
+                            }
+                            render={({ field }) => (
+                              <FormItem className="space-y-2">
+                                <FormLabel>Imagens da categoria</FormLabel>
+                                <FormControl>
+                                  <FileUpload
+                                    key={`fileupload-${selectedCategoryIndex}`} // opcional, ajuda a remountar ao trocar de categoria
+                                    accept="image/*"
+                                    maxSizeMB={5}
+                                    name={field.name}
+                                    value={field.value ?? []}
+                                    onChange={(ids) => field.onChange(ids ?? [])}
+                                    baseUrl="https://qa.ahocultural.com/assets"
+                                    onBlur={field.onBlur}
+                                    ref={field.ref}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                        </div>
+                      )}
+                    </section>
+                  </div>
+                )}
+
+                {/* Ações */}
+                <div className="flex items-center justify-end gap-2">
+                  <Button type="submit" disabled={saving}>
+                    {saving ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span className="sr-only">Salvando</span>
+                      </>
+                    ) : (
+                      "Salvar"
+                    )}
+                  </Button>
+                </div>
+              </form>
+            </Form>
+
+            {/* Modal de confirmação de exclusão de categoria */}
+            <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Remover categoria</AlertDialogTitle>
+                  <AlertDialogDescriptionDialog>
+                    Tem certeza que deseja remover esta categoria? Essa ação não pode ser
+                    desfeita, mas você poderá criar outra depois.
+                  </AlertDialogDescriptionDialog>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel onClick={cancelDeleteCategory}>
+                    Cancelar
+                  </AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={confirmDeleteCategory}
+                  >
+                    Remover
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </>
         )}
       </CardContent>
       <CardFooter />

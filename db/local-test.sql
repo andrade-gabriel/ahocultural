@@ -366,3 +366,30 @@ VALUES
 (@studio_id, (SELECT id FROM `studio_category` WHERE studio_id = @studio_id AND name_pt = 'Papelaria e Materiais Gráficos' LIMIT 1), '14.jpeg'),
 (@studio_id, (SELECT id FROM `studio_category` WHERE studio_id = @studio_id AND name_pt = 'Papelaria e Materiais Gráficos' LIMIT 1), '15.jpeg'),
 (@studio_id, (SELECT id FROM `studio_category` WHERE studio_id = @studio_id AND name_pt = 'Papelaria e Materiais Gráficos' LIMIT 1), '16.jpeg');
+
+INSERT IGNORE INTO `article` (
+  `title_pt`, `title_en`, `title_es`,
+  `slug_pt`, `slug_en`, `slug_es`,
+  `body_pt`, `body_en`, `body_es`,
+  `hero_image`, `thumbnail`,
+  `publication_date`,
+  `active`,
+  `created_at`,
+  `updated_at`
+) VALUES (
+  'Hip Hop em São Paulo',
+  'Hip Hop in São Paulo',
+  'Hip Hop en São Paulo',
+  'hip-hop-em-sao-paulo',
+  'hip-hop-in-sao-paulo',
+  'hip-hop-en-sao-paulo',
+  '<p>O movimento Hip Hop em São Paulo é uma das expressões culturais mais vibrantes da cidade. Nascido nas periferias, ele une música, dança, arte e resistência social. Os encontros em praças e centros culturais reúnem MCs, DJs, grafiteiros e b-boys que mantêm viva a essência da cultura urbana. A cada final de semana, novos eventos e batalhas de rima acontecem em diferentes bairros, mostrando o poder transformador da arte e a força da juventude periférica.</p><p>Entre os destaques, estão espaços como a Casa do Hip Hop em Diadema e eventos como a Batalha da Aldeia, que revelam talentos e conectam gerações. O Hip Hop paulistano é mais que música — é identidade, é voz e é história contada pelos próprios protagonistas das ruas.</p>',
+  '<p>The Hip Hop movement in São Paulo is one of the city’s most vibrant cultural expressions. Born in the outskirts, it brings together music, dance, art, and social resistance. Gatherings in public squares and cultural centers unite MCs, DJs, graffiti artists, and b-boys who keep the essence of urban culture alive. Every weekend, new events and freestyle battles take place in different neighborhoods, showing the transformative power of art and the strength of youth from the suburbs.</p><p>Highlights include places like Casa do Hip Hop in Diadema and events such as Batalha da Aldeia, which reveal new talents and connect generations. São Paulo’s Hip Hop is more than music — it is identity, it is voice, and it is history told by the very protagonists of the streets.</p>',
+  '<p>El movimiento Hip Hop en São Paulo es una de las expresiones culturales más vibrantes de la ciudad. Nacido en las periferias, une música, danza, arte y resistencia social. Los encuentros en plazas y centros culturales reúnen a MCs, DJs, grafiteros y b-boys que mantienen viva la esencia de la cultura urbana. Cada fin de semana, nuevos eventos y batallas de freestyle tienen lugar en diferentes barrios, mostrando el poder transformador del arte y la fuerza de la juventud periférica.</p><p>Entre los principales espacios se destacan la Casa del Hip Hop en Diadema y eventos como la Batalha da Aldeia, que revelan talentos y conectan generaciones. El Hip Hop paulistano es más que música: es identidad, es voz y es historia contada por los propios protagonistas de las calles.</p>',
+  'hip-hop-em-sao-paulo_hero.jpg',
+  'hip-hop-em-sao-paulo_thumbnail.jpg',
+  '2025-10-09 00:00:00',
+  TRUE,
+  '2025-10-09 03:13:32',
+  '2025-10-31 01:05:23'
+);

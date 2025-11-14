@@ -1,6 +1,6 @@
-import { ArticleRequest } from "./types";
+import { Article } from "./types";
 
-export function validateArticle(article: ArticleRequest): string[] {
+export function validateArticle(article: Article): string[] {
   const errors: string[] = [];
 
   const isEmpty = (value?: string | null) =>

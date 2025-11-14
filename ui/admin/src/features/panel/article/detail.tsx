@@ -30,7 +30,6 @@ import Link from "@tiptap/extension-link";
 import Image from "@tiptap/extension-image";
 import Placeholder from "@tiptap/extension-placeholder";
 import { FileUpload } from "@/components/file-upload";
-import { getPreviewUrl } from "@/api/file";
 
 /* ---------- helpers ---------- */
 // detectar erro de cancelamento (axios/fetch)
@@ -48,8 +47,8 @@ function isAbortError(e: unknown) {
 type LangCode = "pt" | "en" | "es";
 const LANGS: Array<{ code: LangCode; label: string; flag: string }> = [
   { code: "pt", label: "PT-BR", flag: "pt-br" },
-  { code: "en", label: "EN",    flag: "en-us" },
-  { code: "es", label: "ES",    flag: "es" },
+  { code: "en", label: "EN", flag: "en-us" },
+  { code: "es", label: "ES", flag: "es" },
 ];
 
 /* ---------- schema (multilíngue) ---------- */
@@ -63,8 +62,8 @@ const Schema = z.object({
   title: I18nRequired,
   slug: I18nRequired,
   body: I18nRequired,
-  heroImage: z.string().min(1, "Imagem principal obrigatória"),
-  thumbnail: z.string().min(1, "Thumbnail obrigatória"),
+  heroImage: z.array(z.string()).min(1, "Imagem principal obrigatória"),
+  thumbnail: z.array(z.string()).min(1, "Thumbnail obrigatória"),
   publicationDate: z.string().min(1, "Data obrigatória"), // YYYY-MM-DD vindo do input date
   active: z.boolean(),
 });
@@ -73,11 +72,11 @@ type FormValues = z.infer<typeof Schema>;
 
 /* ---------- typed field paths p/ evitar unions ---------- */
 type TitlePath = `title.${LangCode}`;
-type SlugPath  = `slug.${LangCode}`;
-type BodyPath  = `body.${LangCode}`;
+type SlugPath = `slug.${LangCode}`;
+type BodyPath = `body.${LangCode}`;
 const titlePath = (lang: LangCode): TitlePath => `title.${lang}` as const;
-const slugPath  = (lang: LangCode): SlugPath  => `slug.${lang}` as const;
-const bodyPath  = (lang: LangCode): BodyPath  => `body.${lang}` as const;
+const slugPath = (lang: LangCode): SlugPath => `slug.${lang}` as const;
+const bodyPath = (lang: LangCode): BodyPath => `body.${lang}` as const;
 
 /* ---------- util de data ---------- */
 function toDateInputValue(d: Date | string | undefined): string {
@@ -110,8 +109,8 @@ export function ArticleDetailLayout() {
       title: { pt: "", en: "", es: "" },
       slug: { pt: "", en: "", es: "" },
       body: { pt: "", en: "", es: "" },
-      heroImage: "",
-      thumbnail: "",
+      heroImage: [""],
+      thumbnail: [""],
       publicationDate: "",
       active: true,
     },
@@ -196,8 +195,8 @@ export function ArticleDetailLayout() {
             en: data.body?.en ?? "",
             es: data.body?.es ?? "",
           },
-          heroImage: data.heroImage ?? "",
-          thumbnail: data.thumbnail ?? "",
+          heroImage: data.heroImage ? [data.heroImage] : [],
+          thumbnail: data.thumbnail ? [data.thumbnail] : [],
           publicationDate: toDateInputValue(data.publicationDate),
           active: !!data.active,
         };
@@ -245,8 +244,8 @@ export function ArticleDetailLayout() {
           en: values.body.en,
           es: values.body.es,
         },
-        heroImage: values.heroImage,
-        thumbnail: values.thumbnail,
+        heroImage: values.heroImage[0],
+        thumbnail: values.thumbnail[0],
         publicationDate: new Date(values.publicationDate),
         active: values.active,
       };
@@ -447,14 +446,12 @@ export function ArticleDetailLayout() {
                             accept="image/*"
                             maxSizeMB={5}
                             name={field.name}
-                            value={field.value}
-                            onChange={field.onChange}
+                            value={field.value ?? []}
+                            onChange={(ids) => field.onChange(ids ?? [])}
+                            maxFiles={1}
+                            baseUrl="https://qa.ahocultural.com/assets"
                             onBlur={field.onBlur}
                             ref={field.ref}
-                            loadPreview={async (id) => {
-                              const { url, name, size, contentType } = await getPreviewUrl(id);
-                              return { url, name, size, contentType };
-                            }}
                           />
                         </FormControl>
                         <FormMessage />
@@ -475,14 +472,12 @@ export function ArticleDetailLayout() {
                             accept="image/*"
                             maxSizeMB={5}
                             name={field.name}
-                            value={field.value}
-                            onChange={field.onChange}
+                            value={field.value ?? []}
+                            onChange={(ids) => field.onChange(ids ?? [])}
+                            maxFiles={1}
+                            baseUrl="https://qa.ahocultural.com/assets"
                             onBlur={field.onBlur}
                             ref={field.ref}
-                            loadPreview={async (id) => {
-                              const { url, name, size, contentType } = await getPreviewUrl(id);
-                              return { url, name, size, contentType };
-                            }}
                           />
                         </FormControl>
                         <FormMessage />
@@ -491,6 +486,7 @@ export function ArticleDetailLayout() {
                   />
                 </div>
               </div>
+
 
               {/* Publicação & Ativa */}
               <div className="grid gap-4 md:grid-cols-2">
