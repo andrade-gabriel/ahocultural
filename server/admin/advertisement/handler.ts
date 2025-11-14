@@ -1,17 +1,16 @@
 import { config } from './config'
 import type { APIGatewayProxyEvent } from 'aws-lambda';
 import { DefaultResponse } from "@utils/response/types"
-import { AdvertisementEntity, AdvertisementRequest } from '@advertisement/types';
+import { Advertisement } from '@advertisement/types';
 import { validateAdvertisement } from '@advertisement/validator';
-import { toAdvertisementEntity, toAdvertisementRequest } from '@advertisement/mapper';
-import { getAdvertisementAsync, upsertAdvertisementAsync } from '@advertisement/store';
+import { getAdvertisementAsync, insertAdvertisementAsync, updateAdvertisementAsync } from '@advertisement/store';
 
 export async function getHandler(event: APIGatewayProxyEvent): Promise<DefaultResponse> {
-    const entity: AdvertisementEntity | undefined = await getAdvertisementAsync(config.s3.bucket);
-    if (entity) {
+    const article: Advertisement | undefined = await getAdvertisementAsync(config);
+    if (article) {
         return {
             success: true,
-            data: toAdvertisementRequest(entity)
+            data: article
         };
     }
     return {
@@ -30,9 +29,7 @@ export async function postHandler(event: APIGatewayProxyEvent): Promise<DefaultR
     };
     let errors: string[] = validateAdvertisement(req);
     if (errors.length == 0) {
-
-        const entity = await toAdvertisementEntity(req);
-        if (await upsertAdvertisementAsync(entity, config.s3.bucket))
+        if (await insertAdvertisementAsync(config, req))
             return {
                 success: true,
                 data: true
@@ -47,7 +44,7 @@ export async function postHandler(event: APIGatewayProxyEvent): Promise<DefaultR
 }
 
 export async function putHandler(event: APIGatewayProxyEvent): Promise<DefaultResponse> {
-    const req: AdvertisementRequest = event.body ? JSON.parse(event.body) : {
+    const req: Advertisement = event.body ? JSON.parse(event.body) : {
         body: {
             pt: '',
             en: '',
@@ -56,8 +53,7 @@ export async function putHandler(event: APIGatewayProxyEvent): Promise<DefaultRe
     };
     let errors: string[] = validateAdvertisement(req);
     if (req && errors.length == 0) {
-        const entity = await toAdvertisementEntity(req);
-        if (await upsertAdvertisementAsync(entity, config.s3.bucket))
+        if (await updateAdvertisementAsync(config, req))
             return {
                 success: true,
                 data: true

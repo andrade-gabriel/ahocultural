@@ -1,17 +1,17 @@
-// store.ts (about)
+// store.ts (contact)
 
 import { getConnectionPool } from "@db/connection";
 import type { DatabaseConfig } from "@db/types";
-import type { About, AboutRow } from "./types";
-import { mapRowToAbout } from "./mapper";
+import type { Contact, ContactRow } from "./types";
+import { mapRowToContact } from "./mapper";
 
 /**
- * Busca o registro mais recente de "about" no banco.
+ * Busca o registro mais recente de "contact" no banco.
  * Caso não exista nenhum registro, retorna undefined.
  */
-export async function getAboutAsync(
+export async function getContactAsync(
   config: DatabaseConfig
-): Promise<About | undefined> {
+): Promise<Contact | undefined> {
   const pool = getConnectionPool(config);
 
   const sql = `
@@ -22,7 +22,7 @@ export async function getAboutAsync(
       body_es,
       created_at,
       updated_at
-    FROM \`about\`
+    FROM \`contact\`
     ORDER BY id DESC
     LIMIT 1
   `;
@@ -33,16 +33,16 @@ export async function getAboutAsync(
     return undefined;
   }
 
-  const row = rows[0] as AboutRow;
-  return mapRowToAbout(row);
+  const row = rows[0] as ContactRow;
+  return mapRowToContact(row);
 }
 
 /**
- * Insere um novo registro de About.
+ * Insere um novo registro de Contact.
  */
-export async function insertAboutAsync(
+export async function insertContactAsync(
   config: DatabaseConfig,
-  request: About
+  request: Contact
 ): Promise<boolean> {
   const pool = getConnectionPool(config);
   const now = new Date();
@@ -53,7 +53,7 @@ export async function insertAboutAsync(
 
   const [result]: any = await pool.query(
     `
-      INSERT INTO \`about\`
+      INSERT INTO \`contact\`
         (body_pt, body_en, body_es, created_at, updated_at)
       VALUES
         (?, ?, ?, ?, ?)
@@ -69,12 +69,12 @@ export async function insertAboutAsync(
 }
 
 /**
- * Atualiza o registro mais recente de About.
+ * Atualiza o registro mais recente de Contact.
  * Caso não exista nenhum registro, retorna false.
  */
-export async function updateAboutAsync(
+export async function updateContactAsync(
   config: DatabaseConfig,
-  request: About
+  request: Contact
 ): Promise<boolean> {
   const pool = getConnectionPool(config);
   const now = new Date();
@@ -87,7 +87,7 @@ export async function updateAboutAsync(
   const [rows]: any = await pool.query(
     `
       SELECT id
-      FROM \`about\`
+      FROM \`contact\`
       ORDER BY id DESC
       LIMIT 1
     `
@@ -102,7 +102,7 @@ export async function updateAboutAsync(
 
   const [result]: any = await pool.query(
     `
-      UPDATE \`about\`
+      UPDATE \`contact\`
       SET
         body_pt = ?,
         body_en = ?,

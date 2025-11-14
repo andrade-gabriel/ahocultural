@@ -1,6 +1,6 @@
-import { AdvertisementRequest } from "./types";
+import { Advertisement } from "./types";
 
-export function validateAdvertisement(item: AdvertisementRequest): string[] {
+export function validateAdvertisement(item: Advertisement): string[] {
   const errors: string[] = [];
 
   const isEmpty = (value?: string | null) =>

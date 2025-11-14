@@ -1,8 +1,8 @@
-import { Advertisement, AdvertisementRow } from "./types";
+import { Contact, ContactRow } from "./types";
 
-export function mapRowToAdvertisement(
-    input: AdvertisementRow
-): Advertisement {
+export function mapRowToContact(
+    input: ContactRow
+): Contact {
     return {
         body: {
             pt: input.body_pt.trim(),

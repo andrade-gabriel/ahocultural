@@ -1,6 +1,6 @@
 import { I18nValue } from "domain/language/types";
 
-export interface AboutRow {
+export interface ContactRow {
   id: number;
   body_pt: string;
   body_en: string;
@@ -9,6 +9,6 @@ export interface AboutRow {
   updated_at: Date;
 }
 
-export interface About {
+export interface Contact {
     body: I18nValue;
 }

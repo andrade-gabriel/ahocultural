@@ -1,16 +1,16 @@
 import { config } from './config'
 import type { APIGatewayProxyEvent } from 'aws-lambda';
 import { DefaultResponse } from "@utils/response/types"
-import { About } from '@about/types';
-import { validateAbout } from '@about/validator';
-import { getAboutAsync, insertAboutAsync, updateAboutAsync } from '@about/store';
+import { Studio } from '@studio/types';
+import { validateStudio } from '@studio/validator';
+import { getStudioAsync, insertStudioAsync, updateStudioAsync } from '@studio/store';
 
 export async function getHandler(event: APIGatewayProxyEvent): Promise<DefaultResponse> {
-    const article: About | undefined = await getAboutAsync(config);
-    if (article) {
+    const item: Studio | undefined = await getStudioAsync(config);
+    if (item) {
         return {
             success: true,
-            data: article
+            data: item
         };
     }
     return {
@@ -27,15 +27,15 @@ export async function postHandler(event: APIGatewayProxyEvent): Promise<DefaultR
             es: ''
         },
     };
-    let errors: string[] = validateAbout(req);
+    let errors: string[] = validateStudio(req);
     if (errors.length == 0) {
-        if (await insertAboutAsync(config, req))
+        if (await insertStudioAsync(config, req))
             return {
                 success: true,
                 data: true
             }
         else
-            errors = ["Failed to Insert About - Please, contact suport!"];
+            errors = ["Failed to Insert Studio - Please, contact suport!"];
     }
     return {
         success: false,
@@ -44,22 +44,22 @@ export async function postHandler(event: APIGatewayProxyEvent): Promise<DefaultR
 }
 
 export async function putHandler(event: APIGatewayProxyEvent): Promise<DefaultResponse> {
-    const req: About = event.body ? JSON.parse(event.body) : {
+    const req: Studio = event.body ? JSON.parse(event.body) : {
         body: {
             pt: '',
             en: '',
             es: ''
         },
     };
-    let errors: string[] = validateAbout(req);
+    let errors: string[] = validateStudio(req);
     if (req && errors.length == 0) {
-        if (await updateAboutAsync(config, req))
+        if (await updateStudioAsync(config, req))
             return {
                 success: true,
                 data: true
             }
         else {
-            errors = ["Failed to Update About - Please, contact suport!"];
+            errors = ["Failed to Update Studio - Please, contact suport!"];
         }
     }
     return {

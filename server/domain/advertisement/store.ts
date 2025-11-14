@@ -1,73 +1,121 @@
-import { S3Client, GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
-import type { AdvertisementEntity } from "./types";
+// store.ts (advertisement)
 
-/** Constant Properties */
-const DEFAULT_PREFIX = "institutional";
-const amazons3Client = new S3Client({
-    region: 'us-east-1'
-});
+import { getConnectionPool } from "@db/connection";
+import type { DatabaseConfig } from "@db/types";
+import type { Advertisement, AdvertisementRow } from "./types";
+import { mapRowToAdvertisement } from "./mapper";
 
-export function buildKey(): string {
-    const key = `${DEFAULT_PREFIX}/advertisement.json`;
-    return key;
-}
+/**
+ * Busca o registro mais recente de "advertisement" no banco.
+ * Caso não exista nenhum registro, retorna undefined.
+ */
+export async function getAdvertisementAsync(
+  config: DatabaseConfig
+): Promise<Advertisement | undefined> {
+  const pool = getConnectionPool(config);
 
-export async function getAdvertisementAsync(s3Bucket: string): Promise<AdvertisementEntity | undefined> {
-    const Key = buildKey();
-    // TODO: futuro buscar no cloudfront
-    try {
-        const res = await amazons3Client.send(
-            new GetObjectCommand({
-                Bucket: s3Bucket
-                , Key
-            })
-        );
-        const text = await (res.Body as any)?.transformToString?.();
-        if (text) {
-            const raw = JSON.parse(text) as {
-                body: {
-                    pt: string;
-                    en: string;
-                    es: string;
-                };
-            };
+  const sql = `
+    SELECT
+      id,
+      body_pt,
+      body_en,
+      body_es,
+      created_at,
+      updated_at
+    FROM \`advertisement\`
+    ORDER BY id DESC
+    LIMIT 1
+  `;
 
-            const item: AdvertisementEntity = {
-                body: {
-                    pt: raw.body.pt,
-                    en: raw.body.en,
-                    es: raw.body.es
-                }
-            };
-            return item;
-        }
-    }
-    catch (e) {
-        console.log(`Error getting item: ${e}`);
-    }
+  const [rows]: any = await pool.query(sql);
+
+  if (!rows || rows.length === 0) {
     return undefined;
+  }
+
+  const row = rows[0] as AdvertisementRow;
+  return mapRowToAdvertisement(row);
 }
 
-export async function upsertAdvertisementAsync(
-    item: AdvertisementEntity,
-    s3Bucket: string
-): Promise<Boolean> {
-    let successfullyCreated: Boolean;
-    try {
-        const key = buildKey();
-        await amazons3Client.send(
-            new PutObjectCommand({
-                Bucket: s3Bucket,
-                Key: key,
-                Body: JSON.stringify(item),
-                ContentType: "application/json",
-            })
-        );
-        successfullyCreated = true;
-    }
-    catch (e) {
-        console.log(`Error creating item: ${e}`);
-        successfullyCreated = false;
-    }
-    return successfullyCreated;
+/**
+ * Insere um novo registro de Advertisement.
+ */
+export async function insertAdvertisementAsync(
+  config: DatabaseConfig,
+  request: Advertisement
+): Promise<boolean> {
+  const pool = getConnectionPool(config);
+  const now = new Date();
+
+  const bodyPt = request.body?.pt ?? "";
+  const bodyEn = request.body?.en ?? "";
+  const bodyEs = request.body?.es ?? "";
+
+  const [result]: any = await pool.query(
+    `
+      INSERT INTO \`advertisement\`
+        (body_pt, body_en, body_es, created_at, updated_at)
+      VALUES
+        (?, ?, ?, ?, ?)
+    `,
+    [bodyPt, bodyEn, bodyEs, now, now]
+  );
+
+  return (
+    !!result &&
+    typeof result.affectedRows === "number" &&
+    result.affectedRows > 0
+  );
+}
+
+/**
+ * Atualiza o registro mais recente de Advertisement.
+ * Caso não exista nenhum registro, retorna false.
+ */
+export async function updateAdvertisementAsync(
+  config: DatabaseConfig,
+  request: Advertisement
+): Promise<boolean> {
+  const pool = getConnectionPool(config);
+  const now = new Date();
+
+  const bodyPt = request.body?.pt ?? "";
+  const bodyEn = request.body?.en ?? "";
+  const bodyEs = request.body?.es ?? "";
+
+  // Busca o último registro (mesma lógica que o upsert antigo)
+  const [rows]: any = await pool.query(
+    `
+      SELECT id
+      FROM \`advertisement\`
+      ORDER BY id DESC
+      LIMIT 1
+    `
+  );
+
+  const existing = rows && rows.length > 0 ? (rows[0] as { id: number }) : null;
+
+  if (!existing) {
+    // Sem registro para atualizar
+    return false;
+  }
+
+  const [result]: any = await pool.query(
+    `
+      UPDATE \`advertisement\`
+      SET
+        body_pt = ?,
+        body_en = ?,
+        body_es = ?,
+        updated_at = ?
+      WHERE id = ?
+    `,
+    [bodyPt, bodyEn, bodyEs, now, existing.id]
+  );
+
+  return (
+    !!result &&
+    typeof result.affectedRows === "number" &&
+    result.affectedRows > 0
+  );
 }

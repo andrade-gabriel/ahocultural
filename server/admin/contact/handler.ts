@@ -1,12 +1,12 @@
 import { config } from './config'
 import type { APIGatewayProxyEvent } from 'aws-lambda';
 import { DefaultResponse } from "@utils/response/types"
-import { About } from '@about/types';
-import { validateAbout } from '@about/validator';
-import { getAboutAsync, insertAboutAsync, updateAboutAsync } from '@about/store';
+import { Contact } from '@contact/types';
+import { validateContact } from '@contact/validator';
+import { getContactAsync, insertContactAsync, updateContactAsync } from '@contact/store';
 
 export async function getHandler(event: APIGatewayProxyEvent): Promise<DefaultResponse> {
-    const article: About | undefined = await getAboutAsync(config);
+    const article: Contact | undefined = await getContactAsync(config);
     if (article) {
         return {
             success: true,
@@ -27,15 +27,15 @@ export async function postHandler(event: APIGatewayProxyEvent): Promise<DefaultR
             es: ''
         },
     };
-    let errors: string[] = validateAbout(req);
+    let errors: string[] = validateContact(req);
     if (errors.length == 0) {
-        if (await insertAboutAsync(config, req))
+        if (await insertContactAsync(config, req))
             return {
                 success: true,
                 data: true
             }
         else
-            errors = ["Failed to Insert About - Please, contact suport!"];
+            errors = ["Failed to Insert Contact - Please, contact suport!"];
     }
     return {
         success: false,
@@ -44,22 +44,22 @@ export async function postHandler(event: APIGatewayProxyEvent): Promise<DefaultR
 }
 
 export async function putHandler(event: APIGatewayProxyEvent): Promise<DefaultResponse> {
-    const req: About = event.body ? JSON.parse(event.body) : {
+    const req: Contact = event.body ? JSON.parse(event.body) : {
         body: {
             pt: '',
             en: '',
             es: ''
         },
     };
-    let errors: string[] = validateAbout(req);
+    let errors: string[] = validateContact(req);
     if (req && errors.length == 0) {
-        if (await updateAboutAsync(config, req))
+        if (await updateContactAsync(config, req))
             return {
                 success: true,
                 data: true
             }
         else {
-            errors = ["Failed to Update About - Please, contact suport!"];
+            errors = ["Failed to Update Contact - Please, contact suport!"];
         }
     }
     return {

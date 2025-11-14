@@ -1,6 +1,6 @@
-import { About } from "./types";
+import { Contact } from "./types";
 
-export function validateAbout(item: About): string[] {
+export function validateContact(item: Contact): string[] {
   const errors: string[] = [];
 
   const isEmpty = (value?: string | null) =>

@@ -1,25 +1,13 @@
-import { AboutRequest, AboutEntity } from "./types";
+import { About, AboutRow } from "./types";
 
-export function toAboutEntity(
-    input: AboutRequest
-): AboutEntity {
+export function mapRowToAbout(
+    input: AboutRow
+): About {
     return {
         body: {
-            pt: input.body.pt.trim(),
-            en: input.body.en.trim(),
-            es: input.body.es.trim(),
+            pt: input.body_pt.trim(),
+            en: input.body_en.trim(),
+            es: input.body_es.trim(),
         }
-    };
-}
-
-export function toAboutRequest(
-    input: AboutEntity
-): AboutRequest {
-    return {
-        body: {
-            pt: input.body.pt.trim(),
-            en: input.body.en.trim(),
-            es: input.body.es.trim(),
-        },
     };
 }

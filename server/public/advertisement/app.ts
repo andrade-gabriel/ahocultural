@@ -1,5 +1,5 @@
 import type { APIGatewayProxyHandler, APIGatewayProxyEvent } from 'aws-lambda';
-import { getAdvertisementAsync } from '@advertisement/store';
+import { getAdvertisementAsync } from 'domain/advertisement2/store';
 import { config } from './config'
 
 export const lambdaHandler: APIGatewayProxyHandler = async (event: APIGatewayProxyEvent) => {

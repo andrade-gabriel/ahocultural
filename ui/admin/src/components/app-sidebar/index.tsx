@@ -62,6 +62,17 @@ export function AppSidebar() {
                     size="sm"
                     className={cn(
                       "rounded-md text-sm text-muted-foreground hover:text-foreground",
+                      isActive("contact") && "bg-accent/60 text-accent-foreground border border-accent/70"
+                    )}
+                  >
+                    <Link to="/contact">Contato</Link>
+                  </SidebarMenuButton>
+
+                  <SidebarMenuButton
+                    asChild
+                    size="sm"
+                    className={cn(
+                      "rounded-md text-sm text-muted-foreground hover:text-foreground",
                       isActive("advertisement") && "bg-accent/60 text-accent-foreground border border-accent/70"
                     )}
                   >
@@ -84,10 +95,10 @@ export function AppSidebar() {
                     size="sm"
                     className={cn(
                       "rounded-md text-sm text-muted-foreground hover:text-foreground",
-                      isActive("estudio-aho") && "bg-accent/60 text-accent-foreground border border-accent/70"
+                      isActive("studio") && "bg-accent/60 text-accent-foreground border border-accent/70"
                     )}
                   >
-                    <Link to="/estudio-aho">Estúdio AHÔ</Link>
+                    <Link to="/studio">Estúdio AHÔ</Link>
                   </SidebarMenuButton>
                 </div>
               </SidebarMenuItem>

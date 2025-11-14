@@ -50,6 +50,16 @@ ts:
 		--bundle --platform=node --target=node22 \
 		--tsconfig=$(TSCONFIG) \
 		--outfile=.dist/advertisement/app.js
+	
+	npx esbuild ./contact/app.ts \
+		--bundle --platform=node --target=node22 \
+		--tsconfig=$(TSCONFIG) \
+		--outfile=.dist/contact/app.js
+
+	npx esbuild ./studio/app.ts \
+		--bundle --platform=node --target=node22 \
+		--tsconfig=$(TSCONFIG) \
+		--outfile=.dist/studio/app.js
 
 	npx esbuild ./geo/app.ts \
 		--bundle --platform=node --target=node22 \

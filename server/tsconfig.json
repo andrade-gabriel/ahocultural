@@ -18,7 +18,9 @@
       "@article/*": ["./domain/article/*"],
       "@event/*": ["./domain/event/*"],
       "@about/*": ["./domain/about/*"],
-      "@advertisement/*": ["./domain/advertisement/*"]
+      "@advertisement/*": ["domain/advertisement/*"],
+      "@contact/*": ["domain/contact/*"],
+      "@studio/*": ["domain/studio/*"]
     },
     // Real Warnings
     "noUnusedLocals": true,

@@ -10,6 +10,8 @@ import { PanelLayout } from "@/features/panel/layout";
 /** INSTITUTIONAL */
 import { AboutLayout } from '@/features/panel/about'
 import { AdvertisementLayout } from '@/features/panel/advertisement'
+import { ContactLayout } from "./features/panel/contact";
+import { StudioLayout } from "./features/panel/studio";
 
 /** CATEGORY */
 import { CategoryLayout } from "./features/panel/category";
@@ -49,6 +51,12 @@ function App() {
           </Route>
           <Route path="advertisement">
             <Route index element={<AdvertisementLayout />} />
+          </Route>
+          <Route path="contact">
+            <Route index element={<ContactLayout/>} />
+          </Route>
+          <Route path="studio">
+            <Route index element={<StudioLayout/>} />
           </Route>
           <Route path="highlight">
             <Route index element={<HighlightEventLayout />} />
