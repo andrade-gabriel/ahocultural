@@ -20,7 +20,8 @@
       "@about/*": ["./domain/about/*"],
       "@advertisement/*": ["domain/advertisement/*"],
       "@contact/*": ["domain/contact/*"],
-      "@studio/*": ["domain/studio/*"]
+      "@studio/*": ["domain/studio/*"],
+      "@ad/*": ["domain/ad/*"]
     },
     // Real Warnings
     "noUnusedLocals": true,

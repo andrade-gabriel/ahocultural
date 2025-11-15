@@ -6,7 +6,8 @@ import {
   Newspaper,
   CalendarCheck,
   Landmark,
-  Star
+  Star,
+  Megaphone
 } from "@/components/icons";
 import {
   Sidebar,
@@ -195,6 +196,22 @@ export function AppSidebar() {
                   <Link to="/highlight">
                     <Star size={20} />
                     <span>Destaques</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  size="lg"
+                  className={cn(
+                    "gap-4 rounded-lg group-data-[collapsible=icon]:!p-2",
+                    isActive("ads") && "bg-accent text-accent-foreground"
+                  )}
+                >
+                  <Link to="/ads">
+                    <Megaphone size={20} />
+                    <span>Anúncios</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>

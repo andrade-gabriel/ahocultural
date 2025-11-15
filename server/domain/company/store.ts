@@ -259,7 +259,7 @@ export async function listCompaniesAsync(
     const raw = escapeLikeTermRaw(name.trim());
     const likeWithPercents = `%${raw}%`;
     const escapedLike = esc(likeWithPercents);
-    whereClause = `WHERE name LIKE ${escapedLike} ESCAPE '\\'`;
+    whereClause = `WHERE name LIKE ${escapedLike} ESCAPE '!'`;
   }
 
   const escapedOffset = esc(skip);

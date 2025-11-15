@@ -2107,6 +2107,193 @@ Resources:
             method.response.header.Access-Control-Allow-Methods: true
             method.response.header.Access-Control-Allow-Headers: true
 
+  ## Ad
+  AdResource:
+    Type: 'AWS::ApiGateway::Resource'
+    Properties:
+      RestApiId: !FindInMap [EnvironmentMap, !Ref 'Environment', ApiGatewayId]
+      ParentId: !Ref AdminResource
+      PathPart: ad
+  AdIdResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !FindInMap [EnvironmentMap, !Ref Environment, ApiGatewayId]
+      ParentId:  !Ref AdResource
+      PathPart: '{id}'
+  AdLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .dist/
+      Handler: ad/app.lambdaHandler
+      Runtime: nodejs22.x
+      Policies: 
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+  AdTrigger:
+    Type: 'AWS::Lambda::Permission'
+    Properties:
+      Action: 'lambda:invokeFunction'
+      FunctionName: !Ref AdLambda
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 
+        - arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGatewayId}/*/*/v1/admin/ad*
+        - ApiGatewayId: !FindInMap [EnvironmentMap, !Ref 'Environment', ApiGatewayId]
+  AdGetByIdMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: CUSTOM
+      AuthorizerId: !FindInMap [EnvironmentMap, !Ref 'Environment', AuthorizerId]
+      HttpMethod: GET
+      ResourceId: !Ref AdIdResource
+      RestApiId: !FindInMap [EnvironmentMap, !Ref Environment, ApiGatewayId]
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AdLambda.Arn}/invocations
+      MethodResponses:
+        - StatusCode: 200
+        - StatusCode: 404
+        - StatusCode: 400
+        - StatusCode: 401
+        - StatusCode: 500
+  AdGetMethod:
+    DependsOn: 
+      - AdTrigger
+    Type: 'AWS::ApiGateway::Method'
+    Properties: 
+      AuthorizationType: CUSTOM
+      AuthorizerId: !FindInMap [EnvironmentMap, !Ref 'Environment', AuthorizerId]
+      HttpMethod: GET
+      ResourceId: !Ref AdResource
+      RestApiId: !FindInMap [EnvironmentMap, !Ref 'Environment', ApiGatewayId]
+      MethodResponses:
+        - StatusCode: 200
+        - StatusCode: 204
+        - StatusCode: 302
+        - StatusCode: 400
+        - StatusCode: 401
+        - StatusCode: 500
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub 
+          - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+          - LambdaArn: !GetAtt AdLambda.Arn
+  AdPostMethod:
+    DependsOn: 
+      - AdTrigger
+    Type: 'AWS::ApiGateway::Method'
+    Properties: 
+      AuthorizationType: CUSTOM
+      AuthorizerId: !FindInMap [EnvironmentMap, !Ref 'Environment', AuthorizerId]
+      HttpMethod: POST
+      ResourceId: !Ref AdResource
+      RestApiId: !FindInMap [EnvironmentMap, !Ref 'Environment', ApiGatewayId]
+      MethodResponses:
+        - StatusCode: 200
+        - StatusCode: 204
+        - StatusCode: 302
+        - StatusCode: 400
+        - StatusCode: 401
+        - StatusCode: 500
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub 
+          - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+          - LambdaArn: !GetAtt AdLambda.Arn
+  AdPutMethod:
+    DependsOn: 
+      - AdTrigger
+    Type: 'AWS::ApiGateway::Method'
+    Properties: 
+      AuthorizationType: CUSTOM
+      AuthorizerId: !FindInMap [EnvironmentMap, !Ref 'Environment', AuthorizerId]
+      HttpMethod: PUT
+      ResourceId: !Ref AdIdResource
+      RestApiId: !FindInMap [EnvironmentMap, !Ref 'Environment', ApiGatewayId]
+      MethodResponses:
+        - StatusCode: 200
+        - StatusCode: 204
+        - StatusCode: 302
+        - StatusCode: 400
+        - StatusCode: 401
+        - StatusCode: 500
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub 
+          - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+          - LambdaArn: !GetAtt AdLambda.Arn
+  AdPatchMethod:
+    DependsOn: 
+      - AdTrigger
+    Type: 'AWS::ApiGateway::Method'
+    Properties: 
+      AuthorizationType: CUSTOM
+      AuthorizerId: !FindInMap [EnvironmentMap, !Ref 'Environment', AuthorizerId]
+      HttpMethod: PATCH
+      ResourceId: !Ref AdIdResource
+      RestApiId: !FindInMap [EnvironmentMap, !Ref 'Environment', ApiGatewayId]
+      MethodResponses:
+        - StatusCode: 200
+        - StatusCode: 204
+        - StatusCode: 302
+        - StatusCode: 400
+        - StatusCode: 401
+        - StatusCode: 500
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub 
+          - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+          - LambdaArn: !GetAtt AdLambda.Arn
+  AdOptionsMethod:
+    Type: 'AWS::ApiGateway::Method'
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: OPTIONS
+      ResourceId: !Ref AdResource
+      RestApiId: !FindInMap [EnvironmentMap, !Ref 'Environment', ApiGatewayId]
+      Integration:
+        Type: MOCK
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+        IntegrationResponses:
+          - StatusCode: 200
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+              method.response.header.Access-Control-Allow-Methods: "'*'"
+              method.response.header.Access-Control-Allow-Headers: "'*'"
+      MethodResponses:
+        - StatusCode: 200
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Origin: true
+            method.response.header.Access-Control-Allow-Methods: true
+            method.response.header.Access-Control-Allow-Headers: true
+  AdOptionsIdMethod:
+    Type: 'AWS::ApiGateway::Method'
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: OPTIONS
+      ResourceId: !Ref AdIdResource
+      RestApiId: !FindInMap [EnvironmentMap, !Ref 'Environment', ApiGatewayId]
+      Integration:
+        Type: MOCK
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+        IntegrationResponses:
+          - StatusCode: 200
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+              method.response.header.Access-Control-Allow-Methods: "'*'"
+              method.response.header.Access-Control-Allow-Headers: "'*'"
+      MethodResponses:
+        - StatusCode: 200
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Origin: true
+            method.response.header.Access-Control-Allow-Methods: true
+            method.response.header.Access-Control-Allow-Headers: true
+
   ## Deployment
   ApiGatewayDeployment:
       Type: 'AWS::ApiGateway::Deployment'

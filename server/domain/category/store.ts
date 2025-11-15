@@ -223,7 +223,7 @@ export async function listCategoriesAsync(
     const likeWithPercents = `%${raw}%`;
     const escapedLike = esc(likeWithPercents);
     // filtrando por name_pt; se quiser, pode expandir para OR em name_en/name_es
-    whereClause = `WHERE name_pt LIKE ${escapedLike} ESCAPE '\\'`;
+    whereClause = `WHERE name_pt LIKE ${escapedLike} ESCAPE '!'`;
   }
 
   const escapedOffset = esc(skip);

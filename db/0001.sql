@@ -315,5 +315,81 @@ CREATE TABLE IF NOT EXISTS `event_occurrence` (
   FOREIGN KEY (`event_id`) REFERENCES `event`(`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS `ad_type` (
+  `id` TINYINT UNSIGNED NOT NULL,
+  `name` VARCHAR(100) NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_ad_type_name` (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+INSERT IGNORE INTO `ad_type` (`id`, `name`) VALUES
+(1, 'Menu'),
+(2, 'Category');
+# DROP TABLE `ad_menu`;
+# DROP TABLE `ad_menu_type`;
+# DROP TABLE `ad_category`;
+# DROP TABLE `ad`;
+CREATE TABLE IF NOT EXISTS `ad` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `ad_type_id` TINYINT UNSIGNED NOT NULL,
+  `url` VARCHAR(255) NOT NULL,
+  
+  `start_date` DATE NOT NULL,
+  `end_date` DATE NOT NULL,
 
+  `title_pt` VARCHAR(255) NOT NULL,
+  `title_en` VARCHAR(255) NOT NULL,
+  `title_es` VARCHAR(255) NOT NULL,
+
+  `thumbnail` VARCHAR(1024) NOT NULL,
+  `pricing` DECIMAL(10,2) NOT NULL,
+
+  `active` BOOLEAN NOT NULL DEFAULT TRUE,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+  PRIMARY KEY (`id`),
+  KEY `idx_ad_ad_type_id` (`ad_type_id`),
+  CONSTRAINT `fk_ad_ad_type`
+    FOREIGN KEY (`ad_type_id`) REFERENCES `ad_type`(`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `ad_category` (
+  `ad_id` INT UNSIGNED NOT NULL,
+  `category_id` INT UNSIGNED NOT NULL,
+
+  PRIMARY KEY (`ad_id`),
+  KEY `idx_ad_category_category_id` (`category_id`),
+
+  CONSTRAINT `fk_ad_category_ad`
+    FOREIGN KEY (`ad_id`) REFERENCES `ad`(`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_ad_category_category`
+    FOREIGN KEY (`category_id`) REFERENCES `category`(`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `ad_menu_type` (
+  `id` TINYINT UNSIGNED NOT NULL,
+  `name` VARCHAR(100) NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_ad_menu_name` (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT IGNORE INTO `ad_menu_type` (`id`, `name`) VALUES
+(1, 'Pra hoje'),
+(2, 'Este Fds'),
+(3, 'Esta semana'),
+(4, 'Destaques');
+
+CREATE TABLE IF NOT EXISTS `ad_menu` (
+  `ad_id` INT UNSIGNED NOT NULL,
+  `ad_menu_type` TINYINT UNSIGNED NOT NULL,
+
+  PRIMARY KEY (`ad_id`),
+  UNIQUE KEY `uk_ad_menu_type` (`ad_menu_type`),
+
+  CONSTRAINT `fk_ad_menu_ad`
+    FOREIGN KEY (`ad_id`) REFERENCES `ad`(`id`) ON DELETE CASCADE,
+  KEY `idx_ad_ad_menu_type` (`ad_menu_type`),
+  CONSTRAINT `fk_ad_ad_menu_type`
+    FOREIGN KEY (`ad_menu_type`) REFERENCES `ad_menu_type`(`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

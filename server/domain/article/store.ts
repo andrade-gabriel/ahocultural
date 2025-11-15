@@ -286,13 +286,7 @@ export async function listArticlesAsync(
     const escapedLike = esc(likeWithPercents);
 
     // filtra por qualquer um dos títulos (pt/en/es)
-    whereClause = `
-      WHERE (
-        title_pt LIKE ${escapedLike}
-        OR title_en LIKE ${escapedLike}
-        OR title_es LIKE ${escapedLike}
-      ) ESCAPE '\\'
-    `;
+    whereClause = `WHERE title_pt LIKE ${escapedLike} ESCAPE '!'`;
   }
 
   const escapedOffset = esc(skip);

@@ -31,10 +31,10 @@ ts:
 		--tsconfig=$(TSCONFIG) \
 		--outfile=.dist/article/app.js
 
-	npx esbuild ./event/app.ts \
-		--bundle --platform=node --target=node22 \
-		--tsconfig=$(TSCONFIG) \
-		--outfile=.dist/event/app.js
+# 	npx esbuild ./event/app.ts \
+# 		--bundle --platform=node --target=node22 \
+# 		--tsconfig=$(TSCONFIG) \
+# 		--outfile=.dist/event/app.js
 
 	npx esbuild ./file/app.ts \
 		--bundle --platform=node --target=node22 \
@@ -65,6 +65,11 @@ ts:
 		--bundle --platform=node --target=node22 \
 		--tsconfig=$(TSCONFIG) \
 		--outfile=.dist/geo/app.js
+
+	npx esbuild ./ad/app.ts \
+		--bundle --platform=node --target=node22 \
+		--tsconfig=$(TSCONFIG) \
+		--outfile=.dist/ad/app.js
 
 build: ts
 	sam build

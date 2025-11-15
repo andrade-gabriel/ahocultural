@@ -34,6 +34,10 @@ import { EventLayout } from "./features/panel/event";
 import { EventDetailLayout } from "./features/panel/event/detail";
 import { HighlightEventLayout } from "./features/panel/highlight";
 
+/** AD */
+import { AdLayout } from "./features/panel/ad";
+import { AdDetailLayout } from "./features/panel/ad/detail";
+
 // import { SubwayLayout  } from "./features/panel/subway";
 
 function App() {
@@ -60,6 +64,11 @@ function App() {
           </Route>
           <Route path="highlight">
             <Route index element={<HighlightEventLayout />} />
+          </Route>
+          <Route path="ads">
+            <Route index element={<AdLayout />} />
+            <Route path="new" element={<AdDetailLayout />} />
+            <Route path=":id" element={<AdDetailLayout />} />
           </Route>
           <Route path="category">
             <Route index element={<CategoryLayout />} />
