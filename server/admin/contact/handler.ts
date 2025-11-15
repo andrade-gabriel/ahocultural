@@ -5,7 +5,7 @@ import { Contact } from '@contact/types';
 import { validateContact } from '@contact/validator';
 import { getContactAsync, insertContactAsync, updateContactAsync } from '@contact/store';
 
-export async function getHandler(event: APIGatewayProxyEvent): Promise<DefaultResponse> {
+export async function getHandler(): Promise<DefaultResponse> {
     const article: Contact | undefined = await getContactAsync(config);
     if (article) {
         return {

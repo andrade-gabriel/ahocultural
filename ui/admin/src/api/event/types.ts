@@ -6,48 +6,57 @@ export type ListEventsParams = {
   search?: string;
 };
 
-export type Event = {
-  id: string;
-  title: I18nValue;
-  slug: I18nValue;
-  category: string;
-  company: string;
-  heroImage: string;
-  thumbnail: string;
-  body: I18nValue;
-  startDate: Date;
-  endDate: Date;
-  pricing: number;
-  externalTicketLink: string;
-  facilities: string[];
-  sponsored: boolean;
-  active: boolean;
-};
+export interface Event {
+  id: number;
 
-export type EventDetail = {
-  id: string;
-  title: I18nValue;
-  slug: I18nValue;
-  category: string;
-  company: string;
+  title: I18nValue;       // title_pt/en/es
+  slug: I18nValue;        // slug_pt/en/es
+  body: I18nValue;        // body_pt/en/es
+
+  // FKs da tabela `event`
+  categoryId: number;
+  companyId: number;
+
   heroImage: string;
   thumbnail: string;
-  body: I18nValue;
+
   startDate: Date;
   endDate: Date;
   pricing: number;
-  externalTicketLink: string;
-  facilities: string[];
-  sponsored: boolean;
+  externalTicketLink?: string | null;
+
   active: boolean;
-  recurrence?: {
-      rrule: string;                                      // ex.: "FREQ=WEEKLY;BYDAY=WE"
-      until: Date;                                        // Event will exists until...
-      exdates?: Date[];                                   // Exception Dates
-      rdates?: Date[];                                    // Extra Dates
-      // overrides?: Record<string, Partial<EventEntity>>;   // Specific replacements
-  };
-};
+  createdAt: Date;
+  updatedAt: Date;
+
+  facilities?: EventFacility[];
+  recurrence?: EventRecurrence;
+  occurrences?: EventOccurrence[];
+  isSponsored?: boolean;
+}
+
+// 1 = Acessibilidade, 2 = Estacionamento, 3 = Bicicletário...
+export interface EventFacility {
+  id: number;
+  name: string;
+}
+
+export interface EventRecurrence {
+  id: number;
+  eventId: number;
+  rrule: string;      // "FREQ=WEEKLY;BYDAY=WE"
+  until: Date;
+  exdates?: Date[];   // JSON no banco
+  rdates?: Date[];    // JSON no banco
+}
+
+export interface EventOccurrence {
+  id: number;
+  eventId: number;
+  occurrenceDate: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
 
 export type HighlightItem = { id: string; weight?: number };
 export type HighlightPayload = {

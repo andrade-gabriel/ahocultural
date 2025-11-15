@@ -74,7 +74,6 @@ import { TextAlign } from "@tiptap/extension-text-align";
 import { Underline } from "@tiptap/extension-underline";
 
 import { FileUpload } from "@/components/file-upload";
-import { getPreviewUrl } from "@/api/file";
 import { cn } from "@/lib/utils";
 
 /* ---------- helpers ---------- */

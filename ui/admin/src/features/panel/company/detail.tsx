@@ -711,7 +711,7 @@ export function CompanyDetailLayout() {
                         type="number"
                         step="any"
                         className={roInput}
-                        value={field.value ?? ""}
+                        value={Number(field.value ?? 0)}
                         readOnly
                         onChange={() => {}}
                         placeholder="Ex.: -23.561684"
@@ -735,7 +735,7 @@ export function CompanyDetailLayout() {
                         type="number"
                         step="any"
                         className={roInput}
-                        value={field.value ?? ""}
+                        value={Number(field.value ?? 0)}
                         readOnly
                         onChange={() => {}}
                         placeholder="Ex.: -46.656139"

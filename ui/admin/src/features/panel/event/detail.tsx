@@ -8,7 +8,7 @@ import {
   getEventById,
   insertEvent,
   updateEvent,
-  type EventDetail,
+  type Event,
 } from "@/api/event";
 
 import {
@@ -41,7 +41,11 @@ import Link from "@tiptap/extension-link";
 import Image from "@tiptap/extension-image";
 import Placeholder from "@tiptap/extension-placeholder";
 
-import { CategoryAutocomplete, CompanyAutocomplete } from "@/components/autocomplete";
+import {
+  CategoryAutocomplete,
+  CompanyAutocomplete,
+} from "@/components/autocomplete";
+// se o caminho do componente for diferente, ajusta aqui:
 import { FileUpload } from "@/components/file-upload";
 import { getPreviewUrl } from "@/api/file";
 
@@ -93,14 +97,13 @@ const LANGS: Array<{ code: LangCode; label: string; flag: string }> = [
   { code: "es", label: "ES", flag: "es" },
 ];
 
-/* ---------- schema (multilíngue + recorrência) ---------- */
+/* ---------- Zod ---------- */
 const I18nRequired = z.object({
   pt: z.string().min(1, "Obrigatório"),
   en: z.string().min(1, "Obrigatório"),
   es: z.string().min(1, "Obrigatório"),
 });
 
-// Recorrência (form usa strings datetime-local)
 const RecurrenceSchema = z.object({
   rrule: z.string().min(1, "RRULE é obrigatório"),
   until: z.string().min(1, "Data 'Até' é obrigatória"),
@@ -113,16 +116,22 @@ const Schema = z
     title: I18nRequired,
     slug: I18nRequired,
     body: I18nRequired, // HTML por idioma
-    heroImage: z.string().min(1, "Imagem principal obrigatória"),
-    thumbnail: z.string().min(1, "Thumbnail obrigatória"),
-    category: z.string().min(1, "Categoria obrigatória"),
-    company: z.string().min(1, "Empresa obrigatória"),
+
+    // 👇 agora arrays de ids (FileUpload), mas Event espera string
+    heroImage: z.array(z.string()).min(1, "Imagem principal obrigatória"),
+    thumbnail: z.array(z.string()).min(1, "Thumbnail obrigatória"),
+
+    // alinhado com Event: categoryId / companyId (ids numéricos)
+    categoryId: z.string().min(1, "Categoria obrigatória"),
+    companyId: z.string().min(1, "Empresa obrigatória"),
+
     startDate: z.string().min(1, "Início obrigatório"),
     endDate: z.string().min(1, "Fim obrigatório"),
     pricing: z.coerce.number().min(0, "Preço inválido"),
     externalTicketLink: z.string().optional(),
+
     facilities: z.array(z.enum(FACILITY_OPTIONS)).default([]),
-    sponsored: z.boolean().default(false),
+    isSponsored: z.boolean().default(false),
     active: z.boolean().default(true),
 
     // Toggle + payload de recorrência
@@ -160,37 +169,39 @@ const titlePath = (lang: LangCode): TitlePath => `title.${lang}` as const;
 const slugPath = (lang: LangCode): SlugPath => `slug.${lang}` as const;
 const bodyPath = (lang: LangCode): BodyPath => `body.${lang}` as const;
 
-/* ---------- página ---------- */
+/* ---------- componente ---------- */
 export function EventDetailLayout() {
   const { id: idParam } = useParams();
   const navigate = useNavigate();
   const isEdit = Boolean(idParam);
 
-  const [loading, setLoading] = useState<boolean>(isEdit);
+  const [loading, setLoading] = useState<boolean>(!!isEdit);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string>();
   const [lang, setLang] = useState<LangCode>("pt");
+  const [tab, setTab] = useState<"content" | "settings">("content");
 
   const acRef = useRef<AbortController | null>(null);
   const requestIdRef = useRef(0);
 
-  // RHF
   const form = useForm<FormValues, any, FormValues>({
     resolver: zodResolver(Schema) as unknown as Resolver<FormValues>,
     defaultValues: {
       title: { pt: "", en: "", es: "" },
       slug: { pt: "", en: "", es: "" },
       body: { pt: "", en: "", es: "" },
-      heroImage: "",
-      thumbnail: "",
-      category: "",
-      company: "",
+
+      heroImage: [],
+      thumbnail: [],
+
+      categoryId: "",
+      companyId: "",
       startDate: "",
       endDate: "",
       pricing: 0,
       externalTicketLink: "",
       facilities: [],
-      sponsored: false,
+      isSponsored: false,
       active: true,
 
       recorrente: false,
@@ -203,36 +214,31 @@ export function EventDetailLayout() {
   const editor = useEditor({
     extensions: [
       StarterKit,
-      Link.configure({ openOnClick: false }),
+      Link.configure({ openOnClick: true }),
       Image,
-      Placeholder.configure({ placeholder: "Descreva o evento..." }),
+      Placeholder.configure({
+        placeholder: "Escreva a descrição do evento...",
+      }),
     ],
-    content: form.getValues(bodyPath(lang)) || "",
-    onUpdate: ({ editor }) => {
+    content: "",
+    onUpdate({ editor }) {
       const html = editor.getHTML();
-      form.setValue(bodyPath(lang), html, { shouldDirty: true, shouldValidate: true });
+      const path = bodyPath(lang);
+      form.setValue(path, html, { shouldDirty: true, shouldValidate: true });
     },
   });
 
-  // troca de idioma → sincroniza editor
+  // mantém editor sincronizado com o body do idioma atual
   useEffect(() => {
     if (!editor) return;
-    const current = form.getValues(bodyPath(lang)) || "";
-    if (editor.getHTML() !== current) editor.commands.setContent(current);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lang, editor]);
+    const html = form.getValues(bodyPath(lang));
+    editor.commands.setContent(html || "", false);
+  }, [lang, editor, form]);
 
-  // quando body[lang] mudar via reset/watch → atualiza editor
-  useEffect(() => {
-    if (!editor) return;
-    const sub = form.watch((v, { name }) => {
-      if (name === bodyPath(lang)) {
-        const val = (v?.body as any)?.[lang] ?? "";
-        if (editor.getHTML() !== val) editor.commands.setContent(val || "");
-      }
-    });
-    return () => sub.unsubscribe();
-  }, [editor, form, lang]);
+  const titleText = useMemo(
+    () => (isEdit ? "Editar evento" : "Novo evento"),
+    [isEdit]
+  );
 
   // GET por id (modo edição)
   useEffect(() => {
@@ -252,6 +258,10 @@ export function EventDetailLayout() {
         const data = await getEventById(idParam, { signal: ac.signal });
         if (reqId !== requestIdRef.current) return;
 
+        // heroImage / thumbnail vêm como string (id); form usa string[]
+        const heroIds = data.heroImage ? [data.heroImage] : [];
+        const thumbIds = data.thumbnail ? [data.thumbnail] : [];
+
         const defaults: FormValues = {
           title: {
             pt: data.title?.pt ?? "",
@@ -268,42 +278,53 @@ export function EventDetailLayout() {
             en: data.body?.en ?? "",
             es: data.body?.es ?? "",
           },
-          heroImage: data.heroImage ?? "",
-          thumbnail: data.thumbnail ?? "",
-          category: data.category ?? "",
-          company: data.company ?? "",
+          heroImage: heroIds,
+          thumbnail: thumbIds,
+          categoryId: data.categoryId != null ? String(data.categoryId) : "",
+          companyId: data.companyId != null ? String(data.companyId) : "",
           startDate: toDatetimeLocalInput(data.startDate),
           endDate: toDatetimeLocalInput(data.endDate),
           pricing: typeof data.pricing === "number" ? data.pricing : 0,
           externalTicketLink: data.externalTicketLink ?? "",
           facilities: Array.isArray(data.facilities)
-            ? data.facilities.filter((v: any): v is Facility => FACILITY_OPTIONS.includes(v))
+            ? data.facilities.filter((v: any): v is Facility =>
+                FACILITY_OPTIONS.includes(v)
+              )
             : [],
-          sponsored: !!data.sponsored,
+          isSponsored: !!data.isSponsored,
           active: !!data.active,
 
           recorrente: !!data.recurrence,
           recurrence: data.recurrence
             ? {
                 rrule: data.recurrence.rrule ?? "",
-                until: toDatetimeLocalInput(data.recurrence.until),
-                rdates: Array.isArray(data.recurrence.rdates)
-                  ? data.recurrence.rdates.map(toDatetimeLocalInput).filter(Boolean)
-                  : [],
-                exdates: Array.isArray(data.recurrence.exdates)
-                  ? data.recurrence.exdates.map(toDatetimeLocalInput).filter(Boolean)
-                  : [],
+                until: data.recurrence.until
+                  ? new Date(data.recurrence.until).toISOString().slice(0, 10)
+                  : "",
+                rdates:
+                  data.recurrence.rdates?.map((d: any) =>
+                    new Date(d).toISOString().slice(0, 10)
+                  ) ?? [],
+                exdates:
+                  data.recurrence.exdates?.map((d: any) =>
+                    new Date(d).toISOString().slice(0, 10)
+                  ) ?? [],
               }
             : undefined,
         };
 
         form.reset(defaults);
-        const current = defaults.body[lang] || "";
-        if (editor) editor.commands.setContent(current);
+
+        // sincroniza editor com o idioma atual
+        const html = defaults.body[lang];
+        if (editor) {
+          editor.commands.setContent(html || "", false);
+        }
       } catch (e) {
         if (reqId !== requestIdRef.current) return;
         if (!isAbortError(e)) {
-          const msg = e instanceof Error ? e.message : "Falha ao carregar evento.";
+          const msg =
+            e instanceof Error ? e.message : "Falha ao carregar evento.";
           setError(msg);
         }
       } finally {
@@ -315,16 +336,16 @@ export function EventDetailLayout() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [idParam, isEdit]);
 
-  const titleText = useMemo(() => (isEdit ? "Editar evento" : "Novo evento"), [isEdit]);
-
   const onSubmit: SubmitHandler<FormValues> = async (values) => {
     try {
       setSaving(true);
       setError(undefined);
 
-      // Monta payload da API
-      const payload: EventDetail = {
-        id: idParam ?? "",
+      const heroId = values.heroImage[0];
+      const thumbId = values.thumbnail[0];
+
+      const payload: Event = {
+        id: Number(idParam ?? 0),
         title: {
           pt: values.title.pt.trim(),
           en: values.title.en.trim(),
@@ -340,16 +361,19 @@ export function EventDetailLayout() {
           en: values.body.en,
           es: values.body.es,
         },
-        heroImage: values.heroImage,
-        thumbnail: values.thumbnail,
-        category: values.category,
-        company: values.company,
+
+        heroImage: heroId,
+        thumbnail: thumbId,
+
+        categoryId: Number(values.categoryId),
+        companyId: Number(values.companyId),
+
         startDate: new Date(values.startDate),
         endDate: new Date(values.endDate),
         pricing: values.pricing,
         externalTicketLink: values.externalTicketLink ?? "",
         facilities: values.facilities,
-        sponsored: values.sponsored,
+        isSponsored: values.isSponsored,
         active: values.active,
 
         // Somente envia recorrência se ligado
@@ -358,8 +382,12 @@ export function EventDetailLayout() {
             ? {
                 rrule: values.recurrence.rrule.trim(),
                 until: new Date(values.recurrence.until),
-                rdates: (values.recurrence.rdates ?? []).map((d) => new Date(d)),
-                exdates: (values.recurrence.exdates ?? []).map((d) => new Date(d)),
+                rdates: (values.recurrence.rdates ?? []).map(
+                  (d) => new Date(d)
+                ),
+                exdates: (values.recurrence.exdates ?? []).map(
+                  (d) => new Date(d)
+                ),
               }
             : undefined,
       };
@@ -377,16 +405,28 @@ export function EventDetailLayout() {
   };
 
   // util: gerar slug a partir do título do idioma atual
-  const generateSlugFor = (l: LangCode) => {
-    const t = form.getValues(titlePath(l)) ?? "";
-    form.setValue(slugPath(l), slugify(t), { shouldDirty: true, shouldValidate: true });
+  const handleGenerateSlug = () => {
+    const currentTitle = form.getValues(titlePath(lang)) ?? "";
+    const currentSlug = form.getValues(slugPath(lang)) ?? "";
+    if (!currentTitle.trim()) return;
+    if (currentSlug && !window.confirm("Substituir o slug atual?")) return;
+
+    const nextSlug = slugify(currentTitle);
+    form.setValue(slugPath(lang), nextSlug, {
+      shouldDirty: true,
+      shouldValidate: true,
+    });
   };
+
+  const currentTabIsContent = tab === "content";
 
   return (
     <Card className="shadow-sm">
       <CardHeader>
         <CardTitle>{titleText}</CardTitle>
-        <CardDescription>Gerencie os dados multilíngua do evento e a recorrência</CardDescription>
+        <CardDescription>
+          Gerencie o conteúdo do evento, imagens, datas e recorrência.
+        </CardDescription>
       </CardHeader>
 
       <CardContent>
@@ -404,57 +444,290 @@ export function EventDetailLayout() {
           </div>
         ) : (
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-6" aria-busy={saving}>
-              {/* Idiomas + principais */}
-              <div className="grid gap-6 md:grid-cols-5">
-                {/* Menu lateral de idiomas */}
-                <aside className="md:col-span-1">
-                  <div className="rounded-lg border p-2">
-                    <div className="px-2 py-1 text-xs font-medium uppercase text-muted-foreground">
-                      Idiomas
-                    </div>
-                    <div className="mt-2 flex flex-col gap-2">
-                      {LANGS.map((l) => {
-                        const active = l.code === lang;
-                        return (
-                          <Button
-                            key={l.code}
-                            type="button"
-                            variant={active ? "default" : "outline"}
-                            className="justify-start gap-3"
-                            onClick={() => setLang(l.code)}
-                            aria-pressed={active}
-                          >
-                            <img
-                              src={`/admin/languages/${l.flag}.svg`}
-                              alt={l.label}
-                              className="h-4 w-4 rounded-full object-cover"
-                            />
-                            <span className="font-medium">{l.label}</span>
-                          </Button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </aside>
+            <form
+              onSubmit={form.handleSubmit(onSubmit)}
+              className="grid gap-6"
+              aria-busy={saving}
+            >
+              {/* Aba de navegação simples */}
+              <div className="flex gap-2 border-b pb-2 mb-4 text-sm">
+                <button
+                  type="button"
+                  onClick={() => setTab("content")}
+                  className={
+                    currentTabIsContent
+                      ? "border-b-2 border-primary font-medium"
+                      : "text-muted-foreground"
+                  }
+                >
+                  Conteúdo
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTab("settings")}
+                  className={
+                    !currentTabIsContent
+                      ? "border-b-2 border-primary font-medium"
+                      : "text-muted-foreground"
+                  }
+                >
+                  Configurações
+                </button>
+              </div>
 
-                {/* Campos do idioma ativo */}
-                <section key={lang} className="md:col-span-4 grid gap-4">
+              {/* Tab Conteúdo */}
+              {currentTabIsContent && (
+                <div className="grid gap-6">
+                  <div className="grid gap-6 md:grid-cols-5">
+                    {/* Menu lateral de idiomas */}
+                    <aside className="md:col-span-1">
+                      <div className="rounded-lg border p-2">
+                        <div className="px-2 py-1 text-xs font-medium uppercase text-muted-foreground">
+                          Idiomas
+                        </div>
+                        <div className="mt-2 flex flex-col gap-2">
+                          {LANGS.map((l) => {
+                            const active = l.code === lang;
+                            return (
+                              <Button
+                                key={l.code}
+                                type="button"
+                                variant={active ? "default" : "outline"}
+                                className="justify-start gap-3"
+                                onClick={() => setLang(l.code)}
+                                aria-pressed={active}
+                              >
+                                <img
+                                  src={`/admin/languages/${l.flag}.svg`}
+                                  alt={l.label}
+                                  className="h-4 w-4 rounded-full object-cover"
+                                />
+                                <span className="font-medium">
+                                  {l.label}
+                                </span>
+                              </Button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </aside>
+
+                    {/* Campos do idioma ativo */}
+                    <section key={lang} className="md:col-span-4 grid gap-4">
+                      <FormField
+                        control={form.control}
+                        name={titlePath(lang)}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Título ({lang.toUpperCase()})</FormLabel>
+                            <FormControl>
+                              <Input
+                                name={field.name}
+                                ref={field.ref}
+                                value={field.value ?? ""}
+                                onChange={(e) =>
+                                  field.onChange(e.target.value)
+                                }
+                                onBlur={field.onBlur}
+                                placeholder="Título do evento"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name={slugPath(lang)}
+                        render={({ field }) => (
+                          <FormItem>
+                            <div className="flex items-center justify-between gap-2">
+                              <FormLabel>
+                                Slug ({lang.toUpperCase()})
+                              </FormLabel>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                onClick={handleGenerateSlug}
+                              >
+                                Gerar slug
+                              </Button>
+                            </div>
+                            <FormControl>
+                              <Input
+                                name={field.name}
+                                ref={field.ref}
+                                value={field.value ?? ""}
+                                onChange={(e) =>
+                                  field.onChange(e.target.value)
+                                }
+                                onBlur={field.onBlur}
+                                placeholder="meu-evento-incrivel"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      {/* Editor Rich Text */}
+                      <FormField
+                        control={form.control}
+                        name={bodyPath(lang)}
+                        render={() => (
+                          <FormItem>
+                            <FormLabel>Descrição ({lang.toUpperCase()})</FormLabel>
+                            <div className="border rounded-md p-2 min-h-[220px]">
+                              <EditorContent editor={editor} />
+                            </div>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </section>
+                  </div>
+                </div>
+              )}
+
+              {/* Tab Configurações */}
+              {!currentTabIsContent && (
+                <div className="grid gap-6">
+                  {/* Imagens */}
+                  <div className="grid gap-4 md:grid-cols-2">
+                    {/* Hero Image */}
+                    <FormField
+                      control={form.control}
+                      name="heroImage"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Imagem principal</FormLabel>
+                          <FormControl>
+                            <FileUpload
+                              accept="image/*"
+                              maxSizeMB={5}
+                              maxFiles={1}
+                              name={field.name}
+                              value={field.value ?? []}
+                              onChange={field.onChange}
+                              onBlur={field.onBlur}
+                              ref={field.ref}
+                              loadPreview={async (id: any) => {
+                                const {
+                                  url,
+                                  name,
+                                  size,
+                                  contentType,
+                                } = await getPreviewUrl(id);
+                                return { url, name, size, contentType };
+                              }}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    {/* Thumbnail */}
+                    <FormField
+                      control={form.control}
+                      name="thumbnail"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Thumbnail</FormLabel>
+                          <FormControl>
+                            <FileUpload
+                              accept="image/*"
+                              maxSizeMB={5}
+                              maxFiles={1}
+                              name={field.name}
+                              value={field.value ?? []}
+                              onChange={field.onChange}
+                              onBlur={field.onBlur}
+                              ref={field.ref}
+                              loadPreview={async (id: any) => {
+                                const {
+                                  url,
+                                  name,
+                                  size,
+                                  contentType,
+                                } = await getPreviewUrl(id);
+                                return { url, name, size, contentType };
+                              }}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  {/* Categoria / Empresa */}
                   <div className="grid gap-4 md:grid-cols-2">
                     <FormField
                       control={form.control}
-                      name={titlePath(lang)}
+                      name="categoryId"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Título ({lang.toUpperCase()})</FormLabel>
+                          <FormLabel>Categoria</FormLabel>
+                          <FormControl>
+                            <CategoryAutocomplete
+                              value={
+                                field.value
+                                  ? String(field.value)
+                                  : null
+                              }
+                              parent={false}
+                              onChange={(id) =>
+                                field.onChange(id ?? "")
+                              }
+                              disabled={saving}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="companyId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Empresa</FormLabel>
+                          <FormControl>
+                            <CompanyAutocomplete
+                              value={
+                                field.value
+                                  ? String(field.value)
+                                  : null
+                              }
+                              onChange={(id) =>
+                                field.onChange(id ?? "")
+                              }
+                              disabled={saving}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  {/* Datas / Preço */}
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <FormField
+                      control={form.control}
+                      name="startDate"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Início</FormLabel>
                           <FormControl>
                             <Input
-                              name={field.name}
-                              ref={field.ref}
+                              type="datetime-local"
                               value={field.value ?? ""}
-                              onChange={(e) => field.onChange(e.target.value)}
-                              onBlur={field.onBlur}
-                              placeholder="Título do evento"
+                              onChange={field.onChange}
                             />
                           </FormControl>
                           <FormMessage />
@@ -463,361 +736,186 @@ export function EventDetailLayout() {
                     />
                     <FormField
                       control={form.control}
-                      name={slugPath(lang)}
+                      name="endDate"
                       render={({ field }) => (
                         <FormItem>
-                          <div className="flex items-end gap-2">
-                            <div className="flex-1">
-                              <FormLabel>Slug ({lang.toUpperCase()})</FormLabel>
-                              <FormControl>
-                                <Input
-                                  name={field.name}
-                                  ref={field.ref}
-                                  value={field.value ?? ""}
-                                  onChange={(e) => field.onChange(e.target.value)}
-                                  onBlur={(e) => field.onChange(slugify(e.target.value))}
-                                  placeholder="titulo-do-evento"
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </div>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              className="shrink-0"
-                              onClick={() => generateSlugFor(lang)}
-                              title="Gerar slug a partir do título"
-                            >
-                              Gerar
-                            </Button>
-                          </div>
+                          <FormLabel>Fim</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="datetime-local"
+                              value={field.value ?? ""}
+                              onChange={field.onChange}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="pricing"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Preço (R$)</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              inputMode="decimal"
+                              value={Number.isFinite(field.value as number)
+                                ? String(field.value)
+                                : ""}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                field.onChange(
+                                  val === "" ? 0 : Number(val)
+                                );
+                              }}
+                            />
+                          </FormControl>
+                          <FormMessage />
                         </FormItem>
                       )}
                     />
                   </div>
 
-                  {/* WYSIWYG TipTap - controlado por body[lang] */}
+                  {/* Link externo */}
                   <FormField
                     control={form.control}
-                    name={bodyPath(lang)}
-                    render={() => (
-                      <FormItem>
-                        <FormLabel>Descrição ({lang.toUpperCase()})</FormLabel>
-                        <FormControl>
-                          <div className="border rounded-md">
-                            <div className="flex flex-wrap gap-1 border-b p-2 text-sm">
-                              <button
-                                type="button"
-                                onClick={() => editor?.chain().focus().toggleBold().run()}
-                                className="px-2 py-1 rounded hover:bg-muted"
-                              >
-                                <strong>B</strong>
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => editor?.chain().focus().toggleItalic().run()}
-                                className="px-2 py-1 rounded hover:bg-muted italic"
-                              >
-                                I
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => editor?.chain().focus().toggleStrike().run()}
-                                className="px-2 py-1 rounded hover:bg-muted line-through"
-                              >
-                                S
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => editor?.chain().focus().toggleBulletList().run()}
-                                className="px-2 py-1 rounded hover:bg-muted"
-                              >
-                                • Lista
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => editor?.chain().focus().toggleOrderedList().run()}
-                                className="px-2 py-1 rounded hover:bg-muted"
-                              >
-                                1. Lista
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const href = window.prompt("URL do link") || "";
-                                  if (href) editor?.chain().focus().setLink({ href }).run();
-                                }}
-                                className="px-2 py-1 rounded hover:bg-muted"
-                              >
-                                Link
-                              </button>
-                            </div>
-
-                            <EditorContent editor={editor} className="prose max-w-none p-3 min-h-[200px]" />
-                          </div>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </section>
-              </div>
-
-              {/* Imagens */}
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="min-w-0 overflow-hidden">
-                  <FormField
-                    control={form.control}
-                    name="heroImage"
+                    name="externalTicketLink"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Imagem principal</FormLabel>
+                        <FormLabel>Link externo para ingressos</FormLabel>
                         <FormControl>
-                          <FileUpload
-                            accept="image/*"
-                            maxSizeMB={5}
+                          <Input
                             name={field.name}
-                            value={field.value}
-                            onChange={field.onChange}
-                            onBlur={field.onBlur}
                             ref={field.ref}
-                            loadPreview={async (id) => {
-                              const { url, name, size, contentType } = await getPreviewUrl(id);
-                              return { url, name, size, contentType };
-                            }}
+                            value={field.value ?? ""}
+                            onChange={(e) =>
+                              field.onChange(e.target.value)
+                            }
+                            onBlur={field.onBlur}
+                            placeholder="https://..."
                           />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                </div>
 
-                <div className="min-w-0 overflow-hidden">
+                  {/* Facilities */}
                   <FormField
                     control={form.control}
-                    name="thumbnail"
+                    name="facilities"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Thumbnail</FormLabel>
-                        <FormControl>
-                          <FileUpload
-                            accept="image/*"
-                            maxSizeMB={5}
-                            name={field.name}
-                            value={field.value}
-                            onChange={field.onChange}
-                            onBlur={field.onBlur}
-                            ref={field.ref}
-                            loadPreview={async (id) => {
-                              const { url, name, size, contentType } = await getPreviewUrl(id);
-                              return { url, name, size, contentType };
-                            }}
-                          />
-                        </FormControl>
+                        <FormLabel>Facilidades</FormLabel>
+                        <div className="mt-2 grid gap-2 md:grid-cols-3">
+                          {FACILITY_OPTIONS.map((f) => {
+                            const checked = field.value?.includes(f);
+                            return (
+                              <label
+                                key={f}
+                                className="flex items-center gap-2 text-sm"
+                              >
+                                <Checkbox
+                                  checked={checked}
+                                  onCheckedChange={(v) => {
+                                    const curr = field.value ?? [];
+                                    if (v) {
+                                      if (!curr.includes(f)) {
+                                        field.onChange([...curr, f]);
+                                      }
+                                    } else {
+                                      field.onChange(
+                                        curr.filter((x) => x !== f)
+                                      );
+                                    }
+                                  }}
+                                />
+                                <span>{f}</span>
+                              </label>
+                            );
+                          })}
+                        </div>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                </div>
-              </div>
 
-              {/* Categoria / Empresa */}
-              <div className="grid gap-4 md:grid-cols-2">
-                <FormField
-                  control={form.control}
-                  name="category"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Categoria</FormLabel>
-                      <FormControl>
-                        <CategoryAutocomplete
-                          value={field.value ? String(field.value) : null}
-                          parent={false}
-                          onChange={(id) => field.onChange(id ?? "")}
-                          disabled={saving}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="company"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Empresa</FormLabel>
-                      <FormControl>
-                        <CompanyAutocomplete
-                          value={field.value ? String(field.value) : null}
-                          onChange={(id) => field.onChange(id ?? "")}
-                          disabled={saving}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              {/* Datas */}
-              <div className="grid gap-4 md:grid-cols-2">
-                <FormField
-                  control={form.control}
-                  name="startDate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Início</FormLabel>
-                      <FormControl>
-                        <Input type="datetime-local" value={field.value ?? ""} onChange={field.onChange} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="endDate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Fim</FormLabel>
-                      <FormControl>
-                        <Input type="datetime-local" value={field.value ?? ""} onChange={field.onChange} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              {/* Recorrência (usa seu componente) */}
-              <FormField
-                control={form.control}
-                name="recorrente"
-                render={({ field }) => (
-                  <RecurrenceEditor
-                    enabled={field.value}
-                    onToggleEnabled={(v) => field.onChange(Boolean(v))}
-                    value={form.watch("recurrence")}
-                    onChange={(val) =>
-                      form.setValue("recurrence", val, { shouldDirty: true, shouldValidate: true })
-                    }
-                    disabled={saving}
+                  {/* Recorrência (usa seu componente) */}
+                  <FormField
+                    control={form.control}
+                    name="recorrente"
+                    render={({ field }) => (
+                      <RecurrenceEditor
+                        enabled={field.value}
+                        onToggleEnabled={(v) =>
+                          field.onChange(Boolean(v))
+                        }
+                        value={form.watch("recurrence")}
+                        onChange={(val) =>
+                          form.setValue("recurrence", val, {
+                            shouldDirty: true,
+                            shouldValidate: true,
+                          })
+                        }
+                        disabled={saving}
+                      />
+                    )}
                   />
-                )}
-              />
 
-              {/* Preço / Link externo */}
-              <div className="grid gap-4 md:grid-cols-2">
-                <FormField
-                  control={form.control}
-                  name="pricing"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Preço (R$)</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          inputMode="decimal"
-                          value={Number.isFinite(field.value as number) ? String(field.value) : ""}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            field.onChange(val === "" ? 0 : Number(val));
-                          }}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="externalTicketLink"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Ingresso externo (Sympla etc.)</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="URL do site de ingressos"
-                          value={field.value ?? ""}
-                          onChange={field.onChange}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              {/* Facilidades */}
-              <div className="space-y-2">
-                <FormLabel>Facilidades</FormLabel>
-                <div className="grid gap-2 md:grid-cols-3">
-                  {FACILITY_OPTIONS.map((opt) => (
+                  {/* Flags */}
+                  <div className="grid gap-4 md:grid-cols-3">
                     <FormField
-                      key={opt}
                       control={form.control}
-                      name="facilities"
-                      render={({ field }) => {
-                        const value: Facility[] = field.value ?? [];
-                        const checked = value.includes(opt);
-                        return (
-                          <FormItem className="flex items-center gap-2 space-y-0">
-                            <FormControl>
-                              <Checkbox
-                                checked={checked}
-                                onCheckedChange={(v) => {
-                                  const want = Boolean(v);
-                                  const set = new Set(value);
-                                  if (want) set.add(opt);
-                                  else set.delete(opt);
-                                  field.onChange(Array.from(set));
-                                }}
-                              />
-                            </FormControl>
-                            <FormLabel className="font-normal">{opt}</FormLabel>
-                          </FormItem>
-                        );
-                      }}
+                      name="active"
+                      render={({ field }) => (
+                        <FormItem className="flex items-center gap-3 pt-4">
+                          <FormLabel className="mb-0">Ativo</FormLabel>
+                          <FormControl>
+                            <Switch
+                              checked={field.value}
+                              onCheckedChange={(v) =>
+                                field.onChange(Boolean(v))
+                              }
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )}
                     />
-                  ))}
-                </div>
-                <FormMessage />
-              </div>
 
-              {/* Estados */}
-              <div className="grid gap-4 md:grid-cols-2">
-                <FormField
-                  control={form.control}
-                  name="sponsored"
-                  render={({ field }) => (
-                    <FormItem className="flex items-center gap-3 pt-6">
-                      <FormLabel className="mb-0">Patrocinado</FormLabel>
-                      <FormControl>
-                        <Switch checked={field.value} onCheckedChange={(v) => field.onChange(Boolean(v))} />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="active"
-                  render={({ field }) => (
-                    <FormItem className="flex items-center gap-3 pt-6">
-                      <FormLabel className="mb-0">Ativo</FormLabel>
-                      <FormControl>
-                        <Switch checked={field.value} onCheckedChange={(v) => field.onChange(Boolean(v))} />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-              </div>
+                    <FormField
+                      control={form.control}
+                      name="isSponsored"
+                      render={({ field }) => (
+                        <FormItem className="flex items-center gap-3 pt-4">
+                          <FormLabel className="mb-0">
+                            Evento patrocinado
+                          </FormLabel>
+                          <FormControl>
+                            <Switch
+                              checked={field.value}
+                              onCheckedChange={(v) =>
+                                field.onChange(Boolean(v))
+                              }
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
+              )}
 
               {/* Ações */}
               <div className="flex items-center justify-end gap-2">
-                <Button type="button" variant="outline" onClick={() => navigate(-1)} disabled={saving}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => navigate(-1)}
+                  disabled={saving}
+                >
                   Cancelar
                 </Button>
                 <Button type="submit" disabled={saving}>

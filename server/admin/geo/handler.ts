@@ -4,7 +4,7 @@ import { listCitiesByStateAsync, listCountriesAsync, listStatesByCountryAsync } 
 import { config } from "./config";
 import { Country, State, City } from "domain/geo/types";
 
-export async function getCountriesAsync(event: APIGatewayProxyEvent): Promise<DefaultResponse> {
+export async function getCountriesAsync(): Promise<DefaultResponse> {
     const countries: Country[] = await listCountriesAsync(config);
     if (countries) {
         return {

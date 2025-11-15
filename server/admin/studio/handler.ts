@@ -5,7 +5,7 @@ import { Studio } from '@studio/types';
 import { validateStudio } from '@studio/validator';
 import { getStudioAsync, insertStudioAsync, updateStudioAsync } from '@studio/store';
 
-export async function getHandler(event: APIGatewayProxyEvent): Promise<DefaultResponse> {
+export async function getHandler(): Promise<DefaultResponse> {
     const item: Studio | undefined = await getStudioAsync(config);
     if (item) {
         return {

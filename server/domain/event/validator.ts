@@ -1,81 +1,134 @@
-import { EventRequest } from "./types";
+import { Event } from "./types";
 
-export function validateEvent(event: EventRequest): string[] {
-  const errors: string[] = [];
+/** Helpers */
+function isDefined<T>(v: T | null | undefined): v is T {
+  return v !== null && v !== undefined;
+}
 
-  const isEmpty = (value?: string | null) =>
-    !value || value.trim().length < 2;
+function parseDate(value: any): Date {
+  if (value instanceof Date) return value;
+  return new Date(String(value));
+}
 
-  // slug
-  if (
-    !event.slug ||
-    isEmpty(event.slug.pt) ||
-    isEmpty(event.slug.en) ||
-    isEmpty(event.slug.es)
-  )
-    errors.push("O campo `slug` deve ser informado em todos os idiomas (pt, en, es).");
+function isValidDateValue(value: any): boolean {
+  const d = parseDate(value);
+  return !isNaN(d.getTime());
+}
 
-  // title
-  if (
-    !event.title ||
-    isEmpty(event.title.pt) ||
-    isEmpty(event.title.en) ||
-    isEmpty(event.title.es)
-  )
-    errors.push("O campo `title` deve ser informado em todos os idiomas (pt, en, es).");
-
-  // body
-  if (
-    !event.body ||
-    isEmpty(event.body.pt) ||
-    isEmpty(event.body.en) ||
-    isEmpty(event.body.es)
-  )
-    errors.push("O campo `body` deve ser informado em todos os idiomas (pt, en, es).");
-
-  // heroImage
-  if (!event.heroImage || event.heroImage.trim().length < 2)
-    errors.push("O campo `heroImage` deve ser informado.");
-
-  // thumbnail
-  if (!event.thumbnail || event.thumbnail.trim().length < 2)
-    errors.push("O campo `thumbnail` deve ser informado.");
-
-  // category
-  if (!event.category || event.category.trim().length < 2)
-    errors.push("O campo `category` deve ser informado.");
-
-  // company
-  if (!event.company || event.company.trim().length < 2)
-    errors.push("O campo `company` deve ser informado.");
-
-  // startDate e endDate
-  if (!event.startDate)
-    errors.push("O campo `startDate` deve ser informado.");
-  if (!event.endDate)
-    errors.push("O campo `endDate` deve ser informado.");
-  if (event.startDate && event.endDate) {
-    const start = new Date(event.startDate);
-    const end = new Date(event.endDate);
-    if (isNaN(start.getTime()) || isNaN(end.getTime()))
-      errors.push("As datas `startDate` e `endDate` devem estar em formato válido.");
-    else if (end < start)
-      errors.push("A data `endDate` não pode ser anterior à `startDate`.");
+function validateI18nValue(name: string, value: any, errors: string[]) {
+  if (!value) {
+    errors.push(`${name} é obrigatório.`);
+    return;
   }
 
-  // pricing
-  if (event.pricing == null || isNaN(Number(event.pricing)) || Number(event.pricing) < 0)
-    errors.push("O campo `pricing` deve ser um número válido e não negativo.");
+  const langs = ["pt", "en", "es"];
+  const hasAtLeastOne = langs.some(
+    (l) => typeof value[l] === "string" && value[l].trim() !== ""
+  );
 
-  // facilities
-  if (!event.facilities || !Array.isArray(event.facilities) || event.facilities.length === 0)
-    errors.push("O campo `facilities` deve conter ao menos um item.");
+  if (!hasAtLeastOne) {
+    errors.push(`${name} deve ter pelo menos 1 idioma preenchido.`);
+  }
+}
 
-  // externalTicketLink (opcional, mas se informado, deve ser uma URL válida)
-  if (event.externalTicketLink && !/^https?:\/\/\S+$/i.test(event.externalTicketLink))
-    errors.push("O campo `externalTicketLink`, se informado, deve ser uma URL válida.");
+function validateDate(name: string, value: any, errors: string[]) {
+  if (!isDefined(value)) {
+    errors.push(`${name} é obrigatório.`);
+    return;
+  }
 
-  // TODO: Validate if category already exists (ex: via banco ou repositório externo)
+  if (!isValidDateValue(value)) {
+    errors.push(`${name} é inválida.`);
+  }
+}
+
+function validatePositiveNumber(name: string, n: any, errors: string[]) {
+  if (!isDefined(n)) {
+    errors.push(`${name} é obrigatório.`);
+    return;
+  }
+  if (typeof n !== "number" || n < 0) {
+    errors.push(`${name} deve ser um número >= 0.`);
+  }
+}
+
+export function validateEvent(event: Event): string[] {
+  const errors: string[] = [];
+
+  // --- I18n ---
+  validateI18nValue("title", event.title, errors);
+  validateI18nValue("slug", event.slug, errors);
+  validateI18nValue("body", event.body, errors);
+
+  if (!(event as any).categoryId) errors.push("categoryId é obrigatório.");
+  if (!(event as any).companyId) errors.push("companyId é obrigatório.");
+
+  // --- Imagens ---
+  if (!event.heroImage) errors.push("heroImage é obrigatório.");
+  if (!event.thumbnail) errors.push("thumbnail é obrigatório.");
+
+  // --- Datas base ---
+  validateDate("startDate", event.startDate, errors);
+  validateDate("endDate", event.endDate, errors);
+
+  if (isDefined(event.startDate) && isDefined(event.endDate)) {
+    const start = parseDate(event.startDate);
+    const end = parseDate(event.endDate);
+
+    if (isValidDateValue(start) && isValidDateValue(end) && end.getTime() < start.getTime()) {
+      errors.push("endDate deve ser maior ou igual a startDate.");
+    }
+  }
+
+  // --- Pricing ---
+  validatePositiveNumber("pricing", event.pricing, errors);
+
+  // --- URL externa ---
+  if (event.externalTicketLink) {
+    try {
+      new URL(event.externalTicketLink);
+    } catch {
+      errors.push("externalTicketLink deve ser uma URL válida.");
+    }
+  }
+
+  // --- Facilities ---
+  if ((event as any).facilities && !Array.isArray((event as any).facilities)) {
+    errors.push("facilities deve ser uma array.");
+  }
+
+  // --- Sponsored Periods ---
+  if ((event as any).sponsoredPeriods) {
+    for (const sp of (event as any).sponsoredPeriods) {
+      validateDate("sponsoredPeriod.startDate", sp.startDate, errors);
+      validateDate("sponsoredPeriod.endDate", sp.endDate, errors);
+    }
+  }
+
+  // --- Occurrences ---
+  if ((event as any).occurrences) {
+    for (const oc of (event as any).occurrences) {
+      validateDate("occurrenceDate", oc.occurrenceDate, errors);
+    }
+  }
+
+  // --- Recurrence ---
+  if (event.recurrence) {
+    const r = event.recurrence;
+
+    if (!r.rrule || typeof r.rrule !== "string") {
+      errors.push("recurrence.rrule é obrigatório e deve ser string.");
+    }
+
+    validateDate("recurrence.until", r.until, errors);
+
+    if (r.exdates && !Array.isArray(r.exdates)) {
+      errors.push("recurrence.exdates deve ser um array de datas.");
+    }
+    if (r.rdates && !Array.isArray(r.rdates)) {
+      errors.push("recurrence.rdates deve ser um array de datas.");
+    }
+  }
 
   return errors;
 }

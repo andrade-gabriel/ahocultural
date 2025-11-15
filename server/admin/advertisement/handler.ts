@@ -5,7 +5,7 @@ import { Advertisement } from '@advertisement/types';
 import { validateAdvertisement } from '@advertisement/validator';
 import { getAdvertisementAsync, insertAdvertisementAsync, updateAdvertisementAsync } from '@advertisement/store';
 
-export async function getHandler(event: APIGatewayProxyEvent): Promise<DefaultResponse> {
+export async function getHandler(): Promise<DefaultResponse> {
     const article: Advertisement | undefined = await getAdvertisementAsync(config);
     if (article) {
         return {

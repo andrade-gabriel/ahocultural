@@ -10,10 +10,6 @@ import type {
 import { mapLocationRowToLocation, mapRowToLocationDistrict } from './mapper';
 import { Pool } from 'mysql2/promise';
 
-function escapeLikeTermRaw(term: string): string {
-  return term.replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_');
-}
-
 let _sharedPool: Pool | undefined;
 
 function getSharedPool(config: DatabaseConfig): Pool {

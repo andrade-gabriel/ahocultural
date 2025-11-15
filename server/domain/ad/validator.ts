@@ -5,9 +5,6 @@ type AnyAd = Ad | AdCategory | AdMenu;
 const isEmpty = (value?: string | null) =>
   !value || value.trim().length < 2;
 
-const isValidDate = (value: unknown): value is Date =>
-  value instanceof Date && !isNaN(value.getTime());
-
 const isNonNegativeNumber = (value: unknown): value is number =>
   typeof value === "number" && !isNaN(value) && value >= 0;
 

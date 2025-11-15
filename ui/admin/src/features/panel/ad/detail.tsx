@@ -143,29 +143,6 @@ function toDateInputValue(d: Date | string | undefined): string {
     return `${yyyy}-${mm}-${dd}`;
 }
 
-function formatBRL(value?: number | null): string {
-    if (value == null || Number.isNaN(value)) return "";
-    return value.toLocaleString("pt-BR", {
-        style: "currency",
-        currency: "BRL",
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-    });
-}
-
-function parseBRL(input: string): number | undefined {
-    if (!input) return undefined;
-
-    // tira "R$", espaços e pontos de milhar
-    const cleaned = input
-        .replace(/[R$\s]/g, "")
-        .replace(/\./g, "")
-        .replace(",", ".");
-
-    const n = Number(cleaned);
-    return Number.isNaN(n) ? undefined : n;
-}
-
 /* ---------- page ---------- */
 
 export function AdDetailLayout() {
@@ -476,7 +453,7 @@ export function AdDetailLayout() {
                                                                 getOptionValue={(item) => String((item as any).id)}
                                                                 // RHF trabalha com string, SyncSelect espera string | null
                                                                 value={field.value ?? null}
-                                                                onChange={(value, item) => {
+                                                                onChange={(value) => {
                                                                     // no form salvamos sempre string (ou "")
                                                                     field.onChange(value ?? "");
                                                                 }}

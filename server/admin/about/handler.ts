@@ -5,7 +5,7 @@ import { About } from '@about/types';
 import { validateAbout } from '@about/validator';
 import { getAboutAsync, insertAboutAsync, updateAboutAsync } from '@about/store';
 
-export async function getHandler(event: APIGatewayProxyEvent): Promise<DefaultResponse> {
+export async function getHandler(): Promise<DefaultResponse> {
     const article: About | undefined = await getAboutAsync(config);
     if (article) {
         return {
